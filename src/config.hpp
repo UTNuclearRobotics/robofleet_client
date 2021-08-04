@@ -159,6 +159,37 @@ static void configure_msg_types(RosClientNode& cn) {
                    .to("/initialpose"));
 
   // Add additional topics to subscribe and publish here.
+<<<<<<< HEAD
   
+=======
+  cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
+                   .from("/detected")
+                   .to(webviz_constants::detected_topic)
+                   .rate_limit_hz(1));
+
+  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
+                   .from("/2D_regal/detected")
+                   .to("/2D_regal/detected"));
+
+  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
+                   .from("/2D_regal/status")
+                   .to("/2D_regal/status"));
+
+  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
+                   .from("/2D_regal/localization")
+                   .to("/2D_regal/localization"));
+
+  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
+                   .from("/2D_walrus/detected")
+                   .to("/2D_walrus/detected"));
+
+  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
+                   .from("/2D_walrus/status")
+                   .to("/2D_walrus/status"));
+
+  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
+                   .from("/2D_walrus/localization")
+                   .to("/2D_walrus/localization"));                   
+>>>>>>> f1c237348a0fc7ca42a82c143fbb5448bd2eaabf
 }
 }  // namespace config
