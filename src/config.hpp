@@ -142,6 +142,12 @@ static void configure_msg_types(RosClientNode& cn) {
                    .to(webviz_constants::visualization_topic)
                    .rate_limit_hz(10)
                    .priority(2));
+  
+  cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
+                   .from("/detected")
+                   .to(webviz_constants::detected_topic)
+                   .rate_limit_hz(10));
+                   .priority(20));
 
   // receive remote commands
   cn.configure(ReceiveRemoteTopic<geometry_msgs::PoseStamped>()
@@ -153,9 +159,6 @@ static void configure_msg_types(RosClientNode& cn) {
                    .to("/initialpose"));
 
   // Add additional topics to subscribe and publish here.
-  cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
-                   .from("/detected")
-                   .to(webviz_constants::detected_topic)
-                   .rate_limit_hz(1));
+  
 }
 }  // namespace config
