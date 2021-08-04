@@ -159,9 +159,6 @@ static void configure_msg_types(RosClientNode& cn) {
                    .to("/initialpose"));
 
   // Add additional topics to subscribe and publish here.
-<<<<<<< HEAD
-  
-=======
   cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
                    .from("/detected")
                    .to(webviz_constants::detected_topic)
@@ -190,6 +187,5 @@ static void configure_msg_types(RosClientNode& cn) {
   cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
                    .from("/2D_walrus/localization")
                    .to("/2D_walrus/localization"));                   
->>>>>>> f1c237348a0fc7ca42a82c143fbb5448bd2eaabf
 }
 }  // namespace config
