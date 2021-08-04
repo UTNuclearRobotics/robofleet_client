@@ -146,7 +146,7 @@ static void configure_msg_types(RosClientNode& cn) {
   cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
                    .from("/detected")
                    .to(webviz_constants::detected_topic)
-                   .rate_limit_hz(10));
+                   .rate_limit_hz(10))
                    .priority(20));
 
   // receive remote commands
