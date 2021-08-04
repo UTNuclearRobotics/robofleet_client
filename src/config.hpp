@@ -146,8 +146,7 @@ static void configure_msg_types(RosClientNode& cn) {
   cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
                    .from("/detected")
                    .to(webviz_constants::detected_topic)
-                   .rate_limit_hz(10)
-                   .priority(20));
+                   .rate_limit_hz(1));
 
   // receive remote commands
   cn.configure(ReceiveRemoteTopic<geometry_msgs::PoseStamped>()
@@ -157,35 +156,19 @@ static void configure_msg_types(RosClientNode& cn) {
   cn.configure(ReceiveRemoteTopic<amrl_msgs::Localization2DMsg>()
                    .from("initialpose")
                    .to("/initialpose"));
+  
+  cn.configure(ReceiveRemoteTopic<amrl_msgs::RobofleetStatus>()
+                   .from("/2D_walrus/status")
+                   .to("/2D_walrus/status"));
 
-  // Add additional topics to subscribe and publish here.
-  cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
-                   .from("/detected")
-                   .to(webviz_constants::detected_topic)
-                   .rate_limit_hz(1));
-
-  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
-                   .from("/2D_regal/detected")
-                   .to("/2D_regal/detected"));
-
-  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
-                   .from("/2D_regal/status")
-                   .to("/2D_regal/status"));
-
-  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
-                   .from("/2D_regal/localization")
-                   .to("/2D_regal/localization"));
+  cn.configure(ReceiveRemoteTopic<amrl_msgs::Localization2DMsg>()
+                   .from("/2D_walrus/localization")
+                   .to("/2D_walrus/localization"));
 
   cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
                    .from("/2D_walrus/detected")
                    .to("/2D_walrus/detected"));
 
-  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
-                   .from("/2D_walrus/status")
-                   .to("/2D_walrus/status"));
-
-  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
-                   .from("/2D_walrus/localization")
-                   .to("/2D_walrus/localization"));                   
+  // Add additional topics to subscribe and publish here.
 }
 }  // namespace config
