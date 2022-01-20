@@ -24,7 +24,7 @@ Below is more information about configuration options in `src/config.hpp`.
 ## Build and Run
 
 1. `make` to build
-2. `roscore`to start ROS master
+2. `roscore` to start ROS master
 3. `ROS_NAMESPACE="robot_name" make run` to run
 
 
