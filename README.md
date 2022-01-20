@@ -1,4 +1,4 @@
-# robofleet_client
+# robofleet_client for AugRE
 
 *The Robofleet 2.0 Robot Client*
 
@@ -14,10 +14,23 @@
 ## Configuration
 
 The client must be configured before building.
-1. `cp src/config.example.hpp src/config.hpp`
-2. Edit parameters in `src/config.hpp`
+1. Edit parameters in `src/config.hpp`
+    * For AugRE Integration:
+        * Configure Server IP Address
+        * Ensure your local ros topics match the naming convention used in .from("/{LOCAL_ROS_MESSAGE_TOPIC_NAME}") 
 
 Below is more information about configuration options in `src/config.hpp`.
+
+## Build and Run
+
+1. `make` to build
+2. `roscore` to start ROS master
+3. `ROS_NAMESPACE="robot_name" make run` to run
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Instructions below are for Debug and Development
 
 ### Topic configuration
 You must tell the client exactly which ROS topics to exchange with the Robofleet server. To set which topics the client sends and receives, you can follow the examples in the `configure_msg_types()` function.
@@ -45,11 +58,6 @@ Direct mode does not have features such as authentication or subscriptions, nor 
 
 To switch to direct mode, set the `direct_mode` flag in `src/config.hpp` and make sure to choose a `direct_mode_port`. You may need to tune `direct_mode_bytes_per_sec`, increasing it to prevent dropped messages or decreasing it to prevent time lag when large amounts of message data are sent.
 
-## Building
-
-* `make` to build
-* `ROS_NAMESPACE="robot_name" make run` to run
-* `make format` to run clang-format
 
 ### Using namespaces
 
