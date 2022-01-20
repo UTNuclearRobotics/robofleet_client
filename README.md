@@ -16,9 +16,9 @@
 The client must be configured before building.
 1. `cp src/config.example.hpp src/config.hpp`
 2. Edit parameters in `src/config.hpp`
-    a. For AugRE Integration:
-        i. Configure Server IP Address
-       ii. Ensure your local ros topics match the naming convention used in .from("/{LOCAL_ROS_MESSAGE_TOPIC_NAME}") 
+    * For AugRE Integration:
+        * Configure Server IP Address
+        * Ensure your local ros topics match the naming convention used in .from("/{LOCAL_ROS_MESSAGE_TOPIC_NAME}") 
 
 Below is more information about configuration options in `src/config.hpp`.
 
