@@ -13,6 +13,7 @@
 #include <detection_msgs/DetectedItem.h>
 
 #include <string>
+#include <vector>
 
 #include "RosClientNode.hpp"
 #include "WebVizConstants.hpp"
@@ -23,10 +24,28 @@ using namespace topic_config;
 namespace config {
 static const std::string ros_node_name = "robofleet_client";
 
-// URL of robofleet_server instance (ignored in direct mode)
-//static const std::string host_url = "ws://localhost:8080";
+/*****************************************************************************************
+  Configure your Robotfleet Server IP Address
+*/
+
+// NRG Local Robofleet server URL
+static const std::string host_url = "ws://192.168.1.11:8080";
+
+// UT Robofleet server URL
+//static const std::string host_url = "ws://10.147.219.145:8080";
+
 // AMRL Robofleet server URL
-static const std::string host_url = "ws://10.0.0.1:8080";
+//static const std::string host_url = "ws://10.0.0.1:8080";
+
+// Developement Home Local Robofleet server URL
+//static const std::string host_url = "ws://192.168.0.137:8080";
+
+// ADD NEW SERVER CONFIG HERE
+
+//static const std::string host_url = "ws://{NEW_SERVER_IP}:8080";
+
+/*****************************************************************************************
+*/
 
 /**
  * Anti-backpressure for normal mode.
@@ -85,8 +104,15 @@ static const int verbosity = 1;
  *   need to be absolute since many ROS nodes might not use namespaces.
  * - To send to a special webviz topic, make use of webviz_constants.
  */
+
+
 static void configure_msg_types(RosClientNode& cn) {
   // Read all of the above documentation before modifying
+
+/*****************************************************************************************
+    Send Local Messages to the Robotfleet Server
+    .from("/{LOCAL_ROS_MESSAGE_TOPIC_NAME}") is the topic name to publish to.
+*/
 
   // must send to status topic to list robot in webviz
   cn.configure(SendLocalTopic<amrl_msgs::RobofleetStatus>()
@@ -102,29 +128,23 @@ static void configure_msg_types(RosClientNode& cn) {
                    .no_drop(true));
 
   // send messages for webviz
+
+  // Not needed if using GPS for position
   cn.configure(SendLocalTopic<amrl_msgs::Localization2DMsg>()
                    .from("/localization")
                    .to(webviz_constants::localization_topic)
                    .rate_limit_hz(10)
                    .priority(20));
 
-  cn.configure(SendLocalTopic<nav_msgs::Odometry>()
-                   .from("/odometry/raw")
-                   .to(webviz_constants::odometry_topic)
-                   .rate_limit_hz(15)
-                   .priority(20));
+  cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
+                   .from("/detected")
+                   .to(webviz_constants::detected_topic)
+                   .rate_limit_hz(1));
 
-  cn.configure(SendLocalTopic<sensor_msgs::LaserScan>()
-                   .from("/velodyne_2dscan")
-                   .to(webviz_constants::lidar_2d_topic)
-                   .rate_limit_hz(15)
-                   .priority(2));
-
-  cn.configure(SendLocalTopic<sensor_msgs::PointCloud2>()
-                   .from("/velodyne_points")
-                   .to(webviz_constants::point_cloud_topic)
-                   .rate_limit_hz(10)
-                   .priority(1));
+  cn.configure(SendLocalTopic<sensor_msgs::NavSatFix>()
+                    .from("/NavSatFix")
+                    .to(webviz_constants::nav_sat_fix_topic)
+                    .rate_limit_hz(1));
 
   cn.configure(SendLocalTopic<sensor_msgs::CompressedImage>()
                    .from("/stereo/left/image_raw/compressed")
@@ -136,39 +156,42 @@ static void configure_msg_types(RosClientNode& cn) {
                    .to(webviz_constants::compressed_image_prefix + "right")
                    .rate_limit_hz(10)
                    .priority(1));
+ 
+ /*****************************************************************************************
+    Debugging and Development Purposes Only. 
+    Receive Other Robotfleet Client Messages
+    The following "ReceiveRemoteTopics" are 
+    Not needed for real world robot client implementations.
+    Robot clients for AugRE should only publish the topics list above with "SendLocalTopic".
+*/
 
-  cn.configure(SendLocalTopic<amrl_msgs::VisualizationMsg>()
-                   .from("/visualization")
-                   .to(webviz_constants::visualization_topic)
-                   .rate_limit_hz(10)
-                   .priority(2));
-  
-  cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
-                   .from("/detected")
-                   .to(webviz_constants::detected_topic)
-                   .rate_limit_hz(1));
+  // List your Robot Clients you would like to subscribe to
+  std::string ClientNames[] {"2D_walrus",
+                             "2D_jackelnrg",
+                             "U_Regal",
+                             "U_Frank"};
 
-  // receive remote commands
-  cn.configure(ReceiveRemoteTopic<geometry_msgs::PoseStamped>()
-                   .from("move_base_simple/goal")
-                   .to("/move_base_simple/goal"));
-
+  // Topic Configuration
+  for (auto RobotNamespace:ClientNames)
+  {
   cn.configure(ReceiveRemoteTopic<amrl_msgs::Localization2DMsg>()
-                   .from("initialpose")
-                   .to("/initialpose"));
-  
+                   .from("/" + RobotNamespace + "/localization")
+                   .to("/" + RobotNamespace + "/localization"));
+
   cn.configure(ReceiveRemoteTopic<amrl_msgs::RobofleetStatus>()
-                   .from("/2D_walrus/status")
-                   .to("/2D_walrus/status"));
-
-  cn.configure(ReceiveRemoteTopic<amrl_msgs::Localization2DMsg>()
-                   .from("/2D_walrus/localization")
-                   .to("/2D_walrus/localization"));
+                   .from("/" + RobotNamespace + "/status")
+                   .to("/" + RobotNamespace + "/status"));
 
   cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
-                   .from("/2D_walrus/detected")
-                   .to("/2D_walrus/detected"));
+                   .from("/" + RobotNamespace + "/detected")
+                   .to("/" + RobotNamespace + "/detected"));
+                   
+  cn.configure(ReceiveRemoteTopic<sensor_msgs::NavSatFix>()
+                    .from("/" + RobotNamespace + "/NavSatFix")
+                    .to("/" + RobotNamespace + "/NavSatFix"));
+  };
 
-  // Add additional topics to subscribe and publish here.
+  /*****************************************************************************************
+  */
 }
 }  // namespace config

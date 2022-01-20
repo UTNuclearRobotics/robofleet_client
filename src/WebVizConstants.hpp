@@ -57,4 +57,9 @@ static const std::string visualization_topic = "visualization";
  */
 static const std::string detected_topic = "detected";
 
+/**
+ * @brief (sensor_msgs/NavStatFix) 3D point cloud
+ */
+static const std::string nav_sat_fix_topic = "NavSatFix";
+
 }  // namespace webviz_constants
