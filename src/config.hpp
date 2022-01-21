@@ -142,7 +142,7 @@ static void configure_msg_types(RosClientNode& cn) {
                    .rate_limit_hz(1));
 
   cn.configure(SendLocalTopic<sensor_msgs::NavSatFix>()
-                    .from("/NavSatFix")
+                    .from("/fix")
                     .to(webviz_constants::nav_sat_fix_topic)
                     .rate_limit_hz(1));
 
