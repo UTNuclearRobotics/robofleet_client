@@ -10,7 +10,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/String.h>
-#include <detection_msgs/DetectedItem.h>
+#include <amrl_msgs/DetectedItem.h>
 
 #include <string>
 #include <vector>
@@ -136,7 +136,7 @@ static void configure_msg_types(RosClientNode& cn) {
                    .rate_limit_hz(10)
                    .priority(20));
 
-  cn.configure(SendLocalTopic<detection_msgs::DetectedItem>()
+  cn.configure(SendLocalTopic<amrl_msgs::DetectedItem>()
                    .from("/detected")
                    .to(webviz_constants::detected_topic)
                    .rate_limit_hz(1));
@@ -182,7 +182,7 @@ static void configure_msg_types(RosClientNode& cn) {
                    .from("/" + RobotNamespace + "/status")
                    .to("/" + RobotNamespace + "/status"));
 
-  cn.configure(ReceiveRemoteTopic<detection_msgs::DetectedItem>()
+  cn.configure(ReceiveRemoteTopic<amrl_msgs::DetectedItem>()
                    .from("/" + RobotNamespace + "/detected")
                    .to("/" + RobotNamespace + "/detected"));
                    

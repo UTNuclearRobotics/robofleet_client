@@ -21,7 +21,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <detection_msgs/DetectedItem.h>
+#include <amrl_msgs/DetectedItem.h>
 #include <std_msgs/String.h>
 #include "decode.hpp"
 
@@ -365,14 +365,14 @@ amrl_msgs::ElevatorStatus decode(
   return dst;
 }
 
-// detection_msgs/DetectedItem
+// amrl_msgs/DetectedItem
 template <>
-struct flatbuffers_type_for<detection_msgs::DetectedItem> {
-  typedef fb::detection_msgs::DetectedItem type;
+struct flatbuffers_type_for<amrl_msgs::DetectedItem> {
+  typedef fb::amrl_msgs::DetectedItem type;
 };
 template <>
-detection_msgs::DetectedItem decode(const fb::detection_msgs::DetectedItem* const src) {
-  detection_msgs::DetectedItem dst;
+amrl_msgs::DetectedItem decode(const fb::amrl_msgs::DetectedItem* const src) {
+  amrl_msgs::DetectedItem dst;
 
   dst.name = src->name()->str();
   dst.repID = src->repID()->str();
