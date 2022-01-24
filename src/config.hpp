@@ -29,16 +29,16 @@ static const std::string ros_node_name = "robofleet_client";
 */
 
 // NRG Local Robofleet server URL
-static const std::string host_url = "ws://192.168.1.11:8080";
+//static const std::string host_url = "ws://192.168.1.11:8080";
 
 // UT Robofleet server URL
-//static const std::string host_url = "ws://10.147.219.145:8080";
+//static const std::string host_url = "ws://10.236.20.64:8080";
 
 // AMRL Robofleet server URL
 //static const std::string host_url = "ws://10.0.0.1:8080";
 
 // Developement Home Local Robofleet server URL
-//static const std::string host_url = "ws://192.168.0.137:8080";
+static const std::string host_url = "ws://192.168.0.137:8080";
 
 // ADD NEW SERVER CONFIG HERE
 
