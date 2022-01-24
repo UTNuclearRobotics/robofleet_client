@@ -4,3 +4,6 @@
 [submodule "robofleet_client_lib"]
 	path = robofleet_client_lib
 	url = https://github.com/UTNuclearRobotics/robofleet_client_lib.git
+[submodule "amrl_msgs"]
+	path = amrl_msgs
+	url = git@github.com:UTNuclearRobotics/amrl_msgs.git
