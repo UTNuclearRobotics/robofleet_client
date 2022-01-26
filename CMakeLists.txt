@@ -28,10 +28,6 @@ find_package(std_msgs REQUIRED)
 include_directories(${std_msgs_INCLUDE_DIRS})
 list(APPEND Libs ${std_msgs_LIBRARIES})
 
-find_package(detection_msgs REQUIRED) 
-include_directories(${detection_msgs_INCLUDE_DIRS}) 
-list(APPEND Libs ${detection_msgs_LIBRARIES})
-
 # custom target that builds amrl_msgs
 add_custom_target(amrl_msgs
   COMMAND ${CMAKE_COMMAND} -E env "ROS_PACKAGE_PATH=${CMAKE_CURRENT_SOURCE_DIR}/amrl_msgs:$ENV{ROS_PACKAGE_PATH}" make
