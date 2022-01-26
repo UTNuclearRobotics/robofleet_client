@@ -29,7 +29,7 @@ static const std::string ros_node_name = "robofleet_client";
 */
 
 // NRG Local Robofleet server URL
-//static const std::string host_url = "ws://192.168.1.11:8080";
+static const std::string host_url = "ws://192.168.1.11:8080";
 
 // UT Robofleet server URL
 //static const std::string host_url = "ws://10.236.20.64:8080";
@@ -38,7 +38,7 @@ static const std::string ros_node_name = "robofleet_client";
 //static const std::string host_url = "ws://10.0.0.1:8080";
 
 // Developement Home Local Robofleet server URL
-static const std::string host_url = "ws://192.168.0.137:8080";
+//static const std::string host_url = "ws://192.168.0.137:8080";
 
 // ADD NEW SERVER CONFIG HERE
 
@@ -156,7 +156,25 @@ static void configure_msg_types(RosClientNode& cn) {
                    .to(webviz_constants::compressed_image_prefix + "right")
                    .rate_limit_hz(10)
                    .priority(1));
- 
+
+  std::string AdditionalPubClients[] {"2D_robot1",
+                                      "2D_robot2"};
+
+  for (auto RobotNamespace:AdditionalPubClients)
+  {
+    cn.configure(SendLocalTopic<amrl_msgs::RobofleetStatus>()
+                   .from("/" + RobotNamespace + "/status")
+                   .to("/" + RobotNamespace + "/status")
+                   .rate_limit_hz(1));
+
+    cn.configure(SendLocalTopic<amrl_msgs::Localization2DMsg>()
+                   .from("/" + RobotNamespace + "/localization")
+                   .to("/" + RobotNamespace + "/localization")
+                   .rate_limit_hz(10)
+                   .priority(20));
+  };
+  
+
  /*****************************************************************************************
     Debugging and Development Purposes Only. 
     Receive Other Robotfleet Client Messages
@@ -166,13 +184,13 @@ static void configure_msg_types(RosClientNode& cn) {
 */
 
   // List your Robot Clients you would like to subscribe to
-  std::string ClientNames[] {"2D_walrus",
+  std::string SubToClients[] {"2D_walrus",
                              "2D_jackelnrg",
                              "U_Regal",
                              "U_Frank"};
 
   // Topic Configuration
-  for (auto RobotNamespace:ClientNames)
+  for (auto RobotNamespace:SubToClients)
   {
   cn.configure(ReceiveRemoteTopic<amrl_msgs::Localization2DMsg>()
                    .from("/" + RobotNamespace + "/localization")
