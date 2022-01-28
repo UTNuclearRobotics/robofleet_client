@@ -2,11 +2,11 @@
 
 *The Robofleet 2.0 Robot Client*
 
+catkin Edition
+
 ## Dependencies
 
-* Make sure to clone submodules, or `git submodule init` and `git submodule update`
 * C++ compiler for std >= 11
-* CMake
 * ROS Melodic
 * Qt5 >= 5.5
 * libqt5websockets5-dev
@@ -47,26 +47,10 @@ To switch to direct mode, set the `direct_mode` flag in `src/config.hpp` and mak
 
 ## Building
 
-* `make` to build
-* `ROS_NAMESPACE="robot_name" make run` to run
-* `make format` to run clang-format
-
-### Using namespaces
-
-1. Read the ROS wiki on [names][names] and [name resolution][name resolution].
-2. Launch with `ROS_NAMESPACE` set, e.g. `ROS_NAMESPACE="ut/testbot" make run` or by using `export` to set the environment variable beforehand.
-
-Note that if you run two client nodes on one machine (even in different namespaces), it is possible to create a feedback loop by client B receiving client A's messages from the server, and then re-publishing them to client A's topic.
+Build using catkin.
 
 ## Development
 
-* Code completion for amrl_msgs
-  * Build once to generate amrl_msgs
-  * Add `amrl_msgs/msg_gen/cpp/include` to your include paths
-  * VS Code editor settings are included
 * Debugging
   1. `cd build && cmake -DCMAKE_BUILD_TYPE=Debug && make -j`
   1. Either launch `(gdb) Launch` or `(gdb) Tests` in VSCode or use `gdb build/client`
-
-[names]: https://wiki.ros.org/Names#Resolving
-[name resolution]: https://wiki.ros.org/Names#Resolving
