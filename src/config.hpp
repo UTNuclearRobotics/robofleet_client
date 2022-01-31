@@ -185,7 +185,7 @@ static void configure_msg_types(RosClientNode& cn) {
 
   // List your Robot Clients you would like to subscribe to
   std::string SubToClients[] {"2D_walrus",
-                             "2D_jackelnrg",
+                             "2D_jackalnrg",
                              "U_Regal",
                              "U_Frank"};
 
