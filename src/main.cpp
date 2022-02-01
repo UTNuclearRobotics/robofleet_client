@@ -2,93 +2,189 @@
 
 #include <QObject>
 #include <QtCore/QCoreApplication>
-#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <thread>
 
-#include "MessageScheduler.hpp"
-#include "RosClientNode.hpp"
+#include "robofleet_client/MessageScheduler.hpp"
+#include "robofleet_client/RosClientNode.hpp"
 #include "WsClient.hpp"
 #include "WsServer.hpp"
-#include "config.hpp"
 
-void connect_server(
-    WsServer& ws_server, RosClientNode& ros_node, MessageScheduler& scheduler);
-void connect_client(
-    WsClient& ws_client, RosClientNode& ros_node, MessageScheduler& scheduler);
+#include <yaml-cpp/yaml.h>
+
+struct ProgramParams
+{
+  std::string host_url;
+  bool wait_for_pongs;
+  uint64_t max_queue_before_waiting;
+  quint16 direct_mode_port;
+  quint64 direct_mode_bytes_per_sec;
+  RosClientNode::Verbosity verbosity;
+  int spin_threads;
+};
+
+bool loadYAMLParams(const YAML::Node& root,
+                    ProgramParams& out_params);
+
+void connect_server(WsServer& ws_server,
+                    RosClientNode& ros_node,
+                    MessageScheduler& scheduler);
+
+void connect_client(WsClient& ws_client,
+                    RosClientNode& ros_node,
+                    MessageScheduler& scheduler);
 
 int main(int argc, char** argv) {
-  QCoreApplication a(argc, argv);
-  ros::init(
-      argc, argv, config::ros_node_name, ros::init_options::NoSigintHandler);
+  QCoreApplication qapp(argc, argv);
+  ros::init(argc, argv, "robofleet_client");
 
-  // Client ROS node
-  RosClientNode ros_node(config::verbosity);
-  config::configure_msg_types(ros_node);
+  // check args
+  if (argc != 2) {
+    ROS_FATAL("usage: robofleet_client client cfg_file\n"
+              "\tcfg_file: The program config file. See robofleet_client/cfg/example.yaml");
 
-  MessageScheduler scheduler;
+    return 1;
+  }
 
-  if (config::direct_mode) {
+  const std::string cfg_file(argv[1]);
+  YAML::Node root;
+
+  // load YAML params file
+  try {
+    root = YAML::LoadFile(cfg_file);
+  } catch (const YAML::BadFile& e) {
+    ROS_FATAL("Failed to open config file %s.\n%s",
+              cfg_file.c_str(), e.what());
+
+    return false;
+  }
+
+  // parse YAML params
+  ProgramParams params;
+  if (!loadYAMLParams(root,
+                      params)) {
+    return 2;
+  }
+
+  const bool use_direct_mode = params.host_url.empty();
+
+  MessageScheduler scheduler(params.max_queue_before_waiting);
+
+  // launch ROS node
+  RosClientNode ros_node(params.verbosity, scheduler);
+  if (!ros_node.configure(root)) {
+    return 3;
+  }
+
+  // start websocket
+  if (use_direct_mode > 0) {
     // Websocket server
-    WsServer ws_server{config::direct_mode_port};
+    WsServer ws_server(params.direct_mode_port,
+                       params.direct_mode_bytes_per_sec);
+
     connect_server(ws_server, ros_node, scheduler);
-    return a.exec();
   } else {
     // Websocket client
-    WsClient ws_client{QString::fromStdString(config::host_url)};
+    WsClient ws_client{QString::fromStdString(params.host_url)};
+
     connect_client(ws_client, ros_node, scheduler);
-    return a.exec();
   }
+
+  // shuts down the Qt application when ROS shuts down
+  std::thread spin_thread([&qapp, params]() {
+    ros::MultiThreadedSpinner spinner(params.spin_threads);
+    spinner.spin();
+    qapp.quit();
+  } );
+
+  qapp.exec();
 }
 
-void connect_client(
-    WsClient& ws_client, RosClientNode& ros_node, MessageScheduler& scheduler) {
-  // schedule messages
-  QObject::connect(
-      &ros_node,
-      &RosClientNode::ros_message_encoded,
-      &scheduler,
-      &MessageScheduler::enqueue);
+bool loadYAMLParams(const YAML::Node& root,
+                    ProgramParams& out_params)
+{
+  try {
+    const YAML::Node params_yaml = root["params"];
+    const bool use_direct_mode = params_yaml["direct_mode_port"] || params_yaml["direct_mode_bytes_per_sec"];
+
+    out_params.wait_for_pongs = params_yaml["wait_for_pongs"].as<bool>();
+
+    const int max_queue_value = params_yaml["max_queue_before_waiting"].as<int>();
+    if (max_queue_value < 0) {
+      ROS_FATAL("Invalid value %d for param max_queue_before_waiting. "
+                "Must be positive.", max_queue_value);
+
+      return false;
+    }
+    out_params.max_queue_before_waiting = max_queue_value;
+
+    /** DIRECT MODE PARAMS **/
+    if (use_direct_mode) {
+      const int port_value = params_yaml["direct_mode_port"].as<int>();
+      if (port_value < 0) {
+        ROS_FATAL("Invalid value %d for param direct_mode_port. "
+                  "Must be positive.", port_value);
+
+        return false;
+      }
+      out_params.direct_mode_port = port_value;
+
+      const int byte_rate_value = params_yaml["direct_mode_bytes_per_sec"].as<int>();
+      if (byte_rate_value < 0) {
+        ROS_FATAL("Invalid value %d for param direct_mode_bytes_per_sec. "
+                  "Must be positive.", byte_rate_value);
+
+        return false;
+      }
+      out_params.direct_mode_bytes_per_sec = byte_rate_value;
+    }
+    else {
+      out_params.host_url = params_yaml["host_url"].as<std::string>();
+    }
+
+    const int verbosity_value = params_yaml["verbosity"].as<int>();
+    if (verbosity_value < 0 || verbosity_value > (int)RosClientNode::Verbosity::ALL) {
+      ROS_FATAL("Invalid value %d for param verbosity. "
+                "Must be positive and not more than %d.",
+                verbosity_value, (int)RosClientNode::Verbosity::ALL);
+
+      return false;
+    }
+    out_params.verbosity = RosClientNode::Verbosity(verbosity_value);
+
+  } catch (const YAML::InvalidNode& e) {
+    ROS_FATAL("%s", e.what());
+    return false;
+  }
+
+  return true;
+}
+
+void connect_client(WsClient& ws_client,
+                    RosClientNode& ros_node,
+                    MessageScheduler& scheduler) {
   // run scheduler
-  QObject::connect(
-      &ws_client,
-      &WsClient::backpressure_update,
-      &scheduler,
-      &MessageScheduler::backpressure_update);
+  QObject::connect(&ws_client,
+                   &WsClient::backpressure_update,
+                   &scheduler,
+                   &MessageScheduler::backpressure_update);
   // send scheduled message
-  QObject::connect(
-      &scheduler,
-      &MessageScheduler::scheduled,
-      [&ws_client](const QByteArray& data) { ws_client.send_message(data); });
+  QObject::connect(&scheduler,
+                   &MessageScheduler::scheduled,
+                   [&ws_client](const QByteArray& data) { ws_client.send_message(data); });
 
   // receive
-  QObject::connect(
-      &ws_client,
-      &WsClient::message_received,
-      &ros_node,
-      &RosClientNode::decode_net_message);
-
-  // startup
-  QObject::connect(
-      &ws_client,
-      &WsClient::connected,
-      &ros_node,
-      &RosClientNode::subscribe_remote_msgs);
+  QObject::connect(&ws_client,
+                   &WsClient::message_received,
+                   &ros_node,
+                   &RosClientNode::decode_net_message);
 }
 
-void connect_server(
-    WsServer& ws_server, RosClientNode& ros_node, MessageScheduler& scheduler) {
-  // send
-  // Need to use string-based connect to support default arg.
-  // https://doc.qt.io/qt-5/signalsandslots-syntaxes.html
-  // Trivial lambda-based version will not work because it is called from
-  // another thread.
-  QObject::connect(
-      &ros_node,
-      SIGNAL(ros_message_encoded(const QByteArray&)),
-      &ws_server,
-      SLOT(broadcast_message(const QByteArray&)));
+void connect_server(WsServer& ws_server,
+                    RosClientNode& ros_node,
+                    MessageScheduler& scheduler) {
 
   // receive
   QObject::connect(

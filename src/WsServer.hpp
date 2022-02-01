@@ -7,19 +7,53 @@
 #include <iostream>
 #include <unordered_set>
 
-#include "config.hpp"
-
 class WsServer : public QObject {
   Q_OBJECT;
+
+public:
+  WsServer(const quint16 port, const qint64 direct_mode_bytes_per_sec) :
+    server(new QWebSocketServer(
+           QStringLiteral("Robofleet"), QWebSocketServer::NonSecureMode)),
+           bytes_per_timeslice(direct_mode_bytes_per_sec * timeslice_ms  / 1000)
+  {
+    if (!server->listen(QHostAddress::Any, port)) {
+      throw std::runtime_error(
+          "Failed to listen on port " + std::to_string(port));
+    }
+
+    // handle client connections
+    QObject::connect(
+        server,
+        &QWebSocketServer::newConnection,
+        this,
+        &WsServer::on_new_connection);
+
+    QObject::connect(
+        server, &QWebSocketServer::closed, this, &WsServer::closed);
+
+    // setup rate limiting
+    QObject::connect(&timeslice_timer, &QTimer::timeout, [=]() {
+      this->timeslice_bytes_written = 0;
+    });
+    timeslice_timer.start(timeslice_ms);
+
+    std::cerr << "WebSocket server listening on ws://*:" << server->serverPort()
+              << std::endl;
+  }
+
+  ~WsServer() {
+    server->close();
+    qDeleteAll(clients.begin(), clients.end());
+  }
+
   QWebSocketServer* server;
   std::unordered_set<QWebSocket*> clients;
 
   // for rate limiting
   // this is an alternative method to that of the client since we can't use the
   // bytesWritten() signal for the server.
-  const static quint64 timeslice_ms = 100;
-  const static quint64 bytes_per_timeslice =
-      (config::direct_mode_bytes_per_sec * timeslice_ms) / 1000;
+  const quint64 timeslice_ms = 100;
+  const quint64 bytes_per_timeslice;
   QTimer timeslice_timer;
   quint64 timeslice_bytes_written = 0;
 
@@ -84,38 +118,4 @@ class WsServer : public QObject {
  Q_SIGNALS:
   void binary_message_received(const QByteArray& message);
   void closed();
-
- public:
-  WsServer(const quint16 port)
-      : server(new QWebSocketServer(
-            QStringLiteral("Robofleet"), QWebSocketServer::NonSecureMode)) {
-    if (!server->listen(QHostAddress::Any, port)) {
-      throw std::runtime_error(
-          "Failed to listen on port " + std::to_string(port));
-    }
-
-    // handle client connections
-    QObject::connect(
-        server,
-        &QWebSocketServer::newConnection,
-        this,
-        &WsServer::on_new_connection);
-
-    QObject::connect(
-        server, &QWebSocketServer::closed, this, &WsServer::closed);
-
-    // setup rate limiting
-    QObject::connect(&timeslice_timer, &QTimer::timeout, [=]() {
-      this->timeslice_bytes_written = 0;
-    });
-    timeslice_timer.start(timeslice_ms);
-
-    std::cerr << "WebSocket server listening on ws://*:" << server->serverPort()
-              << std::endl;
-  }
-
-  ~WsServer() {
-    server->close();
-    qDeleteAll(clients.begin(), clients.end());
-  }
 };

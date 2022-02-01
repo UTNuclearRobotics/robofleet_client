@@ -1,0 +1,37 @@
+params:
+  host_url: "ws://localhost:8080"
+  wait_for_pongs: true
+  max_queue_before_waiting: 5
+  #direct_mode_port: 8080
+  #direct_mode_bytes_per_sec: 2048000
+
+  # Verbosity 0 - MINIMAL
+  # Verbosity 1 - CONFIG_ONLY
+  # Verbosity 2 - ALL
+  verbosity: 2
+  spin_threads: 1
+
+subscribers: [
+  {
+    from: "/status",
+    to: "/status",
+    type: "amrl_msgs/RobofleetStatus",
+    rate_limit_hz: 1
+  }
+
+#  {
+#    from: "/localization",
+#    to: "/localization",
+#    type: "amrl_msgs/Localization2DMsg",
+#    rate_limit_hz: 10,
+#    priority: 20
+#  }
+]
+
+publishers: [
+  {
+    from: "/status",
+    to: "/status",
+    type: "amrl_msgs/RobofleetStatus",
+  }
+]

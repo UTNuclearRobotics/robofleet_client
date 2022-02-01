@@ -6,8 +6,6 @@
 #include <cstdint>
 #include <iostream>
 
-#include "config.hpp"
-
 class WsClient : public QObject {
   Q_OBJECT;
 

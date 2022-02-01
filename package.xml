@@ -14,4 +14,6 @@
 
   <depend>roscpp</depend>
   <depend>amrl_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>yaml-cpp</depend>
 </package>
