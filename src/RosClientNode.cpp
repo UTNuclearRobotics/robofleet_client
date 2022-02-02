@@ -1,4 +1,4 @@
-#include "robofleet_client/RosClientNode.hpp"
+#include "RosClientNode.hpp"
 
 #include <flatbuffers/flatbuffers.h>
 #include <pluginlib/class_loader.h>

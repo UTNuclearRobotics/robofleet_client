@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ros/ros.h>
-#include <robofleet_client/MessageScheduler.hpp>
 
 // contains macros used to register plugin classes
 #include <pluginlib/class_list_macros.h>
@@ -16,6 +15,9 @@
  * classes in it that inherit from these types.
  */
 
+class MessageScheduler;
+class QByteArray;
+
 namespace robofleet_client
 {
 
@@ -25,7 +27,7 @@ namespace robofleet_client
       virtual void initialize(ros::NodeHandle& nh,
                               const std::string to_topic,
                               const bool latched) = 0;
-                      
+      
       virtual void publish(const QByteArray& data) = 0;
         
     protected:

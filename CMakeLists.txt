@@ -34,7 +34,7 @@ set(Qt5_LIBRARIES Qt5::Core Qt5::WebSockets)
 set(PLUGINS_LIBRARY ${PROJECT_NAME}_plugins)
 
 catkin_package(
-  INCLUDE_DIRS include/public robofleet_client_lib/include robofleet_client_lib
+  INCLUDE_DIRS include
   LIBRARIES ${PLUGINS_LIBRARY}
   CATKIN_DEPENDS
     roscpp
@@ -43,51 +43,40 @@ catkin_package(
   DEPENDS Qt5
 )
 
-include_directories(
-  include/public
-  include/private
-  src
-  ${catkin_INCLUDE_DIRS}
-  ${Qt5_INCLUDE_DIRS}
-  ${YAML_CPP_INCLUDE_DIR}
-  robofleet_client_lib
-  robofleet_client_lib/include
-)
+add_subdirectory(robofleet_client_lib)
 
-set(QT_MOC_SRC
-  include/private/robofleet_client/RosClientNode.hpp
-  include/public/robofleet_client/MessageScheduler.hpp
+add_library(${PLUGINS_LIBRARY})
+add_dependencies(${PLUGINS_LIBRARY} robofleet_base_lib)
+target_link_libraries(${PLUGINS_LIBRARY}
+  ${Qt5_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${ROBOFLEET_CLIENT_LIBRARY_NAME}
+)
+target_include_directories(${PLUGINS_LIBRARY}
+PUBLIC
+  include
+  ${Qt5_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+  robofleet_client_lib/include
+INTERFACE
+  include
 )
 
 add_executable(client)
-target_sources(client PRIVATE
-  src/main.cpp
-  src/WsClient.hpp
-  src/WsServer.hpp
-  src/WebVizConstants.hpp
-  src/RosClientNode.cpp
-  src/MessageScheduler.cpp
-  ${QT_MOC_SRC}
-)
 add_dependencies(client ${PLUGINS_LIBRARY})
 target_link_libraries(client
-  ${catkin_LIBRARIES}
   ${PLUGINS_LIBRARY}
-  ${Qt5_LIBRARIES}
   ${YAML_CPP_LIBRARIES}
 )
 
-add_library(${PLUGINS_LIBRARY} src/ROSMsgHandlers.cpp src/MessageScheduler.cpp)
-target_link_libraries(${PLUGINS_LIBRARY} ${catkin_LIBRARIES})
+target_include_directories(client
+PRIVATE
+  ${YAML_CPP_INCLUDE_DIR}
+)
+
+add_subdirectory(src)
 
 ## Package tests
 if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  set(TEST_NAME "${PROJECT_NAME}_test")
-
-  add_rostest_gtest(${TEST_NAME} test/${PROJECT_NAME}.test test/main.cpp)
-                    
-  add_dependencies(${TEST_NAME} client)
-    
-  target_link_libraries(${TEST_NAME} ${catkin_LIBRARIES})
+  add_subdirectory(test)
 endif()
