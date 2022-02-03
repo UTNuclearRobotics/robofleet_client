@@ -62,4 +62,10 @@ private:
 
   bool getPublishHandler(const TopicParams& params,
                          robofleet_client::ROSPublishHandlerPtr& out_handler);
+
+  bool configureTopics(const YAML::Node& publishers_list,
+                       const YAML::Node& subscribers_list);
+
+  bool configureServices(const YAML::Node& incoming_list,
+                         const YAML::Node& outgoing_list);
 };

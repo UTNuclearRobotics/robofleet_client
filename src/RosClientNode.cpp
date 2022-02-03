@@ -19,76 +19,24 @@ bool RosClientNode::configure(const YAML::Node& root)
   // get the subscribers and publishers
   YAML::Node subscribers_list;
   YAML::Node publishers_list;
+  YAML::Node incoming_srv_list;
+  YAML::Node outgoing_srv_list;
   try {
     subscribers_list = root["subscribers"];
     publishers_list = root["publishers"];
+    incoming_srv_list = root["srv_incoming"];
+    outgoing_srv_list = root["srv_outgoing"];
   } catch (const YAML::InvalidNode& e) {
     ROS_ERROR("%s", e.what());
     return false;
   }
 
-  // generate the subscribe handlers
-  for (const YAML::Node& subscriber : subscribers_list) {
-    TopicParams topic_params;
-    if (!readTopicParams(subscriber, topic_params, false)) {
-      ROS_ERROR("Invalid subscriber.");
-      return false;
-    }
-
-    robofleet_client::ROSSubscribeHandlerPtr handler;
-    if (!getSubscribeHandler(topic_params, handler)) {
-      ROS_ERROR("Failed to generate subscribe handler.");
-      return false;
-    }
-    
-    if (!handler->initialize(nh_,
-                              scheduler_,
-                              topic_params.from,
-                              topic_params.priority,
-                              topic_params.rate_limit,
-                              topic_params.no_drop)) {
-      ROS_ERROR("Failed to inizialize handler for topic %s.",
-                topic_params.from.c_str());
-      return false;
-    }
-
-    subs_[topic_params.from] = handler;
-
-    if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Subscribing Local Messages: %s [%s]->%s", 
-                topic_params.from.c_str(),
-                topic_params.message_type.c_str(),
-                topic_params.to.c_str());
-    }
+  if (!configureTopics(publishers_list, subscribers_list)) {
+    return false;
   }
 
-  // generate the publish handlers
-  for (const YAML::Node& publisher : publishers_list) {
-    TopicParams topic_params;
-    if (!readTopicParams(publisher, topic_params, true)) {
-      ROS_ERROR("Invalid publisher.");
-      return false;
-    }
-
-    robofleet_client::ROSPublishHandlerPtr handler;
-    if (!getPublishHandler(topic_params, handler)) {
-      ROS_ERROR("Failed to generate publish handler.");
-      return false;
-    }
-
-    handler->initialize(nh_, topic_params.to, topic_params.latched);
-    pubs_[topic_params.from] = handler;
-
-    if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Publishing Local Messages: %s [%s]->%s", 
-                topic_params.from.c_str(),
-                topic_params.message_type.c_str(),
-                topic_params.to.c_str());
-    }
-  }
-
-  if (subs_.empty() && pubs_.empty()) {
-    ROS_WARN("Configuration complete with no subscribers or publishers found.");
+  if (!configureServices(incoming_srv_list, outgoing_srv_list)) {
+    return false;
   }
 
   return true;
@@ -236,4 +184,80 @@ void RosClientNode::decode_net_message(const QByteArray& data) {
   }
 
   pubs_[topic]->publish(data);
+}
+
+bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
+                                    const YAML::Node& subscribers_list)
+{
+  // generate the subscribe handlers
+  for (const YAML::Node& subscriber : subscribers_list) {
+    TopicParams topic_params;
+    if (!readTopicParams(subscriber, topic_params, false)) {
+      ROS_ERROR("Invalid subscriber.");
+      return false;
+    }
+
+    robofleet_client::ROSSubscribeHandlerPtr handler;
+    if (!getSubscribeHandler(topic_params, handler)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+    
+    if (!handler->initialize(nh_,
+                              scheduler_,
+                              topic_params.from,
+                              topic_params.priority,
+                              topic_params.rate_limit,
+                              topic_params.no_drop)) {
+      ROS_ERROR("Failed to inizialize handler for topic %s.",
+                topic_params.from.c_str());
+      return false;
+    }
+
+    subs_[topic_params.from] = handler;
+
+    if (verbosity_ >= Verbosity::CFG_ONLY) {
+      ROS_INFO("Subscribing Local Messages: %s [%s]->%s", 
+                topic_params.from.c_str(),
+                topic_params.message_type.c_str(),
+                topic_params.to.c_str());
+    }
+  }
+
+  // generate the publish handlers
+  for (const YAML::Node& publisher : publishers_list) {
+    TopicParams topic_params;
+    if (!readTopicParams(publisher, topic_params, true)) {
+      ROS_ERROR("Invalid publisher.");
+      return false;
+    }
+
+    robofleet_client::ROSPublishHandlerPtr handler;
+    if (!getPublishHandler(topic_params, handler)) {
+      ROS_ERROR("Failed to generate publish handler.");
+      return false;
+    }
+
+    handler->initialize(nh_, topic_params.to, topic_params.latched);
+    pubs_[topic_params.from] = handler;
+
+    if (verbosity_ >= Verbosity::CFG_ONLY) {
+      ROS_INFO("Publishing Local Messages: %s [%s]->%s", 
+                topic_params.from.c_str(),
+                topic_params.message_type.c_str(),
+                topic_params.to.c_str());
+    }
+  }
+
+  if (subs_.empty() && pubs_.empty()) {
+    ROS_WARN("Configuration complete with no subscribers or publishers found.");
+  }
+
+  return true;
+}
+
+bool RosClientNode::configureServices(const YAML::Node& incoming_list,
+                                      const YAML::Node& outgoing_list)
+{
+  return true;
 }
