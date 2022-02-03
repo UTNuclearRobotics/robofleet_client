@@ -3,7 +3,10 @@
 #include <QObject>
 #include <unordered_map>
 
+#include <pluginlib/class_loader.h>
+
 #include "robofleet_client/ROSMsgHandlers.hpp"
+#include "robofleet_client/ROSSrvHandlers.hpp"
 
 namespace YAML {
   class Node;
@@ -32,8 +35,6 @@ private:
   typedef std::string TopicString;
   typedef std::string MsgTypeString;
 
-  MessageScheduler* scheduler_;
-
   struct TopicParams {
     std::string message_package;
     MsgTypeString message_type;
@@ -46,16 +47,26 @@ private:
   };
 
   const Verbosity verbosity_;
-
+  MessageScheduler* scheduler_;
   ros::NodeHandle nh_;
 
-  std::vector<TopicString> pub_remote_topics_;
-  std::unordered_map<TopicString, robofleet_client::ROSSubscribeHandlerPtr> subs_;
-  std::unordered_map<TopicString, robofleet_client::ROSPublishHandlerPtr> pubs_;
-  
+  template<class Handler>
+  using HandlerMap = std::unordered_map<TopicString, Handler>;
+
+  HandlerMap<robofleet_client::ROSSubscribeHandlerPtr> subs_;
+  HandlerMap<robofleet_client::ROSPublishHandlerPtr> pubs_;
+  HandlerMap<robofleet_client::ROSRequestHandlerPtr> incoming_srvs_;
+  HandlerMap<robofleet_client::ROSResponseHandlerPtr> outgoing_srvs_;
+
   bool readTopicParams(const YAML::Node& node,
                        TopicParams& out_params,
                        const bool publisher);
+
+
+  template<class Handler>
+  bool getHandler(const TopicParams& params,
+                  const std::string handler_type,
+                  boost::shared_ptr<Handler>& out_handler);
 
   bool getSubscribeHandler(const TopicParams& params,
                            robofleet_client::ROSSubscribeHandlerPtr& out_handler);
@@ -63,9 +74,18 @@ private:
   bool getPublishHandler(const TopicParams& params,
                          robofleet_client::ROSPublishHandlerPtr& out_handler);
 
+  bool getRequestHandler(const TopicParams& params,
+                         robofleet_client::ROSRequestHandlerPtr& out_handler);
+
+  bool getResponseHandler(const TopicParams& params,
+                          robofleet_client::ROSResponseHandlerPtr& out_handler);
+
   bool configureTopics(const YAML::Node& publishers_list,
                        const YAML::Node& subscribers_list);
 
   bool configureServices(const YAML::Node& incoming_list,
                          const YAML::Node& outgoing_list);
 };
+
+// template definitions
+#include "RosClientNode.tpp"

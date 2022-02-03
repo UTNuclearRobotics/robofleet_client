@@ -35,3 +35,9 @@ publishers: [
     type: "amrl_msgs/RobofleetStatus",
   }
 ]
+
+incoming_services: [
+]
+
+outgoing_services: [
+]

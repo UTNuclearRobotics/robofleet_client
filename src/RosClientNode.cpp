@@ -1,7 +1,6 @@
 #include "RosClientNode.hpp"
 
 #include <flatbuffers/flatbuffers.h>
-#include <pluginlib/class_loader.h>
 #include <schema_generated.h>
 
 #include <yaml-cpp/yaml.h>
@@ -13,9 +12,6 @@ RosClientNode::RosClientNode(Verbosity verbosity, MessageScheduler& scheduler) :
 
 bool RosClientNode::configure(const YAML::Node& root)
 {
-  subs_.clear();
-  pubs_.clear();
-
   // get the subscribers and publishers
   YAML::Node subscribers_list;
   YAML::Node publishers_list;
@@ -24,8 +20,8 @@ bool RosClientNode::configure(const YAML::Node& root)
   try {
     subscribers_list = root["subscribers"];
     publishers_list = root["publishers"];
-    incoming_srv_list = root["srv_incoming"];
-    outgoing_srv_list = root["srv_outgoing"];
+    incoming_srv_list = root["incoming_services"];
+    outgoing_srv_list = root["outgoing_services"];
   } catch (const YAML::InvalidNode& e) {
     ROS_ERROR("%s", e.what());
     return false;
@@ -93,76 +89,34 @@ bool RosClientNode::readTopicParams(const YAML::Node& node,
   return true;
 }
 
+
 bool RosClientNode::getSubscribeHandler(
   const TopicParams& params,
   robofleet_client::ROSSubscribeHandlerPtr& out_handler)
 {
-  robofleet_client::ROSSubscribeHandlerPtr msg_handler(nullptr);
-  try {
-    const std::string plugin_package = params.message_package + "_robofleet";
-    const std::string base_class = "robofleet_client::ROSSubscribeHandler";
-
-    typedef pluginlib::ClassLoader<robofleet_client::ROSSubscribeHandler> ClassLoader;
-    ClassLoader loader("robofleet_client",
-                        base_class);
-
-    try {
-      const std::string msg_class = plugin_package + "::" + params.message_type + "SubscribeHandler";
-      msg_handler = robofleet_client::ROSSubscribeHandlerPtr(loader.createUnmanagedInstance(msg_class));
-    } catch(const pluginlib::LibraryLoadException& e) {
-      ROS_ERROR("%s", e.what());
-      return false;
-    } catch (const pluginlib::CreateClassException& e) {
-      ROS_ERROR("%s", e.what());
-      return false;
-    }
-  } catch (const pluginlib::ClassLoaderException& e) {
-    ROS_ERROR("%s", e.what());
-    return false;
-  }
-
-  if (msg_handler == nullptr) {
-    return false;
-  }
-  out_handler = msg_handler;
-
-  return true;
+  return getHandler(params, "SubscribeHandler", out_handler);
 }
 
 bool RosClientNode::getPublishHandler(
   const TopicParams& params,
   robofleet_client::ROSPublishHandlerPtr& out_handler)
 {
-  robofleet_client::ROSPublishHandlerPtr msg_handler(nullptr);
-  try {
-    const std::string plugin_package = params.message_package + "_robofleet";
-    const std::string base_class = "robofleet_client::ROSPublishHandler";
+  return getHandler(params, "PublishHandler", out_handler);
+}
 
-    typedef pluginlib::ClassLoader<robofleet_client::ROSPublishHandler> ClassLoader;
-    ClassLoader loader("robofleet_client",
-                        base_class);
 
-    try {
-      const std::string msg_class = plugin_package + "::" + params.message_type + "PublishHandler";
-      msg_handler = robofleet_client::ROSPublishHandlerPtr(loader.createUnmanagedInstance(msg_class));
-    } catch(const pluginlib::LibraryLoadException& e) {
-      ROS_ERROR("%s", e.what());
-      return false;
-    } catch (const pluginlib::CreateClassException& e) {
-      ROS_ERROR("%s", e.what());
-      return false;
-    }
-  } catch (const pluginlib::ClassLoaderException& e) {
-    ROS_ERROR("%s", e.what());
-    return false;
-  }
+bool RosClientNode::getRequestHandler(
+  const TopicParams& params,
+  robofleet_client::ROSRequestHandlerPtr& out_handler)
+{
+  return getHandler(params, "RequestHandler", out_handler);
+}
 
-  if (msg_handler == nullptr) {
-    return false;
-  }
-
-  out_handler = msg_handler;
-  return true;
+bool RosClientNode::getResponseHandler(
+  const TopicParams& params,
+  robofleet_client::ROSResponseHandlerPtr& out_handler)
+{
+  return getHandler(params, "ResponseHandler", out_handler);
 }
 
 
@@ -189,6 +143,9 @@ void RosClientNode::decode_net_message(const QByteArray& data) {
 bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
                                     const YAML::Node& subscribers_list)
 {
+  subs_.clear();
+  pubs_.clear();
+
   // generate the subscribe handlers
   for (const YAML::Node& subscriber : subscribers_list) {
     TopicParams topic_params;
@@ -259,5 +216,66 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
 bool RosClientNode::configureServices(const YAML::Node& incoming_list,
                                       const YAML::Node& outgoing_list)
 {
+  incoming_srvs_.clear();
+  outgoing_srvs_.clear();
+
+  // generate the request handlers
+  for (const YAML::Node& service : incoming_list) {
+    TopicParams topic_params;
+    if (!readTopicParams(service, topic_params, false)) {
+      ROS_ERROR("Invalid incoming service.");
+      return false;
+    }
+
+    robofleet_client::ROSRequestHandlerPtr handler;
+    if (!getRequestHandler(topic_params, handler)) {
+      ROS_ERROR("Failed to generate service handler.");
+      return false;
+    }
+    
+    if (!handler->initialize(nh_,
+                             scheduler_,
+                             topic_params.from)) {
+      ROS_ERROR("Failed to inizialize handler for service %s.",
+                topic_params.from.c_str());
+      return false;
+    }
+
+    incoming_srvs_[topic_params.from] = handler;
+
+    if (verbosity_ >= Verbosity::CFG_ONLY) {
+      ROS_INFO("Connecting to incoming service: %s [%s]->%s", 
+                topic_params.from.c_str(),
+                topic_params.message_type.c_str(),
+                topic_params.to.c_str());
+    }
+  }
+
+  // generate the response handlers
+  for (const YAML::Node& service : outgoing_list) {
+    TopicParams topic_params;
+    if (!readTopicParams(service, topic_params, false)) {
+      ROS_ERROR("Invalid outgoing service.");
+      return false;
+    }
+
+    robofleet_client::ROSResponseHandlerPtr handler;
+    if (!getResponseHandler(topic_params, handler)) {
+      ROS_ERROR("Failed to generate service handler.");
+      return false;
+    }
+    
+    handler->initialize(nh_, topic_params.from);
+
+    outgoing_srvs_[topic_params.from] = handler;
+
+    if (verbosity_ >= Verbosity::CFG_ONLY) {
+      ROS_INFO("Connecting to incoming service: %s [%s]->%s", 
+                topic_params.from.c_str(),
+                topic_params.message_type.c_str(),
+                topic_params.to.c_str());
+    }
+  }
+
   return true;
 }
