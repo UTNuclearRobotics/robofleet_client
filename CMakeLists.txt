@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # ROS dependencies
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  amrl_msgs
   pluginlib
 )
 
@@ -38,7 +37,6 @@ catkin_package(
   LIBRARIES ${PLUGINS_LIBRARY}
   CATKIN_DEPENDS
     roscpp
-    amrl_msgs
     pluginlib
   DEPENDS Qt5
 )
