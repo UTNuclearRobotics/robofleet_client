@@ -10,7 +10,7 @@
  * when schedule() is called.
  */
 class MessageScheduler : public QObject {
-  Q_OBJECT;
+  Q_OBJECT
   
   MessageSchedulerLib<QByteArray>* ms;
 

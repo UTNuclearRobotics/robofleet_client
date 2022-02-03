@@ -7,7 +7,7 @@
 #include <iostream>
 
 class WsClient : public QObject {
-  Q_OBJECT;
+  Q_OBJECT
 
   QUrl url;
   QWebSocket ws;
@@ -19,7 +19,7 @@ class WsClient : public QObject {
   uint64_t msg_index = 0;
 
  public Q_SLOTS:
-  void on_error(QAbstractSocket::SocketError error) {
+  void on_error() {
     std::cerr << "Websocket error: " << ws.errorString().toStdString()
               << std::endl;
   }
@@ -51,6 +51,7 @@ class WsClient : public QObject {
   }
 
   void on_pong(qint64 elapsed_time, const QByteArray& payload) {
+    Q_UNUSED(elapsed_time)
     uint64_t ponged_index = *reinterpret_cast<const uint64_t*>(payload.data());
     last_ponged_index = std::max(last_ponged_index, ponged_index);
 

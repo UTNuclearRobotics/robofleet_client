@@ -8,7 +8,7 @@
 #include <unordered_set>
 
 class WsServer : public QObject {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   WsServer(const quint16 port, const qint64 direct_mode_bytes_per_sec) :

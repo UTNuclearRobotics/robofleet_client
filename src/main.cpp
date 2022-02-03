@@ -29,8 +29,7 @@ bool loadYAMLParams(const YAML::Node& root,
                     ProgramParams& out_params);
 
 void connect_server(WsServer& ws_server,
-                    RosClientNode& ros_node,
-                    MessageScheduler& scheduler);
+                    RosClientNode& ros_node);
 
 void connect_client(WsClient& ws_client,
                     RosClientNode& ros_node,
@@ -84,7 +83,7 @@ int main(int argc, char** argv) {
     WsServer ws_server(params.direct_mode_port,
                        params.direct_mode_bytes_per_sec);
 
-    connect_server(ws_server, ros_node, scheduler);
+    connect_server(ws_server, ros_node);
   } else {
     // Websocket client
     WsClient ws_client{QString::fromStdString(params.host_url)};
@@ -183,8 +182,7 @@ void connect_client(WsClient& ws_client,
 }
 
 void connect_server(WsServer& ws_server,
-                    RosClientNode& ros_node,
-                    MessageScheduler& scheduler) {
+                    RosClientNode& ros_node) {
 
   // receive
   QObject::connect(

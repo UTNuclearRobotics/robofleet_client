@@ -73,7 +73,7 @@ target_include_directories(client
 PRIVATE
   ${YAML_CPP_INCLUDE_DIR}
 )
-
+target_compile_options(client PRIVATE -Wall -Wextra -Wpedantic)
 add_subdirectory(src)
 
 ## Package tests
