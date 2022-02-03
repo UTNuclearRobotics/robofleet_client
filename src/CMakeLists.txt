@@ -1,6 +1,7 @@
 target_sources(${PLUGINS_LIBRARY}
 PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/ROSMsgHandlers.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/ROSSrvHandlers.cpp
   ${CMAKE_CURRENT_LIST_DIR}/MessageScheduler.cpp
 )
 
