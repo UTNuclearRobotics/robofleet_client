@@ -117,6 +117,7 @@ def get_msg_and_srv_data(package):
 
 def generate_directories(name, output_path):
   print('Generating ' + name)
+  
 
   package_dir = os.path.join(output_path, name)
 
@@ -347,6 +348,7 @@ def main(args):
     return 1
 
   print('Generating output in ' + output_dir)
+  os.mkdir(output_dir)
 
   # create the output
   for package in package_data:
