@@ -118,6 +118,8 @@ def get_msg_and_srv_data(package):
 def generate_directories(name, output_path):
   print('Generating ' + name)
   
+  if not os.path.exists(output_path):
+    os.mkdir(output_path)
 
   package_dir = os.path.join(output_path, name)
 
@@ -347,13 +349,16 @@ def main(args):
   if not check_product_existence(package_data, output_dir, parsed_args.OVERWRITE):
     return 1
 
+  print('---------------------------')
   print('Generating output in ' + output_dir)
-  os.mkdir(output_dir)
 
   # create the output
   for package in package_data:
     if not generate_plugin_package(package, output_dir, templates_dir):
       return 2
+
+  print('---------------------------')
+  print('Generation Complete!')
 
   return 0
 
