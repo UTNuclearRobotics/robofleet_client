@@ -13,6 +13,10 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>roscpp</depend>
+  <depend>rospy</depend>
   <depend>pluginlib</depend>
   <depend>yaml-cpp</depend>
+
+  <exec_depend>rosmsg</exec_depend>
+  <exec_depend>rospack</exec_depend>
 </package>

@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # ROS dependencies
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rospy
   pluginlib
 )
 
@@ -37,9 +38,14 @@ catkin_package(
   LIBRARIES ${PLUGINS_LIBRARY}
   CATKIN_DEPENDS
     roscpp
+    
+    rosmsg
+    rospack
     pluginlib
-  DEPENDS Qt5
+  DEPENDS Qt5 YAML_CPP
 )
+
+catkin_python_setup()
 
 add_subdirectory(robofleet_client_lib)
 
@@ -73,6 +79,8 @@ PRIVATE
 )
 target_compile_options(client PRIVATE -Wall -Wextra -Wpedantic)
 add_subdirectory(src)
+
+catkin_python_setup()
 
 ## Package tests
 if(CATKIN_ENABLE_TESTING)

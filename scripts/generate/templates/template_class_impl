@@ -1,0 +1,62 @@
+#include <{template_msg_package}_robofleet/{template_msg_name}.h>
+#include <QByteArray>
+
+namespace {template_msg_package}_robofleet {
+    
+  void {template_msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
+                                                 const std::string to_topic,
+                                                 const bool latched)
+  {
+    pub_ = nh.advertise<MsgType>(to_topic,
+                                 10,
+                                 latched);
+  }
+                  
+  void {template_msg_name}PublishHandler::publish(const QByteArray& data)
+  {
+    const MsgType msg = decode(data);
+    
+    pub_.publish(msg);
+  }
+  
+  {template_msg_name}PublishHandler::MsgType
+  {template_msg_name}PublishHandler::decode(const QByteArray& data)
+  {
+  }
+
+  PLUGINLIB_EXPORT_CLASS({template_msg_package}_robofleet::{template_msg_name}PublishHandler, robofleet_client::ROSPublishHandler)
+  
+
+
+  bool {template_msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
+                                                   MessageScheduler* scheduler,
+                                                   const std::string to_topic,
+                                                   const double priority,
+                                                   const double rate_limit,
+                                                   const bool no_drop)
+  {
+    if (!robofleet_client::ROSSubscribeHandler::initialize(nh,
+                                                           scheduler,
+                                                           to_topic,
+                                                           priority,
+                                                           rate_limit,
+                                                           no_drop)) {
+      return false;
+    }
+
+    sub_ = nh.subscribe(to_topic, 10, &{template_msg_name}SubscribeHandler::callback, this);
+
+    return true;
+  }
+
+  
+  QByteArray {template_msg_name}SubscribeHandler::encode(const MsgType& msg)
+  {
+  }
+  
+  void {template_msg_name}SubscribeHandler::callback(const MsgTypeConstPtr& msg)
+  {
+  }
+} // namespace {template_msg_package}_robofleet
+
+PLUGINLIB_EXPORT_CLASS({template_msg_package}_robofleet::{template_msg_name}SubscribeHandler, robofleet_client::ROSSubscribeHandler)
