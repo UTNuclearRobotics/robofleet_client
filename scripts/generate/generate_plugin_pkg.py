@@ -9,23 +9,11 @@
 import argparse
 import os.path
 
-from cv2 import split
+import msg_utils
 import rosmsg
 import rospkg.rospack
 import shutil
 import sys
-
-class MsgData:
-  def __init__(self, package, name, contents):
-    self.package = package
-    self.name = name
-    self.contents = contents
-
-  def full_name(self):
-    return self.package + '/' + self.name
-
-  def __str__(self):
-    return self.full_name() + '\n' + self.contents
 
 class PackageData:
   def __init__(self, msg_pkg):
@@ -35,11 +23,11 @@ class PackageData:
     self.services = []
 
   def __str__(self):
-    output = self.msg_pkg_name
+    output = 'PACKAGE: ' + self.msg_pkg_name
     for msg in self.messages:
-      output = output + '\n\t' + msg.full_name()
+      output = output + '\n\t' + msg.full_name 
     for srv in self.services:
-      output = output + '\n\t' + srv.full_name()
+      output = output + '\n\t' + srv.full_name
 
     return output
 
@@ -74,10 +62,9 @@ def check_product_existence(packages, output_dir, overwrite):
 
 
 
-
 def get_msg_and_srv_data(package):
   try:
-    package.messages = [MsgData(package.msg_pkg_name, name.split('/')[1], '') for name in rosmsg.list_msgs(package.msg_pkg_name)]
+    message_names = rosmsg.list_msgs(package.msg_pkg_name)
   except rospkg.common.ResourceNotFound as err:
     print('ERROR: Package ' + err.args[0] + ' not found.')
     print(err)
@@ -85,18 +72,18 @@ def get_msg_and_srv_data(package):
   
   print('Found package ' + package.msg_pkg_name)
   
-  package.services = [MsgData(package.msg_pkg_name, name.split('/')[1], '') for name in rosmsg.list_srvs(package.msg_pkg_name)]
+  service_names = rosmsg.list_srvs(package.msg_pkg_name)
   
-  if not package.messages and not package.services:
-    print('WARNING: No messages or services found for package package.msg_pkg_name.')
+  if not message_names and not service_names:
+    print('WARNING: No messages or services found for package' + package.msg_pkg_name)
+
+  search_path = msg_utils.get_msg_search_path()
 
   # get the definitions of each message
-  for message in package.messages:
-    message.contents = rosmsg.get_msg_text(message.full_name(), True)
+  package.messages = [msg_utils.get_msg_spec(name, search_path) for name in message_names]
 
   # get the definitions of each service
-  for service in package.services:
-    service.contents = rosmsg.get_srv_text(service.full_name(), True)
+  package.services = [msg_utils.get_srv_spec(name, search_path) for name in service_names]
 
   # split the service definitions into Request and Response messages
   for service in package.services:
@@ -146,14 +133,13 @@ def generate_cmakelists(package, output_path, templates_path):
     print('ERROR: Failed to read CMakeLists template.')
     return False
 
-  # replace the target strings
-  # TODO: In python3, we can use str.format() for this
-  filedata = filedata.replace('{template_msg_package}', package.msg_pkg_name)
-
-  sources_list = ''
+  source_files_list = ''
   for message in package.messages:
-    sources_list = sources_list + "  src/" + message.name + ".cpp\n"
-  filedata = filedata.replace('{template_sources_list}', sources_list)
+    source_files_list = source_files_list + "  src/" + message.short_name + ".cpp\n"
+
+  # replace the target strings
+  filedata = filedata.format(msg_package=package.msg_pkg_name,
+                             sources_list=source_files_list)
 
   # write the filled out CMakelists
   try:
@@ -180,8 +166,7 @@ def generate_package_xml(package, output_path, templates_path):
     return False
 
   # replace the target strings
-  # TODO: In python3, we can use str.format() for this
-  filedata = filedata.replace('{template_msg_package}', package.msg_pkg_name)
+  filedata = filedata.format(msg_package=package.msg_pkg_name)
 
   # write the filled out package.xml
   try:
@@ -201,7 +186,7 @@ def generate_class_headers(message, output_path, templates_path):
                                  message.package + '_robofleet',
                                  'include',
                                  message.package + '_robofleet',
-                                 message.name + '.h')
+                                 message.short_name + '.h')
 
   # read in the template
   try:
@@ -212,9 +197,8 @@ def generate_class_headers(message, output_path, templates_path):
     return False
 
   # replace the target strings
-  # TODO: In python3, we can use str.format() for this
-  filedata = filedata.replace('{template_msg_package}', message.package)
-  filedata = filedata.replace('{template_msg_name}', message.name)
+  filedata = filedata.format(msg_package=message.package,
+                             msg_name=message.short_name)
 
   # write the filled out class header
   try:
@@ -233,7 +217,7 @@ def generate_class_impl(message, output_path, templates_path):
   impl_out_path = os.path.join(output_path,
                                  message.package + '_robofleet',
                                  'src',
-                                 message.name + '.cpp')
+                                 message.short_name + '.cpp')
 
   # read in the template
   try:
@@ -244,10 +228,9 @@ def generate_class_impl(message, output_path, templates_path):
     return False
 
   # replace the target strings
-  # TODO: In python3, we can use str.format() for this
   # TODO: Corrie magic for the encode and decode functions
-  filedata = filedata.replace('{template_msg_package}', message.package)
-  filedata = filedata.replace('{template_msg_name}', message.name)
+  filedata = filedata.format(msg_package=message.package,
+                             msg_name=message.short_name)
 
   # write the filled out class impl
   try:
@@ -273,14 +256,13 @@ def generate_plugin_manifest(package, output_path, templates_path):
     print('ERROR: Failed to read plugin_description.xml template.')
     return False
 
-  output = '<library path="lib/lib{template_msg_package}_robofleet">\n'
+  output = '<library path="lib/lib{msg_package}_robofleet">\n'
   for message in package.messages:
-    output = output + filedata.replace('{msg_name}', message.name)
+    output = output + filedata.format(msg_package=package.msg_pkg_name,
+                                      msg_name=message.short_name,
+                                      msg_full_name=message.full_name)
   output = output + '</library>'
-
-  # replace the target strings
-  # TODO: In python3, we can use str.format() for this
-  output = output.replace('{template_msg_package}', package.msg_pkg_name)
+  output = output.format(msg_package=package.msg_pkg_name)
 
   # write the filled out plugin_description.xml
   try:

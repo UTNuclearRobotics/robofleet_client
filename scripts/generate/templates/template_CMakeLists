@@ -1,23 +1,23 @@
 cmake_minimum_required(VERSION 3.0.2)
-project({template_msg_package}_robofleet)
+project({msg_package}_robofleet)
 
 find_package(catkin COMPONENTS
   robofleet_client
-  {template_msg_package}
+  {msg_package}
   REQUIRED
 )
 
 catkin_package(
-  LIBRARIES {template_msg_package}_robofleet
-  CATKIN_DEPENDS robofleet_client {template_msg_package}
+  LIBRARIES {msg_package}_robofleet
+  CATKIN_DEPENDS robofleet_client {msg_package}
 )
 
 set(PLUGIN_SRC
-{template_sources_list})
+{sources_list})
 
-add_library({template_msg_package}_robofleet ${PLUGIN_SRC})
-target_link_libraries({template_msg_package}_robofleet ${catkin_LIBRARIES})
-target_include_directories({template_msg_package}_robofleet PRIVATE
+add_library({msg_package}_robofleet ${{PLUGIN_SRC}})
+target_link_libraries({msg_package}_robofleet ${{catkin_LIBRARIES}})
+target_include_directories({msg_package}_robofleet PRIVATE
   include
-  ${catkin_INCLUDE_DIRS}
+  ${{catkin_INCLUDE_DIRS}}
 )

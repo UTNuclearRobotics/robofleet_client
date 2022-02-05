@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>{template_msg_package}_robofleet</name>
+  <name>{msg_package}_robofleet</name>
   <version>0.0.0</version>
-  <description>Plugins that exposes {template_msg_package} to robofleet_client.</description>
+  <description>Plugins that exposes {msg_package} to robofleet_client.</description>
 
   <maintainer email='nobody@nowhere.org'>None. This is a generated package.</maintainer>
 
@@ -10,9 +10,9 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>robofleet_client</depend>
-  <depend>{template_msg_package}</depend>
+  <depend>{msg_package}</depend>
 
   <export>
-    <robofleet_client plugin="${prefix}/plugin_description.xml"/>
+    <robofleet_client plugin="${{prefix}}/plugin_description.xml"/>
   </export>
 </package>

@@ -4,12 +4,12 @@
 #include <robofleet_client/ROSMsgHandlers.hpp>
 
 // get the msg type
-#include <{template_msg_package}/{template_msg_name}.h>
+#include <{msg_package}/{msg_name}.h>
 
-namespace {template_msg_package}_robofleet {
+namespace {msg_package}_robofleet {{
 
-  class {template_msg_name}PublishHandler : public robofleet_client::ROSPublishHandler
-  {
+  class {msg_name}PublishHandler : public robofleet_client::ROSPublishHandler
+  {{
   public:
     virtual void initialize(ros::NodeHandle& nh,
                             const std::string to_topic,
@@ -18,15 +18,15 @@ namespace {template_msg_package}_robofleet {
     virtual void publish(const QByteArray& data);
     
   private:
-    typedef {template_msg_package}::{template_msg_name} MsgType;
+    typedef {msg_package}::{msg_name} MsgType;
 
     MsgType decode(const QByteArray& data);
-  };
+  }};
   
   
   
-  class {template_msg_name}SubscribeHandler : public robofleet_client::ROSSubscribeHandler
-  {
+  class {msg_name}SubscribeHandler : public robofleet_client::ROSSubscribeHandler
+  {{
   public:
     virtual bool initialize(ros::NodeHandle& nh,
                               MessageScheduler* scheduler,
@@ -36,11 +36,11 @@ namespace {template_msg_package}_robofleet {
                               const bool no_drop);
     
   private:
-    typedef {template_msg_package}::{template_msg_name} MsgType;
+    typedef {msg_package}::{msg_name} MsgType;
     typedef boost::shared_ptr<MsgType> MsgTypeConstPtr;
     
     QByteArray encode(const MsgType& msg);
     
     void callback(const MsgTypeConstPtr& msg);
-  };
-}
+  }};
+}}
