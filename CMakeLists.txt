@@ -34,7 +34,7 @@ set(Qt5_LIBRARIES Qt5::Core Qt5::WebSockets)
 set(PLUGINS_LIBRARY ${PROJECT_NAME}_plugins)
 
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS include scripts/generate/msg2fbs/flatbuffers/include
   LIBRARIES ${PLUGINS_LIBRARY}
   CATKIN_DEPENDS
     roscpp
