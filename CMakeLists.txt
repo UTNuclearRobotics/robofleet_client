@@ -50,7 +50,6 @@ catkin_python_setup()
 add_subdirectory(robofleet_client_lib)
 
 add_library(${PLUGINS_LIBRARY})
-add_dependencies(${PLUGINS_LIBRARY} robofleet_base_lib)
 target_link_libraries(${PLUGINS_LIBRARY}
   ${Qt5_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -77,7 +76,6 @@ target_include_directories(client
 PRIVATE
   ${YAML_CPP_INCLUDE_DIR}
 )
-target_compile_options(client PRIVATE -Wall -Wextra -Wpedantic)
 add_subdirectory(src)
 
 catkin_python_setup()

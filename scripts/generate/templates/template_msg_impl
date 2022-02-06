@@ -11,17 +11,24 @@ namespace {msg_package}_robofleet {{
                                  10,
                                  latched);
   }}
-                  
+
+  {msg_name}PublishHandler::MsgType
+  {msg_name}PublishHandler::decode(const QByteArray& data)
+  {{
+    const fb::{msg_package}::{msg_name}* root = 
+      flatbuffers::GetRoot<fb::{msg_package}::{msg_name}>(data.data());
+
+    MsgType msg;
+    {msg_decode_assignments}
+
+    return msg;
+  }}
+  
   void {msg_name}PublishHandler::publish(const QByteArray& data)
   {{
     const MsgType msg = decode(data);
     
     pub_.publish(msg);
-  }}
-  
-  {msg_name}PublishHandler::MsgType
-  {msg_name}PublishHandler::decode(const QByteArray& data)
-  {{
   }}
 
   PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}PublishHandler, robofleet_client::ROSPublishHandler)
@@ -44,18 +51,48 @@ namespace {msg_package}_robofleet {{
       return false;
     }}
 
+    flatbuffers::FlatBufferBuilder fbb;
+    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
+                                       flatbuffers::Offset<flatbuffers::String>,
+                                       flatbuffers::Offset<flatbuffers::String>);
+    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
+                                          std::placeholders::_1,
+                                          fbb.CreateString("{msg_package}::{msg_name}"),
+                                          fbb.CreateString(to_topic.c_str()));
+
     sub_ = nh.subscribe(to_topic, 10, &{msg_name}SubscribeHandler::callback, this);
 
     return true;
   }}
 
   
-  QByteArray {msg_name}SubscribeHandler::encode(const MsgType& msg)
+  QByteArray {msg_name}SubscribeHandler::encode(const MsgType& msg
+                                                const bool include_metadata)
   {{
+    flatbuffers::FlatBufferBuilder fbb;
+
+    // encode the metadata
+    MetaDataOffset metadata = 0; 
+    if (include_metadata)
+    {{
+      metadata = encode_metadata_function_(fbb);
+    }}
+
+    const flatbuffers::uoffset_t root_offset =
+          fb::{msg_package}::Create{msg_name}(fbb,
+                                              metadata{msg_encode_assignments}).o;
+
+    fbb.Finish(flatbuffers::Offset<void>(root_offset));
+    const QByteArray data{{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                          static_cast<int>(fbb.GetSize())}};
+
+    return data;
   }}
   
   void {msg_name}SubscribeHandler::callback(const MsgTypeConstPtr& msg)
   {{
+    const QByteArray data = encode(*msg);
+    schedule_function_(data);
   }}
 }} // namespace {msg_package}_robofleet
 

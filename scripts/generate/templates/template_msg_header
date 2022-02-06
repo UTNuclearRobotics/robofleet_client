@@ -6,6 +6,8 @@
 // get the msg type
 #include <{msg_package}/{msg_name}.h>
 
+#include <{msg_package}_robofleet/schema_generated.h>
+
 namespace {msg_package}_robofleet {{
 
   class {msg_name}PublishHandler : public robofleet_client::ROSPublishHandler
@@ -38,6 +40,9 @@ namespace {msg_package}_robofleet {{
   private:
     typedef {msg_package}::{msg_name} MsgType;
     typedef boost::shared_ptr<MsgType> MsgTypeConstPtr;
+    typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
+    
+    std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
     
     QByteArray encode(const MsgType& msg);
     

@@ -49,7 +49,7 @@ namespace robofleet_client
     protected:
       ros::Subscriber sub_;
       
-      std::function<void(QByteArray&)> schedule_function_;
+      std::function<void(const QByteArray&)> schedule_function_;
   };
   
   typedef boost::shared_ptr<ROSPublishHandler> ROSPublishHandlerPtr;

@@ -8,6 +8,7 @@ find_package(catkin COMPONENTS
 )
 
 catkin_package(
+  INCLUDE_DIRS include
   LIBRARIES {msg_package}_robofleet
   CATKIN_DEPENDS robofleet_client {msg_package}
 )
