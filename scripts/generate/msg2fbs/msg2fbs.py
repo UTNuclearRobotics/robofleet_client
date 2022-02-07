@@ -78,12 +78,12 @@ def gen_support(base_ns):
 
     # ROS time primitives
     yield "struct RosTime {"
-    yield "  secs:uint32;"
-    yield "  nsecs:uint32;"
+    yield "  sec:uint32;"
+    yield "  nsec:uint32;"
     yield "}"
     yield "struct RosDuration {"
-    yield "  secs:int32;"
-    yield "  nsecs:int32;"
+    yield "  sec:int32;"
+    yield "  nsec:int32;"
     yield "}"
     yield "// *** end supporting definitions ***"
 

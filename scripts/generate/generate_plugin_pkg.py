@@ -251,27 +251,44 @@ def generate_msg_impl(message, output_path, templates_path):
   # TODO: Corrie magic for the encode and decode functions
   msg_decode_assignments = ''
   msg_encode_assignments = ''
-  for field_type,field_name in itertools.izip(message.types, message.names):
+  dependencies = ''
+  for field in message.parsed_fields():
 
     # handle c-string variables
-    field_name_decode = field_name
-    field_name_encode = field_name
-    if field_type == 'string':
+    field_name_decode = 'src->' + field.name + '()'
+    field_name_encode = 'msg.' + field.name
+    if field.base_type == 'string':
       field_name_decode = field_name_decode + '->str'
       field_name_encode = field_name_encode + '.c_str()'
 
-    msg_decode_assignments = msg_decode_assignments + 'msg.' +\
-                                                    field_name +\
-                                                    '=root->' +\
-                                                    field_name_decode +\
-                                                    '();\n'
+    # handle variables that themselves require encoding
+    # RosTime and RosDuration require special handling
+    # also have to handle arrays of primitives
+    if not field.is_builtin or field.base_type == 'time' or field.base_type == 'duration'\
+      or (field.is_builtin and field.is_array):
+      field_name_decode = 'FbtoRos(' + field_name_decode + ')'
+      field_name_encode = 'RostoFb(fbb, ' + field_name_encode + ')'
 
-    msg_encode_assignments = msg_encode_assignments + ',\nmsg.' + field_name_encode
+      # get the package name
+      if not field.is_builtin:
+        split = field.base_type.split('/')
+        package_name = split[0]
+        short_name = split[1]
+        dependencies = dependencies + '#include <' + package_name + '_robofleet/' + short_name + '.h>\n'
+
+    msg_decode_assignments = msg_decode_assignments + '\n\t\tmsg.' +\
+                                                    field.name +\
+                                                    '=' +\
+                                                    field_name_decode +\
+                                                    ';'
+
+    msg_encode_assignments = msg_encode_assignments + ',\n\t\t\t\t' + field_name_encode
 
   filedata = filedata.format(msg_package=message.package,
                              msg_name=message.short_name,
                              msg_decode_assignments=msg_decode_assignments,
-                             msg_encode_assignments=msg_encode_assignments)
+                             msg_encode_assignments=msg_encode_assignments,
+                             dependencies=dependencies)
 
   # write the filled out class impl
   try:

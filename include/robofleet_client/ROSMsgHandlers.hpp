@@ -45,7 +45,7 @@ namespace robofleet_client
                               const double priority,
                               const double rate_limit,
                               const bool no_drop);
-            
+      
     protected:
       ros::Subscriber sub_;
       
