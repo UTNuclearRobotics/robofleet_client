@@ -258,7 +258,6 @@ def gen_msg(msg_type, defined_types, base_ns, gen_enums, gen_constants):
     for t in types:
         if not t.is_defined(base_ns, defined_types):
           if t.namespace!=msg_type.package:
-            print('gen dependency:' + t.ros_type)
             for x in gen_msg(t, defined_types, base_ns, gen_enums, gen_constants):
               yield x
     

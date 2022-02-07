@@ -33,12 +33,13 @@ set(Qt5_LIBRARIES Qt5::Core Qt5::WebSockets)
 
 set(PLUGINS_LIBRARY ${PROJECT_NAME}_plugins)
 
+set(flatbuffers_INCLUDE_DIRS scripts/generate/msg2fbs/flatbuffers/include)
+
 catkin_package(
-  INCLUDE_DIRS include scripts/generate/msg2fbs/flatbuffers/include
+  INCLUDE_DIRS include ${flatbuffers_INCLUDE_DIRS}
   LIBRARIES ${PLUGINS_LIBRARY}
   CATKIN_DEPENDS
     roscpp
-    
     rosmsg
     rospack
     pluginlib
@@ -47,20 +48,16 @@ catkin_package(
 
 catkin_python_setup()
 
-add_subdirectory(robofleet_client_lib)
-
 add_library(${PLUGINS_LIBRARY})
 target_link_libraries(${PLUGINS_LIBRARY}
   ${Qt5_LIBRARIES}
   ${catkin_LIBRARIES}
-  ${ROBOFLEET_CLIENT_LIBRARY_NAME}
 )
 target_include_directories(${PLUGINS_LIBRARY}
 PUBLIC
   include
   ${Qt5_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
-  robofleet_client_lib/include
 INTERFACE
   include
 )
@@ -75,6 +72,7 @@ target_link_libraries(client
 target_include_directories(client
 PRIVATE
   ${YAML_CPP_INCLUDE_DIR}
+  ${flatbuffers_INCLUDE_DIRS}
 )
 add_subdirectory(src)
 

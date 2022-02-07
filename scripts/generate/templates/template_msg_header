@@ -10,18 +10,18 @@
 
 namespace {msg_package}_robofleet {{
 
-  typedef flatbuffers::Offset<fb::{msg_package}::{msg_name}> {msg_name}Offset;
-
   /** Conversion Functions **/
   {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src);
+
+  {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref);
 
   std::vector<{msg_package}::{msg_name}> FbtoRos(const std::vector<fb::{msg_package}::{msg_name}>* src);
 
   std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src);
 
-  {msg_name}Offset RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg);
+  flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& msg);
 
-  flatbuffers::Offset<flatbuffers::Vector<{msg_name}Offset>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& msg);
+  flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg);
 
   /** Publish Handler **/
   class {msg_name}PublishHandler : public robofleet_client::ROSPublishHandler
@@ -73,7 +73,7 @@ namespace {msg_package}_robofleet {{
     // produces a buffer with metadata
     QByteArray encodeWithMetadata(const MsgType& msg);
     
-    // encodes the message, with metadata, and sends to the client's message scheduler
+    // encodes the message
     void callback(const MsgTypeConstPtr& msg);
   }};
 }}

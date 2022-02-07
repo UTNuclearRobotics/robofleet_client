@@ -21,16 +21,7 @@ public:
   RosClientNode(Verbosity verbosity, MessageScheduler& scheduler);
 
   bool configure(const YAML::Node& root);
-
-public Q_SLOTS:
-  /**
-   * @brief Attempt to decode an publish message data.
-   *
-   * Must call register_msg_type<T> before a message of type T can be decoded.
-   * @param data the Flatbuffer-encoded message data
-   */
-  void decode_net_message(const QByteArray& data);
-
+  
 private:
   typedef std::string TopicString;
   typedef std::string MsgTypeString;

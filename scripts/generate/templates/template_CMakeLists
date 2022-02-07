@@ -1,17 +1,19 @@
 cmake_minimum_required(VERSION 3.0.2)
 project({msg_package}_robofleet)
 
-find_package(catkin COMPONENTS
+find_package(catkin REQUIRED COMPONENTS
   robofleet_client
   {msg_package}
-  REQUIRED
+  {dependencies}
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES {msg_package}_robofleet
-  CATKIN_DEPENDS robofleet_client {msg_package}
-)
+  CATKIN_DEPENDS
+    robofleet_client
+    {msg_package}
+    {dependencies})
 
 set(PLUGIN_SRC
 {sources_list})

@@ -1,45 +1,11 @@
 #include <{msg_package}_robofleet/{msg_name}.h>
 #include <QByteArray>
+#include "common_conversions.hpp"
 
 // message dependencies
 {dependencies}
 
 namespace {msg_package}_robofleet {{
-
-  // explicitly handle arrays of primitive types
-  template<class PrimType>
-  flatbuffers::Offset<flatbuffers::Vector<PrimType>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<PrimType>& src)
-  {{
-    return fbb.CreateVector(src);
-  }}
-
-  template<class PrimType>
-  std::vector<PrimType> FbtoRos(const flatbuffers::Vector<PrimType>* src)
-  {{
-    return std::vector<PrimType>(src->begin(), src->end());
-  }}
-
-  // time and duration primitives don't follow the usual pattern,
-  // so handle them explicitly
-  ros::Time FbtoRos(const fb::RosTime* fb)
-  {{
-    return ros::Time(fb->sec(), fb->nsec());
-  }}
-
-  fb::RosTime RosToFb(const ros::Time& msg)
-  {{
-    return fb::RosTime(msg.sec, msg.nsec);
-  }}
-
-  ros::Duration FbtoRos(const fb::RosDuration* fb)
-  {{
-    return ros::Duration(fb->sec(), fb->nsec());
-  }}
-
-  fb::RosDuration RosToFb(const ros::Duration& msg)
-  {{
-    return fb::RosDuration(msg.sec, msg.nsec);
-  }}
 
   {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src)
   {{
@@ -48,31 +14,58 @@ namespace {msg_package}_robofleet {{
     return msg;
   }}
 
+  {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref)
+  {{
+    const fb::{msg_package}::{msg_name}* src = &src_ref;
+    {msg_package}::{msg_name} msg;{msg_decode_assignments}
+
+    return msg;
+  }}
+
   std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<fb::{msg_package}::{msg_name}>* src)
   {{
-    std::vector<{msg_package}::{msg_name}> dst(src->size());
-    std::transform(
-        src->begin(), src->end(), dst.begin(), [](const fb::{msg_package}::{msg_name}& item) {{
-          return FbtoRos(&item);
-        }});
+    // std::vector<{msg_package}::{msg_name}> dst(src->size());
+    // std::transform(
+    //     src->begin(), src->end(), dst.begin(), [](const fb::{msg_package}::{msg_name}& item) {{
+    //       return FbtoRos(&item);
+    //     }});
+
+    // return dst;
+    std::vector<{msg_package}::{msg_name}> dst;
+    dst.reserve(src->size());
+    typedef flatbuffers::Vector<fb::{msg_package}::{msg_name}> fvec;
+    for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
+    {{
+      //dst.push_back(FbtoRos(*it));
+    }}
 
     return dst;
   }}
 
   std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
   {{
-    std::vector<{msg_package}::{msg_name}> dst(src->size());
-    std::transform(
-        src->begin(), src->end(), dst.begin(), [](const fb::{msg_package}::{msg_name}& item) {{
-          return FbtoRos(&item);
-        }});
+    // std::vector<{msg_package}::{msg_name}> dst(src->size());
+    // std::transform(
+    //     src->begin(), src->end(), dst.begin(), [](const fb::{msg_package}::{msg_name}& item) {{
+    //       return FbtoRos(&item);
+    //     }});
+
+    // return dst;
+    std::vector<{msg_package}::{msg_name}> dst;
+    dst.reserve(src->size());
+    typedef flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> fvec;
+    for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
+    {{
+      dst.push_back(FbtoRos(*it));
+    }}
 
     return dst;
+    
   }}
 
-  flatbuffers::Offset<flatbuffers::Vector<{msg_name}Offset>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)
+  flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)
   {{
-    std::vector<{msg_name}Offset> dst(src.size());
+    std::vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> dst(src.size());
     std::transform(
         src.begin(), src.end(), dst.begin(), [&fbb](const {msg_package}::{msg_name}& item) {{
           return RostoFb(fbb, item);
@@ -80,7 +73,7 @@ namespace {msg_package}_robofleet {{
     return fbb.CreateVector(dst).o;
   }}
 
-  {msg_name}Offset RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg)
+  flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg)
   {{
     return fb::{msg_package}::Create{msg_name}(fbb, 0{msg_encode_assignments}).o;
   }}

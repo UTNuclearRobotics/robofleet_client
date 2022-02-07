@@ -21,8 +21,9 @@ class PackageData:
   def __init__(self, msg_pkg):
     self.msg_pkg_name = msg_pkg
     self.plugin_pkg_name = msg_pkg + '_robofleet'
-    self.messages = []
-    self.services = []
+    self.messages = set()
+    self.services = set()
+    self.dependencies = set()
 
   def __str__(self):
     output = 'PACKAGE: ' + self.msg_pkg_name
@@ -118,6 +119,7 @@ def get_msg_and_srv_data(package, traversed_packages):
         # this conditional prevents duplication
         if dependency_name not in set(x.msg_pkg_name for x in traversed_packages):
           print('Adding dependency ' + dependency_name + ' of ' + package.msg_pkg_name)
+          package.dependencies.add(dependency_name)
           get_msg_and_srv_data(PackageData(dependency_name), traversed_packages)
 
 
@@ -153,13 +155,18 @@ def generate_cmakelists(package, output_path, templates_path):
     print('ERROR: Failed to read CMakeLists template.')
     return False
 
+  dependencies = ''
+  for name in package.dependencies:
+    dependencies = dependencies + '\t' + name + '_robofleet\n'
+
   source_files_list = ''
   for message in package.messages:
     source_files_list = source_files_list + "  src/" + message.short_name + ".cpp\n"
 
   # replace the target strings
   filedata = filedata.format(msg_package=package.msg_pkg_name,
-                             sources_list=source_files_list)
+                             sources_list=source_files_list,
+                             dependencies=dependencies)
 
   # write the filled out CMakelists
   try:
@@ -185,8 +192,13 @@ def generate_package_xml(package, output_path, templates_path):
     print('ERROR: Failed to read package.xml template.')
     return False
 
+  dependencies = ''
+  for name in package.dependencies:
+    dependencies = dependencies + '\t<depend>' + name + '_robofleet</depend>\n'
+
   # replace the target strings
-  filedata = filedata.format(msg_package=package.msg_pkg_name)
+  filedata = filedata.format(msg_package=package.msg_pkg_name,
+                             dependencies=dependencies)
 
   # write the filled out package.xml
   try:
@@ -258,8 +270,8 @@ def generate_msg_impl(message, output_path, templates_path):
     field_name_decode = 'src->' + field.name + '()'
     field_name_encode = 'msg.' + field.name
     if field.base_type == 'string':
-      field_name_decode = field_name_decode + '->str'
-      field_name_encode = field_name_encode + '.c_str()'
+      field_name_decode = field_name_decode + '->str()'
+      field_name_encode = 'fbb.CreateString(' + field_name_encode + '.c_str())'
 
     # handle variables that themselves require encoding
     # RosTime and RosDuration require special handling
@@ -269,7 +281,15 @@ def generate_msg_impl(message, output_path, templates_path):
       field_name_decode = 'FbtoRos(' + field_name_decode + ')'
       field_name_encode = 'RostoFb(fbb, ' + field_name_encode + ')'
 
-      # get the package name
+      # if field.is_builtin and field.is_array:
+      #   index = field_name_decode.find('(')
+      #   modified_base_name = field.base_type
+      #   i = field.base_type.find('int')
+      #   if i != -1:
+      #     modified_base_name = modified_base_name + '_t'
+      #   field_name_decode = field_name_decode[:index] + '<' + modified_base_name + '>' + field_name_decode[index:]
+
+      # include the dependency headers
       if not field.is_builtin:
         split = field.base_type.split('/')
         package_name = split[0]
@@ -301,6 +321,56 @@ def generate_msg_impl(message, output_path, templates_path):
   return True
 
 
+def generate_common_header(package, output_path, templates_path):
+  impl_template_path = os.path.join(templates_path, 'template_common_header')
+  impl_out_path = os.path.join(output_path,
+                                 package.msg_pkg_name + '_robofleet',
+                                 'src',
+                                 'common_conversions.hpp')
+
+  # read in the template
+  try:
+    with open(impl_template_path, 'r') as file :
+      filedata = file.read()
+  except IOError:
+    print('ERROR: Failed to read common_conversions template.')
+    return False
+
+  output = filedata.format(msg_package=package.msg_pkg_name)
+
+  # write the filled out plugin_description.xml
+  try:
+    with open(impl_out_path, 'w') as file:
+      file.write(output)
+  except OSError:
+    print('ERROR: Failed to write common_conversions.hpp')
+    return False
+
+  impl_template_path = os.path.join(templates_path, 'template_common_impl')
+  impl_out_path = os.path.join(output_path,
+                                 package.msg_pkg_name + '_robofleet',
+                                 'src',
+                                 'common_conversions.cpp')
+
+  # read in the template
+  try:
+    with open(impl_template_path, 'r') as file :
+      filedata = file.read()
+  except IOError:
+    print('ERROR: Failed to read common_conversions template.')
+    return False
+
+  output = filedata.format(msg_package=package.msg_pkg_name)
+
+  # write the filled out plugin_description.xml
+  try:
+    with open(impl_out_path, 'w') as file:
+      file.write(output)
+  except OSError:
+    print('ERROR: Failed to write common_conversions.cpp')
+    return False
+
+  return True
 
 def generate_plugin_manifest(package, output_path, templates_path):
   manifest_template_path = os.path.join(templates_path, 'template_plugin_description')
@@ -393,6 +463,9 @@ def generate_plugin_package(package, output_path, templates_path, msg2fbs_dir):
   for message in package.messages:
     if not generate_msg_impl(message, output_path, templates_path):
       return False
+
+  if not generate_common_header(package, output_path, templates_path):
+    return False
 
   if not generate_plugin_manifest(package, output_path, templates_path):
     return False

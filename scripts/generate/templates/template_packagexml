@@ -11,6 +11,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>robofleet_client</depend>
   <depend>{msg_package}</depend>
+{dependencies}
 
   <export>
     <robofleet_client plugin="${{prefix}}/plugin_description.xml"/>

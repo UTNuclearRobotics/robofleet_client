@@ -1,8 +1,5 @@
 #include "RosClientNode.hpp"
 
-#include <flatbuffers/flatbuffers.h>
-#include <schema_generated.h>
-
 #include <yaml-cpp/yaml.h>
 
 RosClientNode::RosClientNode(Verbosity verbosity, MessageScheduler& scheduler) :
@@ -117,27 +114,6 @@ bool RosClientNode::getResponseHandler(
   robofleet_client::ROSResponseHandlerPtr& out_handler)
 {
   return getHandler(params, "ResponseHandler", out_handler);
-}
-
-
-void RosClientNode::decode_net_message(const QByteArray& data) {
-  // extract metadata
-  const fb::MsgWithMetadata* msg =
-      flatbuffers::GetRoot<fb::MsgWithMetadata>(data.data());
-  const MsgTypeString msg_type = msg->__metadata()->type()->str();
-  const TopicString topic = msg->__metadata()->topic()->str();
-
-  // try to publish
-  if (pubs_.count(topic) == 0) {
-    ROS_WARN_ONCE("Ignoring message of unregistered topic %s.", topic.c_str());
-    return;
-  }
-
-  if (verbosity_ == Verbosity::ALL) {
-    ROS_INFO("Received message of type %s on topic %s.", msg_type.c_str(), topic.c_str());
-  }
-
-  pubs_[topic]->publish(data);
 }
 
 bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
