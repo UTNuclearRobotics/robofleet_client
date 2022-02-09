@@ -336,8 +336,28 @@ def generate_msg_impl(message, output_path, templates_path):
     if not field.is_builtin or field.base_type == 'time'\
          or field.base_type == 'duration'\
          or (field.is_builtin and field.is_array):
-      field_name_decode = '::FbtoRos(' + field_name_decode + ')'
+
       field_name_encode = '::RostoFb(fbb, ' + field_name_encode + ')'
+
+      if field.array_len is None:
+        field_name_decode = '::FbtoRos(' + field_name_decode + ')'
+      else:
+        # ROS uses boost::array to represent fixed-length vector message fields
+        # We need to help the compiler find the right template overload
+        # in this case.
+
+        # We also need to replace some types with ones that C++ understands
+        replacements = {'float32': 'float',
+                        'float64': 'double',
+                        'int8': 'int8_t',
+                        'uint8': 'uint8_t'}
+        t = field.base_type
+        if field.base_type in replacements:
+          t = replacements[field.base_type]
+        field_name_decode = '::FbtoRos<{}, {}>({})'.format(t,
+                                                           field.array_len,
+                                                           field_name_decode)
+
 
     msg_decode_assignments = msg_decode_assignments + '\n\t\tmsg.' +\
                                                     field.name +\
@@ -371,9 +391,9 @@ def generate_common_header(package, output_path, templates_path):
   """
   impl_template_path = os.path.join(templates_path, 'template_common_header')
   impl_out_path = os.path.join(output_path,
-                                 package.name + '_robofleet',
-                                 'src',
-                                 'common_conversions.hpp')
+                               'include',
+                               'robofleet_client',
+                               'common_conversions.hpp')
 
   # read in the template
   try:
@@ -395,9 +415,8 @@ def generate_common_header(package, output_path, templates_path):
   # also do the implementation file
   impl_template_path = os.path.join(templates_path, 'template_common_impl')
   impl_out_path = os.path.join(output_path,
-                                 package.name + '_robofleet',
-                                 'src',
-                                 'common_conversions.cpp')
+                               'src',
+                               'common_conversions.cpp')
 
   # read in the template
   try:
@@ -407,11 +426,9 @@ def generate_common_header(package, output_path, templates_path):
     print('ERROR: Failed to read common_conversions template.')
     return False
 
-  output = filedata.format(msg_package=package.name)
-
   try:
     with open(impl_out_path, 'w') as file:
-      file.write(output)
+      file.write(filedata)
   except OSError:
     print('ERROR: Failed to write common_conversions.cpp')
     return False
@@ -647,7 +664,7 @@ def generate_plugin_packages(packages, msg_depends_graph, output_path, templates
       if not generate_msg_impl(message, output_path, templates_path):
         return False
 
-    if not generate_common_header(package, output_path, templates_path):
+    if not generate_common_header(package, rospkg.RosPack().get_path('robofleet_client'), templates_path):
       return False
 
     if not generate_plugin_manifest(package, output_path, templates_path):

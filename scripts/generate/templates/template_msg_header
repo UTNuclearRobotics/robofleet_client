@@ -12,17 +12,15 @@
 {dependencies}
 
 /** Conversion Functions **/
-  {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src);
+{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src);
 
-  {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref);
+{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref);
 
-  //std::vector<{msg_package}::{msg_name}> FbtoRos(const std::vector<fb::{msg_package}::{msg_name}>* src);
+std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src);
 
-  std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src);
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& msg);
 
-  flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& msg);
-
-  flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg);
+flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg);
 
 namespace {msg_package}_robofleet {{
 

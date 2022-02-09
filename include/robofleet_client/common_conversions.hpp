@@ -6,36 +6,36 @@
 // explicitly handle primitive types
 template<class PrimType>
 flatbuffers::Offset<flatbuffers::Vector<PrimType>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<PrimType>& src)
-{{
+{
   return fbb.CreateVector(src);
-}}
+}
 
 template<class PrimType, size_t N>
 flatbuffers::Offset<flatbuffers::Vector<PrimType>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const boost::array<PrimType, N>& src)
-{{
+{
   std::vector<PrimType> temp;
   temp.resize(N);
   std::copy_n(src.begin(), N, temp.begin());
   return RostoFb(fbb, temp);
-}}
+}
 
 template<class PrimType>
 std::vector<PrimType> FbtoRos(const flatbuffers::Vector<PrimType>* src)
-{{
+{
   return std::vector<PrimType>(src->begin(), src->end());
-}}
+}
 
 // when calling this template, be sure to give the full
 // template argument list in order to distinguish from
 // 'template<class PrimType> std::vector<PrimType> FbtoRos'
 template<class PrimType, size_t N>
 boost::array<PrimType, N> FbtoRos(const flatbuffers::Vector<PrimType>* src)
-{{
+{
   boost::array<PrimType, N> output;
   std::copy_n(src->begin(), N, output.begin());
 
   return output;
-}}
+}
 
 // time and duration primitives don't follow the usual pattern,
 // so handle them explicitly

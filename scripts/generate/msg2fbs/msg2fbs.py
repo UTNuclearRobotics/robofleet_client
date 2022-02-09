@@ -105,10 +105,6 @@ class Type:
     """
     Represents a data type. Constructed from a ROS type string.
     Produces Flatbuffers type strings.
-
-    Note on array syntax: We generate Flatbuffers *vectors*, rather than
-    *arrays*. Therefore, we simply ignore any array length specified by the
-    ROS definition.
     """
     def __init__(self, ros_type, base_ns):
         # avoid deprecated types
@@ -117,7 +113,7 @@ class Type:
 
         self.base_ns = base_ns
         
-        match = re.match(r"^(?P<type>(?:(?P<ns>[\w\/]+)\/)?(?P<name>\w+))(?P<array>\[\d*\])?$", ros_type)
+        match = re.match(r"^(?P<type>(?:(?P<ns>[\w\/]+)\/)?(?P<name>\w+))(?P<array>\[(?P<size>\d*)\])?$", ros_type)
         if match is None:
             raise RuntimeError("Invalid ROS type: {}".format(ros_type))
 
@@ -137,8 +133,11 @@ class Type:
         # the unqualified name of this type
         self.name = match.group("name")
 
-        # is this an array type?
+        # is this a vector OR array type?
         self.is_array = match.group("array") is not None
+
+        # size will be None if the type is a vector rather than an array
+        self.array_size = match.group("size")
     
     def full_namespace(self):
         """ Namespace including base namespace """

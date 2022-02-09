@@ -1,63 +1,49 @@
 #include <{msg_package}_robofleet/{msg_name}.h>
 #include <QByteArray>
-#include "common_conversions.hpp"
 
-  {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src)
+{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src)
+{{
+  {msg_package}::{msg_name} msg;{msg_decode_assignments}
+
+  return msg;
+}}
+
+{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref)
+{{
+  const fb::{msg_package}::{msg_name}* src = &src_ref;
+  {msg_package}::{msg_name} msg;{msg_decode_assignments}
+
+  return msg;
+}}
+
+std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
+{{
+  std::vector<{msg_package}::{msg_name}> dst;
+  dst.reserve(src->size());
+  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> fvec;
+  for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
   {{
-    {msg_package}::{msg_name} msg;{msg_decode_assignments}
-
-    return msg;
+    dst.push_back(FbtoRos(*it));
   }}
 
-  {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref)
-  {{
-    const fb::{msg_package}::{msg_name}* src = &src_ref;
-    {msg_package}::{msg_name} msg;{msg_decode_assignments}
+  return dst;
+  
+}}
 
-    return msg;
-  }}
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)
+{{
+  std::vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> dst(src.size());
+  std::transform(
+      src.begin(), src.end(), dst.begin(), [&fbb](const {msg_package}::{msg_name}& item) {{
+        return RostoFb(fbb, item);
+      }});
+  return fbb.CreateVector(dst).o;
+}}
 
-  // std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<fb::{msg_package}::{msg_name}>* src)
-  // {{
-  //   std::vector<{msg_package}::{msg_name}> dst;
-  //   dst.reserve(src->size());
-  //   typedef flatbuffers::Vector<fb::{msg_package}::{msg_name}> fvec;
-  //   for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
-  //   {{
-  //     dst.push_back(FbtoRos(*it));
-  //   }}
-
-  //   return dst;
-  // }}
-
-  std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
-  {{
-    std::vector<{msg_package}::{msg_name}> dst;
-    dst.reserve(src->size());
-    typedef flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> fvec;
-    for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
-    {{
-      dst.push_back(FbtoRos(*it));
-    }}
-
-    return dst;
-    
-  }}
-
-  flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)
-  {{
-    std::vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> dst(src.size());
-    std::transform(
-        src.begin(), src.end(), dst.begin(), [&fbb](const {msg_package}::{msg_name}& item) {{
-          return RostoFb(fbb, item);
-        }});
-    return fbb.CreateVector(dst).o;
-  }}
-
-  flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg)
-  {{
-    return fb::{msg_package}::Create{msg_name}(fbb, 0{msg_encode_assignments}).o;
-  }}
+flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg)
+{{
+  return fb::{msg_package}::Create{msg_name}(fbb, 0{msg_encode_assignments}).o;
+}}
 
 namespace {msg_package}_robofleet {{
     

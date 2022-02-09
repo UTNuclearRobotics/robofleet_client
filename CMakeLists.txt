@@ -58,6 +58,7 @@ PUBLIC
   include
   ${Qt5_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${flatbuffers_INCLUDE_DIRS}
 INTERFACE
   include
 )
@@ -72,7 +73,6 @@ target_link_libraries(client
 target_include_directories(client
 PRIVATE
   ${YAML_CPP_INCLUDE_DIR}
-  ${flatbuffers_INCLUDE_DIRS}
 )
 add_subdirectory(src)
 
