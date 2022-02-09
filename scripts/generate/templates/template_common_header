@@ -1,9 +1,8 @@
 #pragma once
 
-#include <{msg_package}_robofleet/schema_generated.h>
+#include <ros/ros.h>
+#include <{msg_package}_robofleet/{msg_package}_generated.h>
 #include <flatbuffers/flatbuffers.h>
-
-namespace {msg_package}_robofleet {{
 
 // explicitly handle primitive types
 template<class PrimType>
@@ -27,6 +26,15 @@ boost::array<PrimType, N> FbtoRos(const flatbuffers::Vector<PrimType>* src)
   return output;
 }}
 
+template<class PrimType, size_t N>
+boost::array<PrimType, N> FbtoRos(const flatbuffers::Offset<flatbuffers::Vector<double>>* src)
+{{
+  boost::array<PrimType, src->size()> output;
+  std::copy(src->begin(), src->end(), output->begin());
+
+  return output;
+}}
+
 // time and duration primitives don't follow the usual pattern,
 // so handle them explicitly
 ros::Time FbtoRos(const fb::RosTime* fb);
@@ -36,5 +44,3 @@ const fb::RosTime* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Time&
 ros::Duration FbtoRos(const fb::RosDuration* fb);
 
 const fb::RosDuration* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Duration& msg);
-
-}}

@@ -13,10 +13,12 @@ catkin_package(
   CATKIN_DEPENDS
     robofleet_client
     {msg_package}
-    {dependencies})
+    {dependencies}
+)
 
 set(PLUGIN_SRC
-{sources_list})
+{sources_list}
+)
 
 add_library({msg_package}_robofleet ${{PLUGIN_SRC}})
 target_link_libraries({msg_package}_robofleet ${{catkin_LIBRARIES}})

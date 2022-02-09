@@ -6,7 +6,7 @@ FLATC?=build/flatbuffers/flatc
 .SUFFIXES: # disable default rules
 
 .PHONY: all
-all: schema_generated.h build/flatbuffers/flatc build/flatbuffers/Makefile
+all: $(SCHEMA_FILE).h build/flatbuffers/flatc build/flatbuffers/Makefile
 
 .PHONY: clean
 clean:
@@ -14,8 +14,8 @@ clean:
 	-rm -f schema.fbs
 	-rm -rf build
 
-schema_generated.h: schema.fbs $(FLATC)
-	$(FLATC) --gen-object-api -c schema.fbs
+$(SCHEMA_FILE).h: $(SCHEMA_FILE).fbs $(FLATC)
+	$(FLATC) --gen-object-api -c $(SCHEMA_FILE).fbs
 
 build/flatbuffers/flatc: build/flatbuffers/Makefile
 	(cd build/flatbuffers; make -j flatc)

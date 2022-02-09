@@ -2,11 +2,6 @@
 #include <QByteArray>
 #include "common_conversions.hpp"
 
-// message dependencies
-{dependencies}
-
-namespace {msg_package}_robofleet {{
-
   {msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src)
   {{
     {msg_package}::{msg_name} msg;{msg_decode_assignments}
@@ -22,35 +17,21 @@ namespace {msg_package}_robofleet {{
     return msg;
   }}
 
-  std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<fb::{msg_package}::{msg_name}>* src)
-  {{
-    // std::vector<{msg_package}::{msg_name}> dst(src->size());
-    // std::transform(
-    //     src->begin(), src->end(), dst.begin(), [](const fb::{msg_package}::{msg_name}& item) {{
-    //       return FbtoRos(&item);
-    //     }});
+  // std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<fb::{msg_package}::{msg_name}>* src)
+  // {{
+  //   std::vector<{msg_package}::{msg_name}> dst;
+  //   dst.reserve(src->size());
+  //   typedef flatbuffers::Vector<fb::{msg_package}::{msg_name}> fvec;
+  //   for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
+  //   {{
+  //     dst.push_back(FbtoRos(*it));
+  //   }}
 
-    // return dst;
-    std::vector<{msg_package}::{msg_name}> dst;
-    dst.reserve(src->size());
-    typedef flatbuffers::Vector<fb::{msg_package}::{msg_name}> fvec;
-    for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
-    {{
-      //dst.push_back(FbtoRos(*it));
-    }}
-
-    return dst;
-  }}
+  //   return dst;
+  // }}
 
   std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
   {{
-    // std::vector<{msg_package}::{msg_name}> dst(src->size());
-    // std::transform(
-    //     src->begin(), src->end(), dst.begin(), [](const fb::{msg_package}::{msg_name}& item) {{
-    //       return FbtoRos(&item);
-    //     }});
-
-    // return dst;
     std::vector<{msg_package}::{msg_name}> dst;
     dst.reserve(src->size());
     typedef flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> fvec;
@@ -77,6 +58,8 @@ namespace {msg_package}_robofleet {{
   {{
     return fb::{msg_package}::Create{msg_name}(fbb, 0{msg_encode_assignments}).o;
   }}
+
+namespace {msg_package}_robofleet {{
     
   void {msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
                                                  const std::string to_topic,
