@@ -7,6 +7,7 @@
 ######################################################################
 
 import argparse
+import glob
 import msg2fbs.msg2fbs as msg2fbs
 import msg2fbs.msg_util as msg_util
 import os.path
@@ -60,11 +61,18 @@ class PackageData:
 
 def parse_args(args):
   """ Parses the command line args. """
+  default_output_path = os.path.join(rospkg.RosPack().get_path('robofleet_client'), 'scripts/generate/output')
+
   parser = argparse.ArgumentParser("Generates plugin packages which expose ROS msgs and services to robofleet_client.")
-  parser.add_argument('-o', '--overwrite', action='store_true',
-                      help='If the requested plugin packages already exist, they will be deleted and recreated.')
+  parser.add_argument('-o', '--out', default=default_output_path,
+                      help="Specify the output directory. Defaults to 'robofleet_client/scripts/generate/output'")
+  parser.add_argument('-w', '--overwrite', action='store_true',
+                      help='If the requested plugin packages already exist in the output location, they will be deleted and recreated.')
+  parser.add_argument('-i', '--leave-schema', action='store_true',
+                      help='Intermediate fatbuffer schema files will not be deleted during cleanup.')
   parser.add_argument('packages', nargs='+',
-                      help='The msg or srv packages that we want to generate plugins for.')
+                      help='The msg or srv packages that we want to generate plugins for.'
+                           'The program will automatically include dependencies of the listed packages.')
 
   return parser.parse_args(args)
 
@@ -644,7 +652,11 @@ def modify_and_install_schema(packages, output_path, msg2fbs_dir):
 
 
 
-def generate_plugin_packages(packages, msg_depends_graph, output_path, templates_path, msg2fbs_dir):
+def generate_plugin_packages(packages,
+                             msg_depends_graph,
+                             output_path,
+                             templates_path,
+                             msg2fbs_dir):
 
   for package,depends in packages.items():
     if not generate_directories(package.plugin_pkg_name, output_path):
@@ -684,6 +696,7 @@ def generate_plugin_packages(packages, msg_depends_graph, output_path, templates
   4. Modify the #include statements in the C++ headers so they can find each other
      in their eventual locations in the plugin packages.
   5. Place the C++ headers in their respective plugin packages.
+  6. Clean up the defnition files, if the user doesn't specify otherwise.
   """
 
   if not generate_base_schema_file(msg2fbs_dir, rospkg.RosPack().get_path('robofleet_client')):
@@ -691,7 +704,11 @@ def generate_plugin_packages(packages, msg_depends_graph, output_path, templates
 
   generated_packages = set()
   for package in packages:
-    if not generate_flatbuffer_schema(package, packages, generated_packages, output_path, msg2fbs_dir):
+    if not generate_flatbuffer_schema(package,
+                                      packages,
+                                      generated_packages,
+                                      output_path,
+                                      msg2fbs_dir):
       return False
 
   print('Finished compiling flatbuffer schema.')
@@ -701,7 +718,16 @@ def generate_plugin_packages(packages, msg_depends_graph, output_path, templates
 
   return True
 
+def cleanup(msg2fbs_path):
+  # delete .fbs files
+  pattern = msg2fbs_path + '/*.fbs'
+  for file in glob.glob(pattern):
+    os.remove(file)
 
+  # delete generated header files
+  pattern = msg2fbs_path + '/*_generated.h'
+  for file in glob.glob(pattern):
+    os.remove(file)
 
 def main(args):
   # parse arguments
@@ -712,7 +738,7 @@ def main(args):
   my_package_path = rospkg.RosPack().get_path('robofleet_client')
   templates_dir = os.path.join(my_package_path, 'scripts/generate/templates')
   msg2fbs_dir = os.path.join(my_package_path, 'scripts/generate/msg2fbs')
-  output_dir = os.path.join(my_package_path, 'scripts/generate/output')
+  output_dir = parsed_args.out
 
   input_package_set = set(parsed_args.packages)
 
@@ -744,11 +770,21 @@ def main(args):
   print('Generating output in ' + output_dir)
 
   # create the output
-  if not generate_plugin_packages(package_depends_graph, msg_depends_graph, output_dir, templates_dir, msg2fbs_dir):
+  if not generate_plugin_packages(package_depends_graph,
+                                  msg_depends_graph,
+                                  output_dir,
+                                  templates_dir,
+                                  msg2fbs_dir):
     return 2
 
   print('---------------------------')
   print('Package Generation Complete!')
+
+  if parsed_args.leave_schema:
+    print('Leaving intermediate flatbuffer schema files.')
+  else:
+    cleanup(msg2fbs_dir)
+    print('Cleanup complete.')
 
   return 0
 
