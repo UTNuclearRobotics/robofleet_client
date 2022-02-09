@@ -91,8 +91,8 @@ def check_product_existence(packages, output_dir, overwrite):
         shutil.rmtree(output_dir + '/' + package.plugin_pkg_name)
       else:
         # exit with error message
-        print('ERROR: Requested package ' + package.plugin_pkg_name + ' already exists. '
-              'Either delete the package or use the --overwrite flag.')
+        print('ERROR: Requested package {} already exists. '
+              'Either delete the package or use the --overwrite flag.'.format(package.plugin_pkg_name))
         return False
   
   return True
@@ -112,7 +112,7 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
   try:
     message_names = set(rosmsg.list_msgs(package.name))
   except rospkg.common.ResourceNotFound as err:
-    print('ERROR: Package ' + err.args[0] + ' not found.')
+    print('ERROR: Package {} not found.').format(err.args[0])
     print(err)
     return 1
   
@@ -159,7 +159,7 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
 
           # if we have not seen this dependency package before, process it recursively
           if new_package not in package_depends_graph.keys():
-            print('Adding dependency ' + dep_package_name + ' of ' + package.name)
+            print('Adding dependency {} of {}'.format(dep_package_name, package.name))
             get_msg_and_srv_data(new_package, msg_depends_graph, package_depends_graph)
 
 
@@ -206,10 +206,10 @@ def generate_cmakelists(package, depends, output_path, templates_path):
     return False
 
   # Build dependencies
-  dependencies_str = '\n'.join(['\t' + x.name + '_robofleet' for x in depends])
+  dependencies_str = '\n'.join(['\t{}_robofleet'.format(x.name) for x in depends])
 
   # Source files for the library target
-  source_files_list = '\n'.join(["  src/" + message.short_name + ".cpp"
+  source_files_list = '\n'.join(['\tsrc/{}.cpp'.format(message.short_name)
                        for message in package.messages])
 
   # replace the target strings
@@ -245,7 +245,7 @@ def generate_package_xml(package, depends, output_path, templates_path):
     return False
 
   # Build dependencies
-  dependencies = '\n'.join(['\t<depend>' + x.name + '_robofleet</depend>'
+  dependencies = '\n'.join(['\t<depend>{}_robofleet</depend>'.format(x.name)
                    for x in depends])
 
   # replace the target strings
@@ -284,7 +284,7 @@ def generate_msg_headers(message, msg_depends_graph, output_path, templates_path
     return False
 
   # includes for the message types used in this message's fields
-  dependencies = '\n'.join(['#include <' + depend.split('/')[0] + '_robofleet/' + depend.split('/')[1] + '.h>'\
+  dependencies = '\n'.join(['#include <{}_robofleet/{}.h>'.format(*depend.split('/'))\
                            for depend in msg_depends_graph[message.full_name]])
 
   # replace the target strings
@@ -310,9 +310,9 @@ def generate_msg_impl(message, output_path, templates_path):
   """
   impl_template_path = os.path.join(templates_path, 'template_msg_impl')
   impl_out_path = os.path.join(output_path,
-                                 message.package + '_robofleet',
-                                 'src',
-                                 message.short_name + '.cpp')
+                               message.package + '_robofleet',
+                               'src',
+                               message.short_name + '.cpp')
 
   # read in the template
   try:
@@ -336,19 +336,19 @@ def generate_msg_impl(message, output_path, templates_path):
 
     if field.base_type == 'string':
       field_name_decode = field_name_decode + '->str()'
-      field_name_encode = 'fbb.CreateString(' + field_name_encode + '.c_str())'
+      field_name_encode = 'fbb.CreateString({}.c_str())'.format(field_name_encode)
 
-    # handle variables that themselves require encoding
+    # handle variables that themselves require a call to a conversion function
     # RosTime and RosDuration require special handling
-    # also have to handle arrays of primitives
+    # also have to handle arrays and primitives
     if not field.is_builtin or field.base_type == 'time'\
          or field.base_type == 'duration'\
          or (field.is_builtin and field.is_array):
 
-      field_name_encode = '::RostoFb(fbb, ' + field_name_encode + ')'
+      field_name_encode = '::RostoFb(fbb, {})'.format(field_name_encode)
 
       if field.array_len is None:
-        field_name_decode = '::FbtoRos(' + field_name_decode + ')'
+        field_name_decode = '::FbtoRos({})'.format(field_name_decode)
       else:
         # ROS uses boost::array to represent fixed-length vector message fields
         # We need to help the compiler find the right template overload
@@ -362,18 +362,17 @@ def generate_msg_impl(message, output_path, templates_path):
         t = field.base_type
         if field.base_type in replacements:
           t = replacements[field.base_type]
+
+        # here we add text for the explicit template specification
+        # the C++ compiler needs this to distinguish them
         field_name_decode = '::FbtoRos<{}, {}>({})'.format(t,
                                                            field.array_len,
                                                            field_name_decode)
 
-
-    msg_decode_assignments = msg_decode_assignments + '\n\t\tmsg.' +\
-                                                    field.name +\
-                                                    '=' +\
-                                                    field_name_decode +\
-                                                    ';'
-
-    msg_encode_assignments = msg_encode_assignments + ',\n\t\t\t\t' + field_name_encode
+    # text to assign fields from fb objects to ROS messages
+    msg_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
+    # text to assign fields from ROS messages to fb objects
+    msg_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
   
 
   filedata = filedata.format(msg_package=message.package,
@@ -508,6 +507,7 @@ def generate_base_schema_file(msg2fbs_dir, robofleet_client_path):
   output_file.close()
 
   # compile the schema by calling the flatc compiler
+  # we actually call a make file which calls flatc
   print('Compiling flatbuffer schema for base definitions')
   try:
     make_file_path = os.path.join(msg2fbs_dir, schema_filename)
@@ -626,6 +626,9 @@ def modify_and_install_schema(packages, output_path, msg2fbs_dir):
       # regex magic to extract the package name from the include statement
       match = re.match('#include "(?P<name>\w+)_generated.h"', line)
       
+      # prepend the package name onto the include path.
+      # the base_schema.h file is a special case since it
+      # resides in robofleet_client
       if match:
         pkg_name = match.group('name')
         if pkg_name == 'base_schema':
@@ -696,7 +699,7 @@ def generate_plugin_packages(packages,
   4. Modify the #include statements in the C++ headers so they can find each other
      in their eventual locations in the plugin packages.
   5. Place the C++ headers in their respective plugin packages.
-  6. Clean up the defnition files, if the user doesn't specify otherwise.
+  6. Clean up the definition files, if the user doesn't specify otherwise.
   """
 
   if not generate_base_schema_file(msg2fbs_dir, rospkg.RosPack().get_path('robofleet_client')):
@@ -722,12 +725,20 @@ def cleanup(msg2fbs_path):
   # delete .fbs files
   pattern = msg2fbs_path + '/*.fbs'
   for file in glob.glob(pattern):
-    os.remove(file)
+    try:
+      os.remove(file)
+    except OSError as err:
+      print('Unable to delete file ' + file)
+      print(err)
 
   # delete generated header files
   pattern = msg2fbs_path + '/*_generated.h'
   for file in glob.glob(pattern):
-    os.remove(file)
+    try:
+      os.remove(file)
+    except OSError as err:
+      print('Unable to delete file ' + file)
+      print(err)
 
 def main(args):
   # parse arguments
