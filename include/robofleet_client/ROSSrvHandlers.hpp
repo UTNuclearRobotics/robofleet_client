@@ -5,6 +5,8 @@
 // contains macros used to register plugin classes
 #include <pluginlib/class_list_macros.h>
 
+#include <robofleet_client/common_conversions.hpp>
+
 /**
  * The ROSRequestHandler and ROSResponseHandler interfaces
  * are used by the client to encode, decode, subscribe, and publish

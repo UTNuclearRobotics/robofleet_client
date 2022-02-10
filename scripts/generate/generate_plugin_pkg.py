@@ -330,31 +330,44 @@ def generate_msg_impl(message, output_path, templates_path):
 
   for field in message.parsed_fields():
 
-    # handle c-string variables
-    field_name_decode = 'src->' + field.name + '()'
+    # We need the call to lower() because some ROS messages don't follow the
+    # convention of all lower case. For example, see sensor_msgs/CameraInfo
+    field_name_decode = 'src->' + field.name.lower() + '()'
     field_name_encode = 'msg.' + field.name
-
-    if field.base_type == 'string':
-      field_name_decode = field_name_decode + '->str()'
-      field_name_encode = 'fbb.CreateString({}.c_str())'.format(field_name_encode)
 
     # handle variables that themselves require a call to a conversion function
     # RosTime and RosDuration require special handling
     # also have to handle arrays and primitives
-    if not field.is_builtin or field.base_type == 'time'\
-         or field.base_type == 'duration'\
-         or (field.is_builtin and field.is_array):
+    if not field.is_builtin or field.base_type in ['string', 'time', 'duration']\
+          or (field.is_builtin and field.is_array):
 
-      field_name_encode = '::RostoFb(fbb, {})'.format(field_name_encode)
+      # a modifier string to add to the end of the conversion function name
+      p = ''
+
+      # construct function template parameters to help the compiler find the right overloads.
+      type_with_c_ns = field.base_type.replace('/','::')
+      if field.base_type == 'string' and field.is_array:
+        p = '<std::string,flatbuffers::String>'
+      elif field.base_type == 'time' and field.is_array:
+        p = '<ros::Time,fb::RosTime'
+      elif field.base_type == 'duration' and field.is_array:
+        p = '<ros::Duration,fb::RosDuration'
+      
+      # decide if we should be calling the primitive set of conversion templates,
+      # or the set for compound types. Only compound types require the
+      # template parameters constructed above
+      if field.is_builtin and field.is_array and field.base_type != 'string':
+        p = 'Primitive'
+      field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
       if field.array_len is None:
-        field_name_decode = '::FbtoRos({})'.format(field_name_decode)
+        field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
       else:
         # ROS uses boost::array to represent fixed-length vector message fields
         # We need to help the compiler find the right template overload
         # in this case.
 
-        # We also need to replace some types with ones that C++ understands
+        # We also need to replace some ROS base types with ones that C++ understands
         replacements = {'float32': 'float',
                         'float64': 'double',
                         'int8': 'int8_t',
@@ -363,9 +376,9 @@ def generate_msg_impl(message, output_path, templates_path):
         if field.base_type in replacements:
           t = replacements[field.base_type]
 
-        # here we add text for the explicit template specification
-        # the C++ compiler needs this to distinguish them
-        field_name_decode = '::FbtoRos<{}, {}>({})'.format(t,
+        # here we add text for the explicit template specification for arrays.
+        # the C++ compiler needs this to distinguish them.
+        field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
                                                            field.array_len,
                                                            field_name_decode)
 
@@ -386,58 +399,6 @@ def generate_msg_impl(message, output_path, templates_path):
       file.write(filedata)
   except OSError:
     print('ERROR: Failed to write msg implementation.')
-    return False
-
-  return True
-
-
-def generate_common_header(package, output_path, templates_path):
-  """
-  Generates the header file and implementation 
-  for code needed by all messages in a package
-  """
-  impl_template_path = os.path.join(templates_path, 'template_common_header')
-  impl_out_path = os.path.join(output_path,
-                               'include',
-                               'robofleet_client',
-                               'common_conversions.hpp')
-
-  # read in the template
-  try:
-    with open(impl_template_path, 'r') as file :
-      filedata = file.read()
-  except IOError:
-    print('ERROR: Failed to read common_conversions template.')
-    return False
-
-  output = filedata.format(msg_package=package.name)
-
-  try:
-    with open(impl_out_path, 'w') as file:
-      file.write(output)
-  except OSError:
-    print('ERROR: Failed to write common_conversions.hpp')
-    return False
-
-  # also do the implementation file
-  impl_template_path = os.path.join(templates_path, 'template_common_impl')
-  impl_out_path = os.path.join(output_path,
-                               'src',
-                               'common_conversions.cpp')
-
-  # read in the template
-  try:
-    with open(impl_template_path, 'r') as file :
-      filedata = file.read()
-  except IOError:
-    print('ERROR: Failed to read common_conversions template.')
-    return False
-
-  try:
-    with open(impl_out_path, 'w') as file:
-      file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write common_conversions.cpp')
     return False
 
   return True
@@ -678,9 +639,6 @@ def generate_plugin_packages(packages,
     for message in package.messages:
       if not generate_msg_impl(message, output_path, templates_path):
         return False
-
-    if not generate_common_header(package, rospkg.RosPack().get_path('robofleet_client'), templates_path):
-      return False
 
     if not generate_plugin_manifest(package, output_path, templates_path):
       return False

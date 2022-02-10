@@ -8,14 +8,6 @@
   return msg;
 }}
 
-{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref)
-{{
-  const fb::{msg_package}::{msg_name}* src = &src_ref;
-  {msg_package}::{msg_name} msg;{msg_decode_assignments}
-
-  return msg;
-}}
-
 std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
 {{
   std::vector<{msg_package}::{msg_name}> dst;
@@ -27,7 +19,6 @@ std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuf
   }}
 
   return dst;
-  
 }}
 
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)

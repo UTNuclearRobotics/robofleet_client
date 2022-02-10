@@ -1,7 +1,14 @@
+# Requires these plugin packages at runtime:
+#   std_msgs_robofleet
+#   geometry_msgs_robofleet
+#   sensor_msgs_robofleet
+
 params:
   host_url: "ws://localhost:8080"
   wait_for_pongs: true
   max_queue_before_waiting: 5
+
+  # uncomment to run in Direct Mode
   #direct_mode_port: 8080
   #direct_mode_bytes_per_sec: 2048000
 
@@ -13,30 +20,33 @@ params:
 
 subscribers: [
   {
-    from: "/status",
-    to: "/status",
-    type: "amrl_msgs/RobofleetStatus",
+    from: "/bool_topic",
+    to: "/bool_topic",
+    type: "std_msgs/Bool",
     rate_limit_hz: 1
   }
-
-#  {
-#    from: "/localization",
-#    to: "/localization",
-#    type: "amrl_msgs/Localization2DMsg",
-#    rate_limit_hz: 10,
-#    priority: 20
-#  }
 ]
 
 publishers: [
   {
-    from: "/status",
-    to: "/status",
-    type: "amrl_msgs/RobofleetStatus",
+    from: "/twist_topic",
+    to: "/twist_topic",
+    type: "geometry_msgs/Twist",
+  },
+
+  {
+    from: "/imu_topic",
+    to: "/imu_topic",
+    type: "sensor_msgs/Imu",
   }
 ]
 
 incoming_services: [
+  {
+    from: "/set_camera_info_service",
+    to: "/set_camera_info_service",
+    type: "sensor_msgs/SetCameraInfo",
+  }
 ]
 
 outgoing_services: [
