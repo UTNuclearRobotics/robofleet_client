@@ -8,14 +8,6 @@
   return msg;
 }}
 
-{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref)
-{{
-  const fb::{msg_package}::{msg_name}* src = &src_ref;
-  {msg_package}::{msg_name} msg;{msg_decode_assignments}
-
-  return msg;
-}}
-
 std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
 {{
   std::vector<{msg_package}::{msg_name}> dst;
@@ -27,7 +19,6 @@ std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuf
   }}
 
   return dst;
-  
 }}
 
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)
@@ -46,50 +37,14 @@ flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBuff
 }}
 
 namespace {msg_package}_robofleet {{
-    
-  void {msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
-                                                 const std::string to_topic,
-                                                 const bool latched)
-  {{
-    pub_ = nh.advertise<MsgType>(to_topic,
-                                 10,
-                                 latched);
-  }}
 
-  const {msg_name}PublishHandler::FbMsgType*
-  {msg_name}PublishHandler::decode(const QByteArray& data)
-  {{
-    const FbMsgType* root = 
-      flatbuffers::GetRoot<FbMsgType>(data.data());
-
-    return root;
-  }}
-  
-  void {msg_name}PublishHandler::publish(const QByteArray& data)
-  {{
-    const FbMsgType* fb = decode(data);
-    const MsgType msg = FbtoRos(fb);
-    
-    pub_.publish(msg);
-  }}
-
-  PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}PublishHandler, robofleet_client::ROSPublishHandler)
-  
-
-
-  bool {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
+  bool {msg_name}SrvInHandler::initialize(ros::NodeHandle& nh,
                                                    MessageScheduler* scheduler,
-                                                   const std::string to_topic,
-                                                   const double priority,
-                                                   const double rate_limit,
-                                                   const bool no_drop)
+                                                   const std::string service_name)
   {{
-    if (!robofleet_client::ROSSubscribeHandler::initialize(nh,
-                                                           scheduler,
-                                                           to_topic,
-                                                           priority,
-                                                           rate_limit,
-                                                           no_drop)) {{
+    if (!robofleet_client::ROSSrvInHandler::initialize(nh,
+                                                         scheduler,
+                                                         service_name)) {{
       return false;
     }}
 
@@ -102,13 +57,13 @@ namespace {msg_package}_robofleet {{
                                           fbb.CreateString("{msg_package}::{msg_name}"),
                                           fbb.CreateString(to_topic.c_str()));
 
-    sub_ = nh.subscribe(to_topic, 10, &{msg_name}SubscribeHandler::callback, this);
+    sub_ = nh.serviceClient<SrvType>(to_topic, 10, &{msg_name}SrvInHandler::callback, this);
 
     return true;
   }}
 
   
-  QByteArray {msg_name}SubscribeHandler::encodeWithMetadata(const MsgType& msg)
+  QByteArray {msg_name}SrvInHandler::encodeWithMetadata(const MsgType& msg)
   {{
     flatbuffers::FlatBufferBuilder fbb;
 
@@ -126,7 +81,7 @@ namespace {msg_package}_robofleet {{
     return data;
   }}
   
-  QByteArray {msg_name}SubscribeHandler::encode(const MsgType& msg)
+  QByteArray {msg_name}SrvInHandler::encode(const MsgType& msg)
   {{
     flatbuffers::FlatBufferBuilder fbb;
 
@@ -144,11 +99,16 @@ namespace {msg_package}_robofleet {{
     return data;
   }}
 
-  void {msg_name}SubscribeHandler::callback(const MsgTypeConstPtr& msg)
+  bool {msg_name}SrvInHandler::callback(const RequestType::ConstPtr& req, const ResponseType::ConstPtr& res)
   {{
-    const QByteArray data = encodeWithMetadata(*msg);
+    const QByteArray data = encodeWithMetadata(*req);
     schedule_function_(data);
+
+    // spin until we get a response
+    // assign result to res
+
+    return true;
   }}
 }} // namespace {msg_package}_robofleet
 
-PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}SubscribeHandler, robofleet_client::ROSSubscribeHandler)
+PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}SrvInHandler, robofleet_client::ROSSrvInHandler)

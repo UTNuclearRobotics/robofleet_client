@@ -46,8 +46,8 @@ private:
 
   HandlerMap<robofleet_client::ROSSubscribeHandlerPtr> subs_;
   HandlerMap<robofleet_client::ROSPublishHandlerPtr> pubs_;
-  HandlerMap<robofleet_client::ROSRequestHandlerPtr> incoming_srvs_;
-  HandlerMap<robofleet_client::ROSResponseHandlerPtr> outgoing_srvs_;
+  HandlerMap<robofleet_client::ROSSrvInHandlerPtr> incoming_srvs_;
+  HandlerMap<robofleet_client::ROSSrvOutHandlerPtr> outgoing_srvs_;
 
   bool readTopicParams(const YAML::Node& node,
                        TopicParams& out_params,
@@ -65,11 +65,11 @@ private:
   bool getPublishHandler(const TopicParams& params,
                          robofleet_client::ROSPublishHandlerPtr& out_handler);
 
-  bool getRequestHandler(const TopicParams& params,
-                         robofleet_client::ROSRequestHandlerPtr& out_handler);
+  bool getSrvInHandler(const TopicParams& params,
+                         robofleet_client::ROSSrvInHandlerPtr& out_handler);
 
-  bool getResponseHandler(const TopicParams& params,
-                          robofleet_client::ROSResponseHandlerPtr& out_handler);
+  bool getSrvOutHandler(const TopicParams& params,
+                          robofleet_client::ROSSrvOutHandlerPtr& out_handler);
 
   bool configureTopics(const YAML::Node& publishers_list,
                        const YAML::Node& subscribers_list);

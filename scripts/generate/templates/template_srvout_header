@@ -1,0 +1,45 @@
+#pragma once
+
+// the plugin parent class
+#include <robofleet_client/ROSSrvHandlers.hpp>
+
+// get the srv type
+#include <{msg_package}/{msg_name}.h>
+
+#include <{msg_package}_robofleet/{msg_package}_generated.h>
+
+// message dependencies
+{dependencies}
+
+/** Response Conversion Functions **/
+{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src);
+
+std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src);
+
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& msg);
+
+flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg);
+
+namespace {msg_package}_robofleet {{  
+  
+  /** Response Handler **/
+  class {msg_name}SrvOutHandler : public robofleet_client::ROSSrvOutHandler
+  {{
+  public:
+    // sets up subscriber, message scheduler function, and metadata function
+    virtual bool initialize(ros::NodeHandle& nh,
+                            const std::string service_name);
+
+    // decodes raw data into the flatbuffer type,
+    // then converts to the ROS type, then publishes to the topic
+    virtual void publish(const QByteArray& data);
+
+  private:
+    typedef {msg_package}::{msg_name} SrvType;
+    typedef {msg_package}::{msg_name} ResponseType;
+    typedef fb::{msg_package}::{msg_name} FbSrvType;
+
+    // converts from raw data to flatbuffer type
+    const FbSrvType* decode(const QByteArray& data);
+  }};
+}}

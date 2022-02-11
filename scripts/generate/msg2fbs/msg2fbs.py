@@ -15,7 +15,8 @@ import re
 import sys
 
 # from rosbridge_library.internal.ros_loader import get_message_class
-from roslib.message import get_message_class
+from roslib.message import get_message_class, get_service_class
+from msg_util import get_msg_spec, get_srv_spec
 from torch import equal
 
 # Flatbuffers types considered "scalar"
@@ -168,23 +169,23 @@ class Type:
         """ Add this type to defined types set """
         defined_types.add(self.fbs_type_name())
 
-def gen_table(msg_type, items, defined_types, base_ns):
+def gen_table(msg_type, items, base_ns):
     """ Generate a table for given name, type pairs. """
     yield "table {} {{".format(msg_type.name)
     for x in gen_metadata_item(base_ns):
         yield x
-    for k, v in items:
+    for name,type in items:
         attrs = ""
         # mark all non-scalar fields "required" (since they are in ROS)
-        if v.fbs_type() not in scalar_types:
+        if type.fbs_type() not in scalar_types:
             attrs = " (required)"
          
         # note: We have to use lower() on k since ROS messages sometimes contain
         # uppercase field names. flatbuffers doesn't allow this.
-        yield "  {}:{}{};".format(k.lower(), v.fbs_type(), attrs)
+        yield "  {}:{}{};".format(name.lower(), type.fbs_type(), attrs)
     yield "}"
 
-def gen_constants_enums(msg_type):
+def gen_constants_enums(msg_type, spec):
     """
     Generate enums to represent ROS message constants.
 
@@ -192,9 +193,6 @@ def gen_constants_enums(msg_type):
     enum per constant, with a single field "value". Only integer types are 
     supported by Flatbuffers.
     """
-
-    from msg_util import get_msg_spec # in case the module breaks, don't break this whole script
-    spec = get_msg_spec(msg_type.ros_type)
 
     if len(spec.constants) == 0:
         return
@@ -211,7 +209,7 @@ def gen_constants_enums(msg_type):
         else:
             print("Warning: skipped non-integral constant {}.{}".format(msg_type.fbs_type(), c.name), file=sys.stderr)
 
-def gen_constants_table(msg_type, base_ns):
+def gen_constants_table(msg_type, base_ns, spec):
     """
     Generate a table with default values to represent ROS message constants.
     Using generated Flatbuffers code, this table should be constructed as a 
@@ -223,9 +221,6 @@ def gen_constants_table(msg_type, base_ns):
     The advantage of this method over enums is that it supports any ROS 
     constant type.
     """ 
-
-    from msg_util import get_msg_spec # in case the module breaks, don't break this whole script
-    spec = get_msg_spec(msg_type.ros_type)
 
     if len(spec.constants) == 0:
         return
@@ -251,33 +246,36 @@ def gen_msg(msg_type, defined_types, base_ns, gen_enums, gen_constants):
     msg_type.mark_defined(defined_types)
     
     msg_class = get_message_class(msg_type.ros_type)
-    if msg_class is None:
-        raise RuntimeError("ROS Message type {} not found. Ensure any necessary packages are on your path.".format(msg_type.ros_type))
-
-    # this is officially suggested by http://wiki.ros.org/msg#Client_Library_Support
-    name = msg_class._type
-    keys = msg_class.__slots__
-    types = [Type(name, base_ns) for name in msg_class._slot_types]
-
-    # generate dependency types
-    # for t in types:
-    #     if not t.is_defined(defined_types):
-    #       if t.namespace!=msg_type.package:
-    #         for x in gen_msg(t, defined_types, base_ns, gen_enums, gen_constants):
-    #           yield x
-    
-    # generate constants definitions
-    if gen_enums:
-        for x in gen_constants_enums(msg_type):
-            yield x
-    if gen_constants:
-        for x in gen_constants_table(msg_type, base_ns):
-            yield x
-
-    # generate type definition
-    yield "namespace {};".format(msg_type.full_namespace())
-    for x in gen_table(msg_type, zip(keys, types), defined_types, base_ns):
+    srv_class = get_service_class(msg_type.ros_type)
+    if msg_class is not None:
+      spec = get_msg_spec(msg_type.ros_type)
+      process_type(msg_type, spec, base_ns, gen_enums, gen_constants)
+    elif srv_class is not None:
+      spec = get_srv_spec(msg_type.ros_type)
+      request_type = Type(msg_type.ros_type_raw + 'Request', base_ns)
+      response_type = Type(msg_type.ros_type_raw + 'Response', base_ns)
+      for x in process_type(request_type, spec.request, base_ns, gen_enums, gen_constants):
         yield x
+      for x in process_type(response_type, spec.response, base_ns, gen_enums, gen_constants):
+        yield x
+    else:
+      raise RuntimeError("ROS Message or Service type {} not found. Ensure any necessary packages are on your path.".format(msg_type.ros_type))
+
+def process_type(msg_type, spec, base_ns, gen_enums, gen_constants):
+  types = [Type(type, base_ns) for type,name in spec.fields()]
+  
+  # generate constants definitions
+  if gen_enums:
+      for x in gen_constants_enums(msg_type, spec):
+          yield x
+  if gen_constants:
+      for x in gen_constants_table(msg_type, base_ns, spec):
+          yield x
+
+  # generate type definition
+  yield "namespace {};".format(msg_type.full_namespace())
+  for x in gen_table(msg_type, zip(spec.names,types), base_ns):
+      yield x
 
 def generate_base_schema(base_ns):
   for x in gen_base_schema(base_ns):

@@ -102,18 +102,18 @@ bool RosClientNode::getPublishHandler(
 }
 
 
-bool RosClientNode::getRequestHandler(
+bool RosClientNode::getSrvInHandler(
   const TopicParams& params,
-  robofleet_client::ROSRequestHandlerPtr& out_handler)
+  robofleet_client::ROSSrvInHandlerPtr& out_handler)
 {
-  return getHandler(params, "RequestHandler", out_handler);
+  return getHandler(params, "SrvInHandler", out_handler);
 }
 
-bool RosClientNode::getResponseHandler(
+bool RosClientNode::getSrvOutHandler(
   const TopicParams& params,
-  robofleet_client::ROSResponseHandlerPtr& out_handler)
+  robofleet_client::ROSSrvOutHandlerPtr& out_handler)
 {
-  return getHandler(params, "ResponseHandler", out_handler);
+  return getHandler(params, "SrvOutHandler", out_handler);
 }
 
 bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
@@ -195,7 +195,7 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
   incoming_srvs_.clear();
   outgoing_srvs_.clear();
 
-  // generate the request handlers
+  // generate the SrvIn handlers
   for (const YAML::Node& service : incoming_list) {
     TopicParams topic_params;
     if (!readTopicParams(service, topic_params, false)) {
@@ -203,8 +203,8 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       return false;
     }
 
-    robofleet_client::ROSRequestHandlerPtr handler;
-    if (!getRequestHandler(topic_params, handler)) {
+    robofleet_client::ROSSrvInHandlerPtr handler;
+    if (!getSrvInHandler(topic_params, handler)) {
       ROS_ERROR("Failed to generate service handler.");
       return false;
     }
@@ -212,7 +212,7 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     if (!handler->initialize(nh_,
                              scheduler_,
                              topic_params.from)) {
-      ROS_ERROR("Failed to inizialize handler for service %s.",
+      ROS_ERROR("Failed to initialize handler for service %s.",
                 topic_params.from.c_str());
       return false;
     }
@@ -227,7 +227,7 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     }
   }
 
-  // generate the response handlers
+  // generate the SrvOut handlers
   for (const YAML::Node& service : outgoing_list) {
     TopicParams topic_params;
     if (!readTopicParams(service, topic_params, false)) {
@@ -235,8 +235,8 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       return false;
     }
 
-    robofleet_client::ROSResponseHandlerPtr handler;
-    if (!getResponseHandler(topic_params, handler)) {
+    robofleet_client::ROSSrvOutHandlerPtr handler;
+    if (!getSrvOutHandler(topic_params, handler)) {
       ROS_ERROR("Failed to generate service handler.");
       return false;
     }

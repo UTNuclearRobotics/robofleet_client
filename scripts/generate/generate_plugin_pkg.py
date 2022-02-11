@@ -141,7 +141,8 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
                                         set(x.response for x in package.services))
 
   # get all the dependencies of the package
-  for message in package.all_messages:
+  for message in package.messages.union(set(x.request for x in package.services),
+                                        set(x.response for x in package.services)):
     msg_depends_graph[message.full_name] = set()
 
     # iterate over the fields of each message
@@ -210,7 +211,7 @@ def generate_cmakelists(package, depends, output_path, templates_path):
 
   # Source files for the library target
   source_files_list = '\n'.join(['\tsrc/{}.cpp'.format(message.short_name)
-                       for message in package.messages])
+                       for message in package.all_messages])
 
   # replace the target strings
   filedata = filedata.format(msg_package=package.name,
@@ -403,6 +404,288 @@ def generate_msg_impl(message, output_path, templates_path):
 
   return True
 
+
+
+def generate_srvin_headers(request, msg_depends_graph, output_path, templates_path):
+  """
+  Generates the header file for a service's handler classes
+  """
+  header_template_path = os.path.join(templates_path, 'template_srvin_header')
+  header_out_path = os.path.join(output_path,
+                                 request.package + '_robofleet',
+                                 'include',
+                                 request.package + '_robofleet',
+                                 request.short_name + '.h')
+
+  # read in the template
+  try:
+    with open(header_template_path, 'r') as file :
+      filedata = file.read()
+  except IOError:
+    print('ERROR: Failed to read msg header template.')
+    return False
+
+  # includes for the service types used in this service's fields
+  dependencies = '\n'.join(['#include <{}_robofleet/{}.h>'.format(*depend.split('/'))\
+                           for depend in msg_depends_graph[request.full_name]])
+
+  # replace the target strings
+  filedata = filedata.format(msg_package=request.package,
+                             msg_name=request.short_name,
+                             dependencies=dependencies)
+
+  # write the filled out class header
+  try:
+    with open(header_out_path, 'w') as file:
+      file.write(filedata)
+  except OSError:
+    print('ERROR: Failed to write srv header.')
+    return False
+
+  return True
+
+
+
+def generate_srvin_impl(request, output_path, templates_path):
+  """
+  Generates the implementation (.cpp) file for a service's handler classes
+  """
+  impl_template_path = os.path.join(templates_path, 'template_srvin_impl')
+  impl_out_path = os.path.join(output_path,
+                               request.package + '_robofleet',
+                               'src',
+                               request.short_name + '.cpp')
+
+  # read in the template
+  try:
+    with open(impl_template_path, 'r') as file :
+      filedata = file.read()
+  except IOError:
+    print('ERROR: Failed to read srv implementation template.')
+    return False
+
+  # this is the code for assignments from flatbuffer fields to ROS fields
+  msg_decode_assignments = ''
+
+  # code for assignments from ROS fields to flatbuffer fields
+  msg_encode_assignments = ''
+
+  for field in request.parsed_fields():
+
+    # We need the call to lower() because some ROS services don't follow the
+    # convention of all lower case.
+    field_name_decode = 'src->' + field.name.lower() + '()'
+    field_name_encode = 'msg.' + field.name
+
+    # handle variables that themselves require a call to a conversion function
+    # RosTime and RosDuration require special handling
+    # also have to handle arrays and primitives
+    if not field.is_builtin or field.base_type in ['string', 'time', 'duration']\
+          or (field.is_builtin and field.is_array):
+
+      # a modifier string to add to the end of the conversion function name
+      p = ''
+
+      # construct function template parameters to help the compiler find the right overloads.
+      type_with_c_ns = field.base_type.replace('/','::')
+      if field.base_type == 'string' and field.is_array:
+        p = '<std::string,flatbuffers::String>'
+      elif field.base_type == 'time' and field.is_array:
+        p = '<ros::Time,fb::RosTime'
+      elif field.base_type == 'duration' and field.is_array:
+        p = '<ros::Duration,fb::RosDuration'
+      
+      # decide if we should be calling the primitive set of conversion templates,
+      # or the set for compound types. Only compound types require the
+      # template parameters constructed above
+      if field.is_builtin and field.is_array and field.base_type != 'string':
+        p = 'Primitive'
+      field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
+
+      if field.array_len is None:
+        field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
+      else:
+        # ROS uses boost::array to represent fixed-length vector fields
+        # We need to help the compiler find the right template overload
+        # in this case.
+
+        # We also need to replace some ROS base types with ones that C++ understands
+        replacements = {'float32': 'float',
+                        'float64': 'double',
+                        'int8': 'int8_t',
+                        'uint8': 'uint8_t'}
+        t = field.base_type
+        if field.base_type in replacements:
+          t = replacements[field.base_type]
+
+        # here we add text for the explicit template specification for arrays.
+        # the C++ compiler needs this to distinguish them.
+        field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
+                                                           field.array_len,
+                                                           field_name_decode)
+
+    # text to assign fields from fb objects to ROS services
+    msg_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
+    # text to assign fields from ROS services to fb objects
+    msg_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
+  
+
+  filedata = filedata.format(msg_package=request.package,
+                             msg_name=request.short_name,
+                             msg_decode_assignments=msg_decode_assignments,
+                             msg_encode_assignments=msg_encode_assignments)
+
+  # write the filled out class impl
+  try:
+    with open(impl_out_path, 'w') as file:
+      file.write(filedata)
+  except OSError:
+    print('ERROR: Failed to write srv implementation.')
+    return False
+
+  return True
+
+
+def generate_srvout_headers(response, msg_depends_graph, output_path, templates_path):
+  """
+  Generates the header file for a service's handler classes
+  """
+  header_template_path = os.path.join(templates_path, 'template_srvout_header')
+  header_out_path = os.path.join(output_path,
+                                 response.package + '_robofleet',
+                                 'include',
+                                 response.package + '_robofleet',
+                                 response.short_name + '.h')
+
+  # read in the template
+  try:
+    with open(header_template_path, 'r') as file :
+      filedata = file.read()
+  except IOError:
+    print('ERROR: Failed to read msg header template.')
+    return False
+
+  # includes for the service types used in this service's fields
+  dependencies = '\n'.join(['#include <{}_robofleet/{}.h>'.format(*depend.split('/'))\
+                           for depend in msg_depends_graph[response.full_name]])
+
+  # replace the target strings
+  filedata = filedata.format(msg_package=response.package,
+                             msg_name=response.short_name,
+                             dependencies=dependencies)
+
+  # write the filled out class header
+  try:
+    with open(header_out_path, 'w') as file:
+      file.write(filedata)
+  except OSError:
+    print('ERROR: Failed to write srv header.')
+    return False
+
+  return True
+
+
+
+def generate_srvout_impl(response, output_path, templates_path):
+  """
+  Generates the implementation (.cpp) file for a service's handler classes
+  """
+  impl_template_path = os.path.join(templates_path, 'template_response_impl')
+  impl_out_path = os.path.join(output_path,
+                               response.package + '_robofleet',
+                               'src',
+                               response.short_name + '.cpp')
+
+  # read in the template
+  try:
+    with open(impl_template_path, 'r') as file :
+      filedata = file.read()
+  except IOError:
+    print('ERROR: Failed to read srv implementation template.')
+    return False
+
+  # this is the code for assignments from flatbuffer fields to ROS fields
+  msg_decode_assignments = ''
+
+  # code for assignments from ROS fields to flatbuffer fields
+  msg_encode_assignments = ''
+
+  for field in response.parsed_fields():
+
+    # We need the call to lower() because some ROS services don't follow the
+    # convention of all lower case.
+    field_name_decode = 'src->' + field.name.lower() + '()'
+    field_name_encode = 'msg.' + field.name
+
+    # handle variables that themselves require a call to a conversion function
+    # RosTime and RosDuration require special handling
+    # also have to handle arrays and primitives
+    if not field.is_builtin or field.base_type in ['string', 'time', 'duration']\
+          or (field.is_builtin and field.is_array):
+
+      # a modifier string to add to the end of the conversion function name
+      p = ''
+
+      # construct function template parameters to help the compiler find the right overloads.
+      type_with_c_ns = field.base_type.replace('/','::')
+      if field.base_type == 'string' and field.is_array:
+        p = '<std::string,flatbuffers::String>'
+      elif field.base_type == 'time' and field.is_array:
+        p = '<ros::Time,fb::RosTime'
+      elif field.base_type == 'duration' and field.is_array:
+        p = '<ros::Duration,fb::RosDuration'
+      
+      # decide if we should be calling the primitive set of conversion templates,
+      # or the set for compound types. Only compound types require the
+      # template parameters constructed above
+      if field.is_builtin and field.is_array and field.base_type != 'string':
+        p = 'Primitive'
+      field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
+
+      if field.array_len is None:
+        field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
+      else:
+        # ROS uses boost::array to represent fixed-length vector fields
+        # We need to help the compiler find the right template overload
+        # in this case.
+
+        # We also need to replace some ROS base types with ones that C++ understands
+        replacements = {'float32': 'float',
+                        'float64': 'double',
+                        'int8': 'int8_t',
+                        'uint8': 'uint8_t'}
+        t = field.base_type
+        if field.base_type in replacements:
+          t = replacements[field.base_type]
+
+        # here we add text for the explicit template specification for arrays.
+        # the C++ compiler needs this to distinguish them.
+        field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
+                                                           field.array_len,
+                                                           field_name_decode)
+
+    # text to assign fields from fb objects to ROS services
+    msg_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
+    # text to assign fields from ROS services to fb objects
+    msg_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
+  
+
+  filedata = filedata.format(msg_package=response.package,
+                             msg_name=response.short_name,
+                             msg_decode_assignments=msg_decode_assignments,
+                             msg_encode_assignments=msg_encode_assignments)
+
+  # write the filled out class impl
+  try:
+    with open(impl_out_path, 'w') as file:
+      file.write(filedata)
+  except OSError:
+    print('ERROR: Failed to write srv implementation.')
+    return False
+
+  return True
+
+
 def generate_plugin_manifest(package, output_path, templates_path):
   """
   Build the plugin descriptions file which exposes the
@@ -515,7 +798,7 @@ def generate_flatbuffer_schema(package,
           generate_flatbuffer_schema(key, dependency_graph, generated_packages, output_dir, msg2fbs_dir)
   
   generated_packages.add(package)
-  schema_data = msg2fbs.generate_schema([message.full_name for message in package.messages],
+  schema_data = msg2fbs.generate_schema([message.full_name for message in package.messages.union(package.services)],
                                         depended_packages=dependency_graph[package],
                                         base_ns='fb',
                                         gen_enums=False,
@@ -636,8 +919,20 @@ def generate_plugin_packages(packages,
       if not generate_msg_headers(message, msg_depends_graph, output_path, templates_path):
         return False
 
-    for message in package.messages:
       if not generate_msg_impl(message, output_path, templates_path):
+        return False
+
+    for service in package.services:
+      if not generate_srvin_headers(service.request, msg_depends_graph, output_path, templates_path):
+        return False
+        
+      if not generate_srvin_impl(service.request, output_path, templates_path):
+        return False
+
+      if not generate_srvout_headers(service.response, msg_depends_graph, output_path, templates_path):
+        return False
+        
+      if not generate_srvout_impl(service.response, output_path, templates_path):
         return False
 
     if not generate_plugin_manifest(package, output_path, templates_path):

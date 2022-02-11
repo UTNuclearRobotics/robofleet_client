@@ -1,0 +1,12 @@
+---
+BasedOnStyle: Google
+
+# these make really long builder calls tolerable
+AlignAfterOpenBracket: AlwaysBreak
+BinPackArguments: false
+
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+---

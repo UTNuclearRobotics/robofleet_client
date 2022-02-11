@@ -3,9 +3,9 @@
 
 namespace robofleet_client
 {
-  bool ROSRequestHandler::initialize(ros::NodeHandle& nh,
-                                       MessageScheduler* scheduler,
-                                       const std::string service_name)
+  bool ROSSrvInHandler::initialize(ros::NodeHandle& nh,
+                                  MessageScheduler* scheduler,
+                                  const std::string service_name)
   {
     if (scheduler == nullptr)
     {
@@ -21,6 +21,23 @@ namespace robofleet_client
                                    true);
 
     return true;
+  }
+
+  void ROSSrvInHandler::awaitReponse()
+  {
+    // TODO: Implement timeout feature
+    has_received_response_ = false;
+
+    while (true)
+    {
+      has_received_response_mutex_.lock();
+      if (!has_received_response_)
+      {
+        has_received_response_mutex_.unlock();
+        return;
+      }
+      has_received_response_mutex_.unlock();
+    }
   }
 
 } // namespace robofleet_client

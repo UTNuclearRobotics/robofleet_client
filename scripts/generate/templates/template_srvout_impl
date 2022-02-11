@@ -1,0 +1,68 @@
+#include <{msg_package}_robofleet/{msg_name}.h>
+#include <QByteArray>
+
+{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src)
+{{
+  {msg_package}::{msg_name} msg;{msg_decode_assignments}
+
+  return msg;
+}}
+
+std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
+{{
+  std::vector<{msg_package}::{msg_name}> dst;
+  dst.reserve(src->size());
+  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> fvec;
+  for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
+  {{
+    dst.push_back(FbtoRos(*it));
+  }}
+
+  return dst;
+}}
+
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)
+{{
+  std::vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> dst(src.size());
+  std::transform(
+      src.begin(), src.end(), dst.begin(), [&fbb](const {msg_package}::{msg_name}& item) {{
+        return RostoFb(fbb, item);
+      }});
+  return fbb.CreateVector(dst).o;
+}}
+
+flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg)
+{{
+  return fb::{msg_package}::Create{msg_name}(fbb, 0{msg_encode_assignments}).o;
+}}
+
+namespace {msg_package}_robofleet {{
+    
+  void {msg_name}SrvOutHandler::initialize(ros::NodeHandle& nh,
+                                             const std::string to_topic)
+  {{
+    client_ = nh.advertiseService<SrvType>(to_topic);
+  }}
+
+  const {msg_name}SrvOutHandler::FbResponseType*
+  {msg_name}SrvOutHandler::decode(const QByteArray& data)
+  {{
+    const FbResponseType* root = 
+      flatbuffers::GetRoot<FbResponseType>(data.data());
+
+    return root;
+  }}
+  
+  void {msg_name}SrvOutHandler::call(const QByteArray& data)
+  {{
+    const FbResponseType* fb = decode(data);
+    const SrvType srv = FbtoRos(fb);
+    
+    pub_.call(srv);
+  }}
+
+  PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}SrvOutHandler, robofleet_client::ROSSrvOutHandler)
+
+}} // namespace {msg_package}_robofleet
+
+PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}RequestHandler, robofleet_client::ROSRequestHandler)
