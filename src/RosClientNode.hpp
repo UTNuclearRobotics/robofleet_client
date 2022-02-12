@@ -21,6 +21,9 @@ public:
   RosClientNode(Verbosity verbosity, MessageScheduler& scheduler);
 
   bool configure(const YAML::Node& root);
+
+public Q_SLOTS:
+  void routeMessageToHandlers(const QByteArray& data) const;
   
 private:
   typedef std::string TopicString;
@@ -29,8 +32,8 @@ private:
   struct TopicParams {
     std::string message_package;
     MsgTypeString message_type;
-    TopicString from;
-    TopicString to;
+    TopicString client_topic;
+    TopicString rbf_topic;
     double priority;
     double rate_limit;
     bool no_drop;
@@ -41,6 +44,7 @@ private:
   MessageScheduler* scheduler_;
   ros::NodeHandle nh_;
 
+  // handlers are mapped according to their Robofleet topic name
   template<class Handler>
   using HandlerMap = std::unordered_map<TopicString, Handler>;
 
@@ -52,7 +56,6 @@ private:
   bool readTopicParams(const YAML::Node& node,
                        TopicParams& out_params,
                        const bool publisher);
-
 
   template<class Handler>
   bool getHandler(const TopicParams& params,

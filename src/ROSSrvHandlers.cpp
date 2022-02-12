@@ -5,7 +5,8 @@ namespace robofleet_client
 {
   bool ROSSrvOutHandler::initialize(ros::NodeHandle& nh,
                                     MessageScheduler* scheduler,
-                                    const std::string service_name)
+                                    const std::string client_service,
+                                    const std::string rbf_topic)
   {
     if (scheduler == nullptr)
     {
@@ -14,7 +15,7 @@ namespace robofleet_client
     
     schedule_function_ = std::bind(&MessageScheduler::enqueue,
                                    scheduler,
-                                   QString::fromStdString(service_name),
+                                   QString::fromStdString(rbf_topic),
                                    std::placeholders::_1,
                                    std::numeric_limits<double>::max(),
                                    std::numeric_limits<double>::max(),
@@ -25,7 +26,8 @@ namespace robofleet_client
 
   bool ROSSrvInHandler::initialize(ros::NodeHandle& nh,
                                    MessageScheduler* scheduler,
-                                   const std::string service_name)
+                                   const std::string client_service,
+                                   const std::string rbf_topic)
   {
     if (scheduler == nullptr)
     {
@@ -34,7 +36,7 @@ namespace robofleet_client
     
     schedule_function_ = std::bind(&MessageScheduler::enqueue,
                                    scheduler,
-                                   QString::fromStdString(service_name),
+                                   QString::fromStdString(rbf_topic),
                                    std::placeholders::_1,
                                    std::numeric_limits<double>::max(),
                                    std::numeric_limits<double>::max(),

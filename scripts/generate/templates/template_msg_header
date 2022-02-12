@@ -29,7 +29,7 @@ namespace {msg_package}_robofleet {{
 
     // advertises the topic
     virtual void initialize(ros::NodeHandle& nh,
-                            const std::string to_topic,
+                            const std::string client_topic,
                             const bool latched);
     
     // decodes raw data into the flatbuffer type,
@@ -52,7 +52,8 @@ namespace {msg_package}_robofleet {{
     // sets up subscriber, message scheduler function, and metadata function
     virtual bool initialize(ros::NodeHandle& nh,
                             MessageScheduler* scheduler,
-                            const std::string to_topic,
+                            const std::string client_topic,
+                            const std::string rbf_topic,
                             const double priority,
                             const double rate_limit,
                             const bool no_drop);

@@ -27,7 +27,7 @@ namespace robofleet_client
   {
     public:
       virtual void initialize(ros::NodeHandle& nh,
-                              const std::string to_topic,
+                              const std::string client_topic,
                               const bool latched) = 0;
       
       virtual void publish(const QByteArray& data) = 0;
@@ -43,7 +43,8 @@ namespace robofleet_client
     public:
       virtual bool initialize(ros::NodeHandle& nh,
                               MessageScheduler* scheduler,
-                              const std::string to_topic,
+                              const std::string client_topic,
+                              const std::string rbf_topic,
                               const double priority,
                               const double rate_limit,
                               const bool no_drop);

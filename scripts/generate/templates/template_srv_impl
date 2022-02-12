@@ -45,7 +45,8 @@ namespace {srv_package}_robofleet {{
 
   bool {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
                                           MessageScheduler* scheduler,
-                                          const std::string service_name)
+                                          const std::string client_service,
+                                          const std::string rbf_topic)
   {{
     if (!robofleet_client::ROSSrvInHandler::initialize(nh,
                                                        scheduler,
@@ -127,11 +128,12 @@ namespace {srv_package}_robofleet {{
 
   bool {srv_type}SrvOutHandler::initialize(ros::NodeHandle& nh,
                                           MessageScheduler* scheduler,
-                                          const std::string service_name)
+                                          const std::string client_service,
+                                          const std::string rbf_topic)
   {{
     if (!robofleet_client::ROSSrvOutHandler::initialize(nh,
                                                        scheduler,
-                                                       service_name)) {{
+                                                       rbf_topic)) {{
       return false;
     }}
 
@@ -142,9 +144,9 @@ namespace {srv_package}_robofleet {{
     encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
                                           std::placeholders::_1,
                                           fbb.CreateString("{srv_package}::{srv_type}"),
-                                          fbb.CreateString(service_name.c_str()));
+                                          fbb.CreateString(rbf_topic.c_str()));
 
-    client_ = nh.serviceClient<SrvType>(service_name);
+    client_ = nh.serviceClient<SrvType>(client_service);
 
     return true;
   }}

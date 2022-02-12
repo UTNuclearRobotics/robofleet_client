@@ -35,6 +35,67 @@ bool RosClientNode::configure(const YAML::Node& root)
   return true;
 }
 
+void RosClientNode::routeMessageToHandlers(const QByteArray& data) const
+{
+  // decode the metadata of the message
+  const fb::MsgWithMetadata* msg =
+      flatbuffers::GetRoot<fb::MsgWithMetadata>(data.data());
+  const std::string& topic = msg->__metadata()->topic()->str();
+
+  // look for a publisher on this topic
+  {
+    const HandlerMap<robofleet_client::ROSPublishHandlerPtr>::const_iterator it =
+        pubs_.find(topic);
+
+    if (it != pubs_.end()) {
+      it->second->publish(data);
+
+      if (verbosity_ >= Verbosity::ALL) {
+        ROS_INFO("Publishing message on topic %s", topic.c_str());
+      }
+
+      return;
+    }
+  }
+
+  // look for an incoming service on this topic
+  // in this case, the data is the response to the original client
+  {
+    const HandlerMap<robofleet_client::ROSSrvInHandlerPtr>::const_iterator it =
+        incoming_srvs_.find(topic);
+    
+    if (it != incoming_srvs_.end()) {
+      it->second->returnResponse(data);
+
+      if (verbosity_ >= Verbosity::ALL) {
+        ROS_INFO("Publishing service response on topic %s", topic.c_str());
+      }
+
+      return;
+    }
+  }
+
+  // look for an outgoing service on this topic
+  // in this case, the data is the request from the original client
+  {
+    const HandlerMap<robofleet_client::ROSSrvOutHandlerPtr>::const_iterator it =
+        outgoing_srvs_.find(topic);
+    
+    if (it != outgoing_srvs_.end()) {
+      it->second->sendRequest(data);
+
+      if (verbosity_ >= Verbosity::ALL) {
+        ROS_INFO("Publishing service request on topic %s", topic.c_str());
+      }
+
+      return;
+    }
+  }
+
+  // we didn't find any handler
+  ROS_WARN_ONCE("Received message for unregistered topic %s", topic.c_str());
+}
+
 bool RosClientNode::readTopicParams(const YAML::Node& node,
                                     TopicParams& out_params,
                                     const bool publisher)
@@ -42,8 +103,8 @@ bool RosClientNode::readTopicParams(const YAML::Node& node,
   TopicParams params;
 
   try {
-    params.from = node["from"].as<TopicString>();
-    params.to = node["to"].as<TopicString>();
+    params.client_topic = node["client_topic"].as<TopicString>();
+    params.rbf_topic = node["rbf_topic"].as<TopicString>();
     
     if (node["rate_limit_hz"]) {
       params.rate_limit = node["rate_limit_hz"].as<double>();
@@ -138,22 +199,23 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
     
     if (!handler->initialize(nh_,
                               scheduler_,
-                              topic_params.from,
+                              topic_params.client_topic,
+                              topic_params.rbf_topic,
                               topic_params.priority,
                               topic_params.rate_limit,
                               topic_params.no_drop)) {
-      ROS_ERROR("Failed to inizialize handler for topic %s.",
-                topic_params.from.c_str());
+      ROS_ERROR("Failed to inizialize subscribe handler for client topic %s.",
+                topic_params.client_topic.c_str());
       return false;
     }
 
-    subs_[topic_params.from] = handler;
+    subs_[topic_params.rbf_topic] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Subscribing Local Messages: %s [%s]->%s", 
-                topic_params.from.c_str(),
+      ROS_INFO("Subscribing to incoming topic: %s [%s]->%s", 
+                topic_params.client_topic.c_str(),
                 topic_params.message_type.c_str(),
-                topic_params.to.c_str());
+                topic_params.rbf_topic.c_str());
     }
   }
 
@@ -171,14 +233,14 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
       return false;
     }
 
-    handler->initialize(nh_, topic_params.to, topic_params.latched);
-    pubs_[topic_params.from] = handler;
+    handler->initialize(nh_, topic_params.client_topic, topic_params.latched);
+    pubs_[topic_params.rbf_topic] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Publishing Local Messages: %s [%s]->%s", 
-                topic_params.from.c_str(),
+      ROS_INFO("Advertising outgoing topic: %s [%s]->%s", 
+                topic_params.rbf_topic.c_str(),
                 topic_params.message_type.c_str(),
-                topic_params.to.c_str());
+                topic_params.client_topic.c_str());
     }
   }
 
@@ -211,19 +273,20 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     
     if (!handler->initialize(nh_,
                              scheduler_,
-                             topic_params.from)) {
+                             topic_params.client_topic,
+                             topic_params.rbf_topic+"Responses")) {
       ROS_ERROR("Failed to initialize handler for service %s.",
-                topic_params.from.c_str());
+                topic_params.client_topic.c_str());
       return false;
     }
 
-    incoming_srvs_[topic_params.from] = handler;
+    incoming_srvs_[topic_params.rbf_topic+"Responses"] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
       ROS_INFO("Connecting to incoming service: %s [%s]->%s", 
-                topic_params.from.c_str(),
+                topic_params.client_topic.c_str(),
                 topic_params.message_type.c_str(),
-                topic_params.to.c_str());
+                topic_params.rbf_topic.c_str());
     }
   }
 
@@ -241,15 +304,18 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       return false;
     }
     
-    handler->initialize(nh_, scheduler_, topic_params.from);
+    handler->initialize(nh_,
+                        scheduler_,
+                        topic_params.client_topic,
+                        topic_params.rbf_topic+"Requests");
 
-    outgoing_srvs_[topic_params.from] = handler;
+    outgoing_srvs_[topic_params.rbf_topic+"Requests"] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Connecting to incoming service: %s [%s]->%s", 
-                topic_params.from.c_str(),
+      ROS_INFO("Advertising outgoing service: %s [%s]->%s", 
+                topic_params.rbf_topic.c_str(),
                 topic_params.message_type.c_str(),
-                topic_params.to.c_str());
+                topic_params.client_topic.c_str());
     }
   }
 

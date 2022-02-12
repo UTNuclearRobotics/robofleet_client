@@ -178,7 +178,7 @@ void connect_client(WsClient& ws_client,
   // QObject::connect(&ws_client,
   //                  &WsClient::message_received,
   //                  &ros_node,
-  //                  &RosClientNode::decode_net_message);
+  //                  &RosClientNode::routeMessageToHandlers);
 }
 
 void connect_server(WsServer& ws_server,

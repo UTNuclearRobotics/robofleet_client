@@ -31,7 +31,8 @@ namespace robofleet_client
     public:
       virtual bool initialize(ros::NodeHandle& nh,
                               MessageScheduler* scheduler,
-                              const std::string service_name);
+                              const std::string client_service,
+                              const std::string rbf_topic);
       
       virtual void sendRequest(const QByteArray& data) = 0;
 
@@ -53,7 +54,8 @@ namespace robofleet_client
     public:
       virtual bool initialize(ros::NodeHandle& nh,
                               MessageScheduler* scheduler,
-                              const std::string service_name);
+                              const std::string client_service,
+                              const std::string rbf_topic);
       
       virtual void returnResponse(const QByteArray& data);
 

@@ -20,8 +20,8 @@ params:
 
 subscribers: [
   {
-    from: "/bool_topic",
-    to: "/bool_topic",
+    client_topic: "/bool_topic",
+    rbf_topic: "/bool_topic",
     type: "std_msgs/Bool",
     rate_limit_hz: 1
   }
@@ -29,25 +29,24 @@ subscribers: [
 
 publishers: [
   {
-    from: "/twist_topic",
-    to: "/twist_topic",
-    type: "geometry_msgs/Twist",
-  },
-
-  {
-    from: "/imu_topic",
-    to: "/imu_topic",
-    type: "sensor_msgs/Imu",
+    client_topic: "/twist_topic",
+    rbf_topic: "/twist_topic",
+    type: "geometry_msgs/Twist"
   }
 ]
 
 incoming_services: [
   {
-    from: "/set_camera_info_service",
-    to: "/set_camera_info_service",
-    type: "sensor_msgs/SetCameraInfo",
+    client_topic: "/set_camera_info_service",
+    rbf_topic: "/set_camera_info_service",
+    type: "std_srvs/SetBool"
   }
 ]
 
 outgoing_services: [
+  {
+    client_topic: "/empty_service",
+    rbf_topic: "/empty_service",
+    type: "std_srvs/Empty"
+  }
 ]
