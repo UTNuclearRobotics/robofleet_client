@@ -1,0 +1,80 @@
+#pragma once
+
+// the plugin parent class
+#include <robofleet_client/ROSSrvHandlers.hpp>
+
+// get the srv type
+#include <{srv_package}/{srv_type}.h>
+
+#include <{srv_package}_robofleet/{srv_package}_generated.h>
+
+// message dependencies
+{dependencies}
+
+/** Request Conversion Functions **/
+{srv_package}::{response_type} FbtoRos(const fb::{srv_package}::{response_type}* src);
+
+std::vector<{srv_package}::{response_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{response_type}>>* src);
+
+{srv_package}::{request_type} FbtoRos(const fb::{srv_package}::{request_type}* src);
+
+std::vector<{srv_package}::{request_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{request_type}>>* src);
+
+namespace {srv_package}_robofleet {{
+  
+  /** Request Handler **/
+  class {srv_type}SrvInHandler : public robofleet_client::ROSSrvInHandler
+  {{
+  public:
+    // sets up subscriber, message scheduler function, and metadata function
+    virtual bool initialize(ros::NodeHandle& nh,
+                            MessageScheduler* scheduler,
+                            const std::string service_name);
+    
+  private:
+    typedef {srv_package}::{request_type} RequestType;
+    typedef {srv_package}::{response_type} ResponseType;
+    typedef fb::{srv_package}::{request_type} FbRequestType;
+    typedef fb::{srv_package}::{response_type} FbResponseType;
+
+    // produces a buffer with metadata
+    QByteArray encodeRequestWithMetadata(const RequestType& msg);
+
+    // converts from flatbuffer type to raw data
+    QByteArray encodeRequest(const RequestType& msg);
+
+    // converts from raw data to flatbuffer type
+    const FbResponseType* decodeResponse(const QByteArray& data);
+    
+    // encodes the message
+    bool callback(RequestType& req, ResponseType& res);
+  }};
+
+    /** Response Handler **/
+  class {srv_type}SrvOutHandler : public robofleet_client::ROSSrvOutHandler
+  {{
+  public:
+    // sets up subscriber, message scheduler function, and metadata function
+    virtual bool initialize(ros::NodeHandle& nh,
+                            MessageScheduler* scheduler,
+                            const std::string service_name);
+    
+    virtual void sendRequest(const QByteArray& data);
+
+  private:
+    typedef {srv_package}::{srv_type} SrvType;
+    typedef {srv_package}::{request_type} RequestType;
+    typedef {srv_package}::{response_type} ResponseType;
+    typedef fb::{srv_package}::{request_type} FbRequestType;
+    typedef fb::{srv_package}::{response_type} FbResponseType;
+
+    // converts from raw data to flatbuffer type
+    const FbRequestType* decodeRequest(const QByteArray& data);
+
+    // produces a buffer with metadata
+    QByteArray encodeResponseWithMetadata(const ResponseType& msg);
+
+    // converts from flatbuffer type to raw data
+    QByteArray encodeResponse(const ResponseType& data);
+  }};
+}}

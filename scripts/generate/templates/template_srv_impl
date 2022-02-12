@@ -1,0 +1,203 @@
+#include <{srv_package}_robofleet/{srv_type}.h>
+#include <QByteArray>
+
+{srv_package}::{response_type} FbtoRos(const fb::{srv_package}::{response_type}* src)
+{{
+  {srv_package}::{response_type} msg;{response_decode_assignments}
+
+  return msg;
+}}
+
+std::vector<{srv_package}::{response_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{response_type}>>* src)
+{{
+  std::vector<{srv_package}::{response_type}> dst;
+  dst.reserve(src->size());
+  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{response_type}>> fvec;
+  for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
+  {{
+    dst.push_back(FbtoRos(*it));
+  }}
+
+  return dst;
+}}
+
+{srv_package}::{request_type} FbtoRos(const fb::{srv_package}::{request_type}* src)
+{{
+  {srv_package}::{request_type} msg;{request_decode_assignments}
+
+  return msg;
+}}
+
+std::vector<{srv_package}::{request_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{request_type}>>* src)
+{{
+  std::vector<{srv_package}::{request_type}> dst;
+  dst.reserve(src->size());
+  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{request_type}>> fvec;
+  for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
+  {{
+    dst.push_back(FbtoRos(*it));
+  }}
+
+  return dst;
+}}
+
+namespace {srv_package}_robofleet {{
+
+  bool {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
+                                          MessageScheduler* scheduler,
+                                          const std::string service_name)
+  {{
+    if (!robofleet_client::ROSSrvInHandler::initialize(nh,
+                                                       scheduler,
+                                                       service_name)) {{
+      return false;
+    }}
+
+    flatbuffers::FlatBufferBuilder fbb;
+    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
+                                       flatbuffers::Offset<flatbuffers::String>,
+                                       flatbuffers::Offset<flatbuffers::String>);
+    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
+                                          std::placeholders::_1,
+                                          fbb.CreateString("{srv_package}::{srv_type}"),
+                                          fbb.CreateString(service_name.c_str()));
+
+    server_ = nh.advertiseService(service_name, &{srv_type}SrvInHandler::callback, this);
+
+    return true;
+  }}
+
+  
+  QByteArray {srv_type}SrvInHandler::encodeRequestWithMetadata(const RequestType& msg)
+  {{
+    flatbuffers::FlatBufferBuilder fbb;
+
+    // encode the metadata
+    const MetaDataOffset metadata = encode_metadata_function_(fbb);
+
+    // encode the rest of the type
+    const flatbuffers::uoffset_t root_offset =
+          fb::{srv_package}::Create{request_type}(fbb,
+                                              metadata{request_encode_assignments}).o;
+
+    fbb.Finish(flatbuffers::Offset<void>(root_offset));
+    const QByteArray data{{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                          static_cast<int>(fbb.GetSize())}};
+
+    return data;
+  }}
+  
+  QByteArray {srv_type}SrvInHandler::encodeRequest(const RequestType& msg)
+  {{
+    flatbuffers::FlatBufferBuilder fbb;
+
+    // not including metadata
+    const MetaDataOffset metadata = 0;
+
+    const flatbuffers::uoffset_t root_offset =
+          fb::{srv_package}::Create{request_type}(fbb,
+                                                  metadata{request_encode_assignments}).o;
+
+    fbb.Finish(flatbuffers::Offset<void>(root_offset));
+    const QByteArray data{{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                          static_cast<int>(fbb.GetSize())}};
+
+    return data;
+  }}
+
+  bool {srv_type}SrvInHandler::callback(RequestType& req, ResponseType& res)
+  {{
+    // encode request and schedule for transmission
+    const QByteArray data = encodeRequestWithMetadata(req);
+    schedule_function_(data);
+
+    // wait until we get a response
+    void awaitReponse();
+
+    // decode response
+    const FbResponseType* fb = decodeResponse(response_data_);
+    res = FbtoRos(fb);
+
+    return true;
+  }}
+
+  PLUGINLIB_EXPORT_CLASS({srv_package}_robofleet::{srv_type}SrvInHandler, robofleet_client::ROSSrvInHandler)
+
+
+
+  bool {srv_type}SrvOutHandler::initialize(ros::NodeHandle& nh,
+                                          MessageScheduler* scheduler,
+                                          const std::string service_name)
+  {{
+    if (!robofleet_client::ROSSrvOutHandler::initialize(nh,
+                                                       scheduler,
+                                                       service_name)) {{
+      return false;
+    }}
+
+    flatbuffers::FlatBufferBuilder fbb;
+    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
+                                       flatbuffers::Offset<flatbuffers::String>,
+                                       flatbuffers::Offset<flatbuffers::String>);
+    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
+                                          std::placeholders::_1,
+                                          fbb.CreateString("{srv_package}::{srv_type}"),
+                                          fbb.CreateString(service_name.c_str()));
+
+    client_ = nh.serviceClient<SrvType>(service_name);
+
+    return true;
+  }}
+
+  const {srv_type}SrvOutHandler::FbRequestType*
+  {srv_type}SrvOutHandler::decodeRequest(const QByteArray& data)
+  {{
+    const FbRequestType* root = 
+      flatbuffers::GetRoot<FbRequestType>(data.data());
+
+    return root;
+  }}
+
+  QByteArray {srv_type}SrvOutHandler::encodeResponseWithMetadata(const ResponseType& msg)
+  {{
+    flatbuffers::FlatBufferBuilder fbb;
+
+    // encode the metadata
+    const MetaDataOffset metadata = encode_metadata_function_(fbb);
+
+    // encode the rest of the type
+    const flatbuffers::uoffset_t root_offset =
+          fb::{srv_package}::Create{response_type}(fbb,
+                                              metadata{response_encode_assignments}).o;
+
+    fbb.Finish(flatbuffers::Offset<void>(root_offset));
+    const QByteArray data{{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                          static_cast<int>(fbb.GetSize())}};
+
+    return data;
+  }}
+  
+  void {srv_type}SrvOutHandler::sendRequest(const QByteArray& data)
+  {{
+    // decode the request
+    const FbRequestType* fb = decodeRequest(data);
+    SrvType srv;
+    srv.request = FbtoRos(fb);
+
+    ros::AsyncSpinner spinner(1);
+    spinner.start();
+    
+    // send on to the final recipient
+    client_.call(srv);
+
+    spinner.stop();
+
+    // encode the response
+    const QByteArray response_data = encodeResponseWithMetadata(srv.response);
+
+    // send the response back
+    schedule_function_(response_data);
+  }}
+
+  PLUGINLIB_EXPORT_CLASS({srv_package}_robofleet::{srv_type}SrvOutHandler, robofleet_client::ROSSrvOutHandler)
+}} // namespace {srv_package}_robofleet

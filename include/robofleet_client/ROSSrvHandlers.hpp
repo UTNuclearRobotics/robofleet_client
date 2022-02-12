@@ -9,6 +9,8 @@
 
 #include <mutex>
 
+#include <QByteArray>
+
 /**
  * The ROSRequestHandler and ROSResponseHandler interfaces
  * are used by the client to encode, decode, subscribe, and publish
@@ -20,7 +22,6 @@
  */
 
 class MessageScheduler;
-class QByteArray;
 
 namespace robofleet_client
 {
@@ -28,15 +29,21 @@ namespace robofleet_client
   class ROSSrvOutHandler
   {
     public:
-      virtual void initialize(ros::NodeHandle& nh,
-                              const std::string service_name) = 0;
+      virtual bool initialize(ros::NodeHandle& nh,
+                              MessageScheduler* scheduler,
+                              const std::string service_name);
       
       virtual void sendRequest(const QByteArray& data) = 0;
 
     protected:
+      typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
       ros::ServiceClient client_;
 
-      std::function<void(QByteArray&)> schedule_function_;
+      // sends raw data to the message scheduler
+      std::function<void(const QByteArray&)> schedule_function_;
+
+      // loads metadata into the flatbuffer builder
+      std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
   };
 
 
@@ -48,17 +55,26 @@ namespace robofleet_client
                               MessageScheduler* scheduler,
                               const std::string service_name);
       
-      virtual void returnResponse(const QByteArray& data) = 0;
+      virtual void returnResponse(const QByteArray& data);
+
     protected:
+      typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
+
       ros::ServiceServer server_;
       
-      std::function<void(QByteArray&)> schedule_function_;
-
       void awaitReponse();
 
       bool has_received_response_;
 
-      std::mutex has_received_response_mutex_;
+      std::mutex response_mutex_;
+
+      QByteArray response_data_;
+
+      // sends raw data to the message scheduler
+      std::function<void(const QByteArray&)> schedule_function_;
+
+      // loads metadata into the flatbuffer builder
+      std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
   };
   
   typedef boost::shared_ptr<ROSSrvInHandler> ROSSrvInHandlerPtr;

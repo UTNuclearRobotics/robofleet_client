@@ -249,7 +249,8 @@ def gen_msg(msg_type, defined_types, base_ns, gen_enums, gen_constants):
     srv_class = get_service_class(msg_type.ros_type)
     if msg_class is not None:
       spec = get_msg_spec(msg_type.ros_type)
-      process_type(msg_type, spec, base_ns, gen_enums, gen_constants)
+      for x in process_type(msg_type, spec, base_ns, gen_enums, gen_constants):
+        yield x
     elif srv_class is not None:
       spec = get_srv_spec(msg_type.ros_type)
       request_type = Type(msg_type.ros_type_raw + 'Request', base_ns)
@@ -263,7 +264,7 @@ def gen_msg(msg_type, defined_types, base_ns, gen_enums, gen_constants):
 
 def process_type(msg_type, spec, base_ns, gen_enums, gen_constants):
   types = [Type(type, base_ns) for type,name in spec.fields()]
-  
+
   # generate constants definitions
   if gen_enums:
       for x in gen_constants_enums(msg_type, spec):

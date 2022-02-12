@@ -49,9 +49,15 @@ namespace robofleet_client
                               const bool no_drop);
       
     protected:
+      typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
+
       ros::Subscriber sub_;
       
+      // sends raw data to the message scheduler
       std::function<void(const QByteArray&)> schedule_function_;
+
+      // loads metadata into the flatbuffer builder
+      std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
   };
   
   typedef boost::shared_ptr<ROSPublishHandler> ROSPublishHandlerPtr;

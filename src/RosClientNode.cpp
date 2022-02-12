@@ -241,7 +241,7 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       return false;
     }
     
-    handler->initialize(nh_, topic_params.from);
+    handler->initialize(nh_, scheduler_, topic_params.from);
 
     outgoing_srvs_[topic_params.from] = handler;
 

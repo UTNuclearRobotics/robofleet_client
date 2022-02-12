@@ -119,6 +119,7 @@ namespace {msg_package}_robofleet {{
           fb::{msg_package}::Create{msg_name}(fbb,
                                               metadata{msg_encode_assignments}).o;
 
+    // encode the rest of the type
     fbb.Finish(flatbuffers::Offset<void>(root_offset));
     const QByteArray data{{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
                           static_cast<int>(fbb.GetSize())}};

@@ -211,7 +211,7 @@ def generate_cmakelists(package, depends, output_path, templates_path):
 
   # Source files for the library target
   source_files_list = '\n'.join(['\tsrc/{}.cpp'.format(message.short_name)
-                       for message in package.all_messages])
+                       for message in package.messages | package.services])
 
   # replace the target strings
   filedata = filedata.format(msg_package=package.name,
@@ -406,32 +406,37 @@ def generate_msg_impl(message, output_path, templates_path):
 
 
 
-def generate_srvin_headers(request, msg_depends_graph, output_path, templates_path):
+def generate_srv_headers(service, msg_depends_graph, output_path, templates_path):
   """
   Generates the header file for a service's handler classes
   """
-  header_template_path = os.path.join(templates_path, 'template_srvin_header')
+  header_template_path = os.path.join(templates_path, 'template_srv_header')
   header_out_path = os.path.join(output_path,
-                                 request.package + '_robofleet',
+                                 service.package + '_robofleet',
                                  'include',
-                                 request.package + '_robofleet',
-                                 request.short_name + '.h')
+                                 service.package + '_robofleet',
+                                 service.short_name + '.h')
+
+  request = service.request
+  response = service.response
 
   # read in the template
   try:
     with open(header_template_path, 'r') as file :
       filedata = file.read()
   except IOError:
-    print('ERROR: Failed to read msg header template.')
+    print('ERROR: Failed to read srv header template.')
     return False
 
   # includes for the service types used in this service's fields
   dependencies = '\n'.join(['#include <{}_robofleet/{}.h>'.format(*depend.split('/'))\
-                           for depend in msg_depends_graph[request.full_name]])
+                           for depend in msg_depends_graph[request.full_name] | msg_depends_graph[response.full_name]])
 
   # replace the target strings
-  filedata = filedata.format(msg_package=request.package,
-                             msg_name=request.short_name,
+  filedata = filedata.format(srv_package=request.package,
+                             srv_type=service.short_name,
+                             request_type=service.request.short_name,
+                             response_type=service.response.short_name,
                              dependencies=dependencies)
 
   # write the filled out class header
@@ -446,15 +451,18 @@ def generate_srvin_headers(request, msg_depends_graph, output_path, templates_pa
 
 
 
-def generate_srvin_impl(request, output_path, templates_path):
+def generate_srv_impl(service, output_path, templates_path):
   """
   Generates the implementation (.cpp) file for a service's handler classes
   """
-  impl_template_path = os.path.join(templates_path, 'template_srvin_impl')
+  impl_template_path = os.path.join(templates_path, 'template_srv_impl')
   impl_out_path = os.path.join(output_path,
-                               request.package + '_robofleet',
+                               service.package + '_robofleet',
                                'src',
-                               request.short_name + '.cpp')
+                               service.short_name + '.cpp')
+
+  request = service.request
+  response = service.response
 
   # read in the template
   try:
@@ -465,10 +473,10 @@ def generate_srvin_impl(request, output_path, templates_path):
     return False
 
   # this is the code for assignments from flatbuffer fields to ROS fields
-  msg_decode_assignments = ''
+  request_decode_assignments = ''
 
   # code for assignments from ROS fields to flatbuffer fields
-  msg_encode_assignments = ''
+  request_encode_assignments = ''
 
   for field in request.parsed_fields():
 
@@ -525,91 +533,18 @@ def generate_srvin_impl(request, output_path, templates_path):
                                                            field_name_decode)
 
     # text to assign fields from fb objects to ROS services
-    msg_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
+    request_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
     # text to assign fields from ROS services to fb objects
-    msg_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
+    request_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
   
-
-  filedata = filedata.format(msg_package=request.package,
-                             msg_name=request.short_name,
-                             msg_decode_assignments=msg_decode_assignments,
-                             msg_encode_assignments=msg_encode_assignments)
-
-  # write the filled out class impl
-  try:
-    with open(impl_out_path, 'w') as file:
-      file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write srv implementation.')
-    return False
-
-  return True
-
-
-def generate_srvout_headers(response, msg_depends_graph, output_path, templates_path):
-  """
-  Generates the header file for a service's handler classes
-  """
-  header_template_path = os.path.join(templates_path, 'template_srvout_header')
-  header_out_path = os.path.join(output_path,
-                                 response.package + '_robofleet',
-                                 'include',
-                                 response.package + '_robofleet',
-                                 response.short_name + '.h')
-
-  # read in the template
-  try:
-    with open(header_template_path, 'r') as file :
-      filedata = file.read()
-  except IOError:
-    print('ERROR: Failed to read msg header template.')
-    return False
-
-  # includes for the service types used in this service's fields
-  dependencies = '\n'.join(['#include <{}_robofleet/{}.h>'.format(*depend.split('/'))\
-                           for depend in msg_depends_graph[response.full_name]])
-
-  # replace the target strings
-  filedata = filedata.format(msg_package=response.package,
-                             msg_name=response.short_name,
-                             dependencies=dependencies)
-
-  # write the filled out class header
-  try:
-    with open(header_out_path, 'w') as file:
-      file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write srv header.')
-    return False
-
-  return True
-
-
-
-def generate_srvout_impl(response, output_path, templates_path):
-  """
-  Generates the implementation (.cpp) file for a service's handler classes
-  """
-  impl_template_path = os.path.join(templates_path, 'template_response_impl')
-  impl_out_path = os.path.join(output_path,
-                               response.package + '_robofleet',
-                               'src',
-                               response.short_name + '.cpp')
-
-  # read in the template
-  try:
-    with open(impl_template_path, 'r') as file :
-      filedata = file.read()
-  except IOError:
-    print('ERROR: Failed to read srv implementation template.')
-    return False
+  ''' Build the encode and decode functions for the response type '''
 
   # this is the code for assignments from flatbuffer fields to ROS fields
-  msg_decode_assignments = ''
+  response_decode_assignments = ''
 
   # code for assignments from ROS fields to flatbuffer fields
-  msg_encode_assignments = ''
-
+  response_encode_assignments = ''
+  
   for field in response.parsed_fields():
 
     # We need the call to lower() because some ROS services don't follow the
@@ -665,15 +600,18 @@ def generate_srvout_impl(response, output_path, templates_path):
                                                            field_name_decode)
 
     # text to assign fields from fb objects to ROS services
-    msg_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
+    response_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
     # text to assign fields from ROS services to fb objects
-    msg_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
-  
+    response_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
 
-  filedata = filedata.format(msg_package=response.package,
-                             msg_name=response.short_name,
-                             msg_decode_assignments=msg_decode_assignments,
-                             msg_encode_assignments=msg_encode_assignments)
+  filedata = filedata.format(srv_package=service.package,
+                             srv_type=service.short_name,
+                             request_type=service.request.short_name,
+                             response_type=service.response.short_name,
+                             response_decode_assignments=response_decode_assignments,
+                             response_encode_assignments=response_encode_assignments,
+                             request_decode_assignments=request_decode_assignments,
+                             request_encode_assignments=request_encode_assignments)
 
   # write the filled out class impl
   try:
@@ -798,7 +736,8 @@ def generate_flatbuffer_schema(package,
           generate_flatbuffer_schema(key, dependency_graph, generated_packages, output_dir, msg2fbs_dir)
   
   generated_packages.add(package)
-  schema_data = msg2fbs.generate_schema([message.full_name for message in package.messages.union(package.services)],
+
+  schema_data = msg2fbs.generate_schema([message.full_name for message in package.messages | package.services],
                                         depended_packages=dependency_graph[package],
                                         base_ns='fb',
                                         gen_enums=False,
@@ -923,16 +862,10 @@ def generate_plugin_packages(packages,
         return False
 
     for service in package.services:
-      if not generate_srvin_headers(service.request, msg_depends_graph, output_path, templates_path):
+      if not generate_srv_headers(service, msg_depends_graph, output_path, templates_path):
         return False
         
-      if not generate_srvin_impl(service.request, output_path, templates_path):
-        return False
-
-      if not generate_srvout_headers(service.response, msg_depends_graph, output_path, templates_path):
-        return False
-        
-      if not generate_srvout_impl(service.response, output_path, templates_path):
+      if not generate_srv_impl(service, output_path, templates_path):
         return False
 
     if not generate_plugin_manifest(package, output_path, templates_path):

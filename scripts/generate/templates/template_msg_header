@@ -49,28 +49,23 @@ namespace {msg_package}_robofleet {{
   class {msg_name}SubscribeHandler : public robofleet_client::ROSSubscribeHandler
   {{
   public:
-    typedef {msg_package}::{msg_name} MsgType;
-
     // sets up subscriber, message scheduler function, and metadata function
     virtual bool initialize(ros::NodeHandle& nh,
-                              MessageScheduler* scheduler,
-                              const std::string to_topic,
-                              const double priority,
-                              const double rate_limit,
-                              const bool no_drop);
-
-    // converts from flatbuffer type to raw data
-    static QByteArray encode(const MsgType& msg);
+                            MessageScheduler* scheduler,
+                            const std::string to_topic,
+                            const double priority,
+                            const double rate_limit,
+                            const bool no_drop);
     
   private:
+    typedef {msg_package}::{msg_name} MsgType;
     typedef boost::shared_ptr<MsgType> MsgTypeConstPtr;
-    typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
-    
-    // loads metadata into the flatbuffer builder
-    std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
 
     // produces a buffer with metadata
     QByteArray encodeWithMetadata(const MsgType& msg);
+
+    // converts from flatbuffer type to raw data
+    QByteArray encode(const MsgType& msg);
     
     // encodes the message
     void callback(const MsgTypeConstPtr& msg);
