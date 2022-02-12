@@ -19,8 +19,11 @@ bool RosClientNode::configure(const YAML::Node& root)
     publishers_list = root["publishers"];
     incoming_srv_list = root["incoming_services"];
     outgoing_srv_list = root["outgoing_services"];
-  } catch (const YAML::InvalidNode& e) {
-    ROS_ERROR("%s", e.what());
+  } catch (const YAML::InvalidNode& e) {}
+
+  if (subscribers_list.IsNull() && publishers_list.IsNull() &&
+      incoming_srv_list.IsNull() && outgoing_srv_list.IsNull()) {
+    ROS_ERROR("Cannot configure robofleet client. No topics found in config file.");
     return false;
   }
 
@@ -29,6 +32,12 @@ bool RosClientNode::configure(const YAML::Node& root)
   }
 
   if (!configureServices(incoming_srv_list, outgoing_srv_list)) {
+    return false;
+  }
+
+  if (subs_.empty() && pubs_.empty() &&
+      incoming_srvs_.empty() && outgoing_srvs_.empty()) {
+    ROS_ERROR("Cannot configure robofleet client. No topics found in config file.");
     return false;
   }
 
