@@ -30,7 +30,8 @@ namespace {srv_package}_robofleet {{
     virtual bool initialize(ros::NodeHandle& nh,
                             MessageScheduler* scheduler,
                             const std::string client_service,
-                            const std::string rbf_topic);
+                            const std::string rbf_topic,
+                            const ros::Duration timeout);
     
   private:
     typedef {srv_package}::{request_type} RequestType;
@@ -57,7 +58,7 @@ namespace {srv_package}_robofleet {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
     virtual bool initialize(ros::NodeHandle& nh,
-                            MessageScheduler* scheduler
+                            MessageScheduler* scheduler,
                             const std::string client_service,
                             const std::string rbf_topic);
     

@@ -27,7 +27,8 @@ namespace robofleet_client
   bool ROSSrvInHandler::initialize(ros::NodeHandle& nh,
                                    MessageScheduler* scheduler,
                                    const std::string client_service,
-                                   const std::string rbf_topic)
+                                   const std::string rbf_topic,
+                                   const ros::Duration timeout)
   {
     if (scheduler == nullptr)
     {
@@ -43,6 +44,8 @@ namespace robofleet_client
                                    true);
 
     return true;
+
+    timeout_ = timeout;
   }
 
 
@@ -56,9 +59,8 @@ namespace robofleet_client
   }
 
 
-  void ROSSrvInHandler::awaitReponse()
+  bool ROSSrvInHandler::awaitReponse()
   {
-    // TODO: Implement timeout feature
     has_received_response_ = false;
 
     // start another thread for spinning so that we don't block
@@ -66,16 +68,26 @@ namespace robofleet_client
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
+    const ros::Time start_time = ros::Time::now();
+    const bool using_timeout = !timeout_.isZero();
+
     while (true)
     {
+      // check if we have received the response
       response_mutex_.lock();
       if (has_received_response_)
       {
         spinner.stop();
         response_mutex_.unlock();
-        return;
+        return true;
       }
       response_mutex_.unlock();
+
+      // check if we have timed out
+      if (using_timeout && (ros::Time::now()-start_time) > timeout_)
+      {
+        return false;
+      }
     }
   }
 

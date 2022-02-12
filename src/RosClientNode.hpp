@@ -30,14 +30,23 @@ private:
   typedef std::string MsgTypeString;
 
   struct TopicParams {
+    // used for all topic types
     std::string message_package;
     MsgTypeString message_type;
     TopicString client_topic;
     TopicString rbf_topic;
+
+    // only used for message subscriber topics
     double priority;
     double rate_limit;
     bool no_drop;
+
+    // only used for message publisher topics
     bool latched;
+
+    // only used for service topics
+    // set to zero if we don't want to time out
+    ros::Duration timeout;
   };
 
   const Verbosity verbosity_;
@@ -55,7 +64,8 @@ private:
 
   bool readTopicParams(const YAML::Node& node,
                        TopicParams& out_params,
-                       const bool publisher);
+                       const bool publisher,
+                       const bool service);
 
   template<class Handler>
   bool getHandler(const TopicParams& params,

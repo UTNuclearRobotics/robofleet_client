@@ -107,33 +107,68 @@ void RosClientNode::routeMessageToHandlers(const QByteArray& data) const
 
 bool RosClientNode::readTopicParams(const YAML::Node& node,
                                     TopicParams& out_params,
-                                    const bool publisher)
+                                    const bool publisher,
+                                    const bool service)
 {
   TopicParams params;
 
   try {
     params.client_topic = node["client_topic"].as<TopicString>();
     params.rbf_topic = node["rbf_topic"].as<TopicString>();
-    
-    if (node["rate_limit_hz"]) {
-      params.rate_limit = node["rate_limit_hz"].as<double>();
-    }
-    else {
-      params.rate_limit = std::numeric_limits<double>::max();
-    }
 
-    if (node["priority"]) {
-      params.priority = node["priority"].as<double>();
-    }
-    else {
-      params.priority = 0.0;
-    }
+    if (service) {
+      if (node["timeout"]) {
+        params.timeout = ros::Duration(node["timeout"].as<double>());
 
-    if (publisher && node["latched"]) {
-      params.latched = node["latched"].as<double>();
-    }
-    else {
-      params.latched = false;
+        if (params.timeout.toSec() < 0.0) {
+          ROS_ERROR("Invalid negative value for timeout on topic %s.", params.client_topic.c_str());
+          return false;
+        }
+      }
+      else {
+        params.timeout = ros::Duration(0.0);
+      }
+    } else {
+      if (publisher) {
+        if (node["latched"]) {
+          params.latched = node["latched"].as<bool>();
+        }
+        else {
+          params.latched = false;
+        }
+      }
+      else {
+        if (node["rate_limit"]) {
+          params.rate_limit = node["rate_limit"].as<double>();
+
+          if (params.rate_limit < 0.0) {
+            ROS_ERROR("Invalid negative value for rate_limit on topic %s.", params.client_topic.c_str());
+            return false;
+          }
+        }
+        else {
+          params.rate_limit = std::numeric_limits<double>::max();
+        }
+
+        if (node["priority"]) {
+          params.priority = node["priority"].as<double>();
+
+          if (params.priority < 0) {
+            ROS_ERROR("Invalid negative value for priority on topic %s.", params.client_topic.c_str());
+            return false;
+          }
+        }
+        else {
+          params.priority = 1.0;
+        }
+
+        if (node["no_drop"]) {
+          params.no_drop = node["no_drop"].as<bool>();
+        }
+        else {
+          params.no_drop = false;
+        }
+      }
     }
 
   } catch (const YAML::InvalidNode& e) {
@@ -195,7 +230,7 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
   // generate the subscribe handlers
   for (const YAML::Node& subscriber : subscribers_list) {
     TopicParams topic_params;
-    if (!readTopicParams(subscriber, topic_params, false)) {
+    if (!readTopicParams(subscriber, topic_params, false, false)) {
       ROS_ERROR("Invalid subscriber.");
       return false;
     }
@@ -231,7 +266,7 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
   // generate the publish handlers
   for (const YAML::Node& publisher : publishers_list) {
     TopicParams topic_params;
-    if (!readTopicParams(publisher, topic_params, true)) {
+    if (!readTopicParams(publisher, topic_params, true, false)) {
       ROS_ERROR("Invalid publisher.");
       return false;
     }
@@ -269,7 +304,7 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
   // generate the SrvIn handlers
   for (const YAML::Node& service : incoming_list) {
     TopicParams topic_params;
-    if (!readTopicParams(service, topic_params, false)) {
+    if (!readTopicParams(service, topic_params, false, true)) {
       ROS_ERROR("Invalid incoming service.");
       return false;
     }
@@ -283,7 +318,8 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     if (!handler->initialize(nh_,
                              scheduler_,
                              topic_params.client_topic,
-                             topic_params.rbf_topic+"Responses")) {
+                             topic_params.rbf_topic+"Responses",
+                             topic_params.timeout)) {
       ROS_ERROR("Failed to initialize handler for service %s.",
                 topic_params.client_topic.c_str());
       return false;
@@ -302,7 +338,7 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
   // generate the SrvOut handlers
   for (const YAML::Node& service : outgoing_list) {
     TopicParams topic_params;
-    if (!readTopicParams(service, topic_params, false)) {
+    if (!readTopicParams(service, topic_params, false, true)) {
       ROS_ERROR("Invalid outgoing service.");
       return false;
     }

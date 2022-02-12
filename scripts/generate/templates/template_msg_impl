@@ -87,6 +87,7 @@ namespace {msg_package}_robofleet {{
   {{
     if (!robofleet_client::ROSSubscribeHandler::initialize(nh,
                                                            scheduler,
+                                                           client_topic,
                                                            rbf_topic,
                                                            priority,
                                                            rate_limit,

@@ -55,7 +55,8 @@ namespace robofleet_client
       virtual bool initialize(ros::NodeHandle& nh,
                               MessageScheduler* scheduler,
                               const std::string client_service,
-                              const std::string rbf_topic);
+                              const std::string rbf_topic,
+                              const ros::Duration timeout);
       
       virtual void returnResponse(const QByteArray& data);
 
@@ -64,9 +65,11 @@ namespace robofleet_client
 
       ros::ServiceServer server_;
       
-      void awaitReponse();
+      bool awaitReponse();
 
       bool has_received_response_;
+
+      ros::Duration timeout_;
 
       std::mutex response_mutex_;
 

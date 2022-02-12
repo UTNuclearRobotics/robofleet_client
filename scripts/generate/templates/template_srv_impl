@@ -46,11 +46,14 @@ namespace {srv_package}_robofleet {{
   bool {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
                                           MessageScheduler* scheduler,
                                           const std::string client_service,
-                                          const std::string rbf_topic)
+                                          const std::string rbf_topic,
+                                          const ros::Duration timeout)
   {{
     if (!robofleet_client::ROSSrvInHandler::initialize(nh,
                                                        scheduler,
-                                                       service_name)) {{
+                                                       client_service,
+                                                       rbf_topic,
+                                                       timeout)) {{
       return false;
     }}
 
@@ -61,9 +64,9 @@ namespace {srv_package}_robofleet {{
     encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
                                           std::placeholders::_1,
                                           fbb.CreateString("{srv_package}::{srv_type}"),
-                                          fbb.CreateString(service_name.c_str()));
+                                          fbb.CreateString(client_service.c_str()));
 
-    server_ = nh.advertiseService(service_name, &{srv_type}SrvInHandler::callback, this);
+    server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
 
     return true;
   }}
@@ -113,7 +116,11 @@ namespace {srv_package}_robofleet {{
     schedule_function_(data);
 
     // wait until we get a response
-    void awaitReponse();
+    // awaitResponse will return false if we timed out
+    if (!awaitReponse())
+    {{
+      return false;
+    }}
 
     // decode response
     const FbResponseType* fb = decodeResponse(response_data_);
@@ -133,6 +140,7 @@ namespace {srv_package}_robofleet {{
   {{
     if (!robofleet_client::ROSSrvOutHandler::initialize(nh,
                                                        scheduler,
+                                                       client_service,
                                                        rbf_topic)) {{
       return false;
     }}
