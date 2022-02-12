@@ -1,7 +1,7 @@
 # Requires these plugin packages at runtime:
 #   std_msgs_robofleet
 #   geometry_msgs_robofleet
-#   sensor_msgs_robofleet
+#   std_srvs_robofleet
 
 params:
   host_url: "ws://localhost:8080"

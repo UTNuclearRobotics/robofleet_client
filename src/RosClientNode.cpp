@@ -16,8 +16,14 @@ bool RosClientNode::configure(const YAML::Node& root)
   YAML::Node outgoing_srv_list;
   try {
     subscribers_list = root["subscribers"];
+  } catch (const YAML::InvalidNode& e) {}
+  try {
     publishers_list = root["publishers"];
+  } catch (const YAML::InvalidNode& e) {}
+  try {
     incoming_srv_list = root["incoming_services"];
+  } catch (const YAML::InvalidNode& e) {}
+  try {
     outgoing_srv_list = root["outgoing_services"];
   } catch (const YAML::InvalidNode& e) {}
 

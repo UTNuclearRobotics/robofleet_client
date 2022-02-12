@@ -15,6 +15,8 @@ bool RosClientNode::getHandler(const TopicParams& params,
 
     try {
       const std::string msg_class = plugin_package + "::" + params.message_type + handler_type;
+      ROS_INFO_STREAM(plugin_package);
+      ROS_INFO_STREAM(msg_class);
       msg_handler = HandlerPtr(loader.createUnmanagedInstance(msg_class));
     } catch(const pluginlib::LibraryLoadException& e) {
       ROS_ERROR("%s", e.what());

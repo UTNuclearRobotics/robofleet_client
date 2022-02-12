@@ -629,16 +629,25 @@ def generate_plugin_manifest(package, output_path, templates_path):
   Build the plugin descriptions file which exposes the
   message handlers to pluginlib
   """
-  manifest_template_path = os.path.join(templates_path, 
-                                        'template_plugin_description')
+  msg_template_path = os.path.join(templates_path, 
+                                        'template_msg_plugin_description')
+  srv_template_path = os.path.join(templates_path, 
+                                        'template_srv_plugin_description')
   manifest_out_path = os.path.join(output_path,
                                    package.plugin_pkg_name,
                                    'plugin_description.xml')
 
   # read in the template
   try:
-    with open(manifest_template_path, 'r') as file :
-      filedata = file.read()
+    with open(msg_template_path, 'r') as msg_file :
+      msgdata = msg_file.read()
+  except IOError:
+    print('ERROR: Failed to read plugin_description.xml template.')
+    return False
+
+  try:
+    with open(srv_template_path, 'r') as srv_file :
+      srvdata = srv_file.read()
   except IOError:
     print('ERROR: Failed to read plugin_description.xml template.')
     return False
@@ -646,9 +655,13 @@ def generate_plugin_manifest(package, output_path, templates_path):
   # build the contents from template
   output = '<library path="lib/lib{msg_package}_robofleet">\n'
   for message in package.messages:
-    output += filedata.format(msg_package=package.name,
+    output += msgdata.format(msg_package=package.name,
                               msg_name=message.short_name,
                               msg_full_name=message.full_name)
+  for service in package.services:
+    output += srvdata.format(msg_package=package.name,
+                              srv_name=service.short_name,
+                              srv_full_name=service.full_name)
   output += '</library>'
   output = output.format(msg_package=package.name)
 
