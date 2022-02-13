@@ -11,7 +11,6 @@ PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}/main.cpp
   ${CMAKE_CURRENT_LIST_DIR}/WsClient.hpp
   ${CMAKE_CURRENT_LIST_DIR}/WsServer.hpp
-  ${CMAKE_CURRENT_LIST_DIR}/WebVizConstants.hpp
   ${CMAKE_CURRENT_LIST_DIR}/RosClientNode.cpp
   include/robofleet_client/MessageScheduler.hpp
 )

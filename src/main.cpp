@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QtCore/QCoreApplication>
+
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -37,7 +38,8 @@ void connect_client(WsClient& ws_client,
 
 int main(int argc, char** argv) {
   QCoreApplication qapp(argc, argv);
-  ros::init(argc, argv, "robofleet_client");
+
+  ros::init(argc, argv, "robofleet_client", ros::init_options::NoSigintHandler);
 
   // check args
   if (argc != 2) {
@@ -91,14 +93,11 @@ int main(int argc, char** argv) {
     connect_client(ws_client, ros_node, scheduler);
   }
 
-  // shuts down the Qt application when ROS shuts down
-  std::thread spin_thread([&qapp, params]() {
-    ros::MultiThreadedSpinner spinner(params.spin_threads);
-    spinner.spin();
-    qapp.quit();
-  } );
+  ros::AsyncSpinner spinner(params.spin_threads);
+  spinner.start();
 
-  qapp.exec();
+  const int exit_code = qapp.exec();
+  return exit_code;
 }
 
 bool loadYAMLParams(const YAML::Node& root,
@@ -164,30 +163,30 @@ bool loadYAMLParams(const YAML::Node& root,
 void connect_client(WsClient& ws_client,
                     RosClientNode& ros_node,
                     MessageScheduler& scheduler) {
-  // // run scheduler
-  // QObject::connect(&ws_client,
-  //                  &WsClient::backpressure_update,
-  //                  &scheduler,
-  //                  &MessageScheduler::backpressure_update);
-  // // send scheduled message
-  // QObject::connect(&scheduler,
-  //                  &MessageScheduler::scheduled,
-  //                  [&ws_client](const QByteArray& data) { ws_client.send_message(data); });
+  // run scheduler
+  QObject::connect(&ws_client,
+                   &WsClient::backpressure_update,
+                   &scheduler,
+                   &MessageScheduler::backpressure_update);
+  // send scheduled message
+  QObject::connect(&scheduler,
+                   &MessageScheduler::scheduled,
+                   [&ws_client](const QByteArray& data) { ws_client.send_message(data); });
 
-  // // receive
-  // QObject::connect(&ws_client,
-  //                  &WsClient::message_received,
-  //                  &ros_node,
-  //                  &RosClientNode::routeMessageToHandlers);
+  // receive
+  QObject::connect(&ws_client,
+                   &WsClient::message_received,
+                   &ros_node,
+                   &RosClientNode::routeMessageToHandlers);
 }
 
 void connect_server(WsServer& ws_server,
                     RosClientNode& ros_node) {
 
   // receive
-  // QObject::connect(
-  //     &ws_server,
-  //     &WsServer::binary_message_received,
-  //     &ros_node,
-  //     &RosClientNode::decode_net_message);
+  QObject::connect(
+      &ws_server,
+      &WsServer::binary_message_received,
+      &ros_node,
+      &RosClientNode::routeMessageToHandlers);
 }
