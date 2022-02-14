@@ -27,12 +27,17 @@ namespace {srv_package}_robofleet {{
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
-    virtual bool initialize(ros::NodeHandle& nh,
-                            MessageScheduler* scheduler,
+    virtual void initialize(ros::NodeHandle& nh,
+                            MessageScheduler& scheduler,
                             const std::string client_service,
                             const std::string rbf_topic,
                             const ros::Duration timeout);
     
+    virtual void initialize(ros::NodeHandle& nh,
+                            WsServer& scheduler,
+                            const std::string client_service,
+                            const std::string rbf_topic,
+                            const ros::Duration timeout);
   private:
     typedef {srv_package}::{request_type} RequestType;
     typedef {srv_package}::{response_type} ResponseType;
@@ -57,11 +62,16 @@ namespace {srv_package}_robofleet {{
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
-    virtual bool initialize(ros::NodeHandle& nh,
-                            MessageScheduler* scheduler,
+    virtual void initialize(ros::NodeHandle& nh,
+                            MessageScheduler& scheduler,
                             const std::string client_service,
                             const std::string rbf_topic);
     
+    virtual void initialize(ros::NodeHandle& nh,
+                            WsServer& server,
+                            const std::string client_service,
+                            const std::string rbf_topic);
+
     virtual void sendRequest(const QByteArray& data);
 
   private:

@@ -1,49 +1,62 @@
 #include "robofleet_client/ROSSrvHandlers.hpp"
 #include "robofleet_client/MessageScheduler.hpp"
+#include "WsServer.hpp"
 
 namespace robofleet_client
 {
-  bool ROSSrvOutHandler::initialize(ros::NodeHandle& nh,
-                                    MessageScheduler* scheduler,
+  void ROSSrvOutHandler::initialize(ros::NodeHandle& nh,
+                                    MessageScheduler& scheduler,
                                     const std::string client_service,
                                     const std::string rbf_topic)
   {
-    if (scheduler == nullptr)
-    {
-      return false;
-    }
-    
     schedule_function_ = std::bind(&MessageScheduler::enqueue,
-                                   scheduler,
+                                   &scheduler,
                                    QString::fromStdString(rbf_topic),
                                    std::placeholders::_1,
                                    std::numeric_limits<double>::max(),
                                    std::numeric_limits<double>::max(),
                                    true);
-
-    return true;
   }
 
-  bool ROSSrvInHandler::initialize(ros::NodeHandle& nh,
-                                   MessageScheduler* scheduler,
+  void ROSSrvOutHandler::initialize(ros::NodeHandle& nh,
+                                    WsServer& server,
+                                    const std::string client_service,
+                                    const std::string rbf_topic)
+  {
+    schedule_function_ = std::bind(&WsServer::broadcast_message,
+                                   &server,
+                                   std::placeholders::_1,
+                                   nullptr);
+  }
+
+
+  void ROSSrvInHandler::initialize(ros::NodeHandle& nh,
+                                   MessageScheduler& scheduler,
                                    const std::string client_service,
                                    const std::string rbf_topic,
                                    const ros::Duration timeout)
   {
-    if (scheduler == nullptr)
-    {
-      return false;
-    }
-    
     schedule_function_ = std::bind(&MessageScheduler::enqueue,
-                                   scheduler,
+                                   &scheduler,
                                    QString::fromStdString(rbf_topic),
                                    std::placeholders::_1,
                                    std::numeric_limits<double>::max(),
                                    std::numeric_limits<double>::max(),
                                    true);
 
-    return true;
+    timeout_ = timeout;
+  }
+
+  void ROSSrvInHandler::initialize(ros::NodeHandle& nh,
+                                   WsServer& server,
+                                   const std::string client_service,
+                                   const std::string rbf_topic,
+                                   const ros::Duration timeout)
+  {
+    schedule_function_ = std::bind(&WsServer::broadcast_message,
+                                   &server,
+                                   std::placeholders::_1,
+                                   nullptr);
 
     timeout_ = timeout;
   }

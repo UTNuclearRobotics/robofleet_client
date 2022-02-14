@@ -43,19 +43,17 @@ std::vector<{srv_package}::{request_type}> FbtoRos(const flatbuffers::Vector<fla
 
 namespace {srv_package}_robofleet {{
 
-  bool {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
-                                          MessageScheduler* scheduler,
+  void {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
+                                          MessageScheduler& scheduler,
                                           const std::string client_service,
                                           const std::string rbf_topic,
                                           const ros::Duration timeout)
   {{
-    if (!robofleet_client::ROSSrvInHandler::initialize(nh,
-                                                       scheduler,
-                                                       client_service,
-                                                       rbf_topic,
-                                                       timeout)) {{
-      return false;
-    }}
+    robofleet_client::ROSSrvInHandler::initialize(nh,
+                                                  scheduler,
+                                                  client_service,
+                                                  rbf_topic,
+                                                  timeout);
 
     flatbuffers::FlatBufferBuilder fbb;
     typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
@@ -67,8 +65,30 @@ namespace {srv_package}_robofleet {{
                                           fbb.CreateString(client_service.c_str()));
 
     server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
+  }}
 
-    return true;
+  void {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
+                                          WsServer& server,
+                                          const std::string client_service,
+                                          const std::string rbf_topic,
+                                          const ros::Duration timeout)
+  {{
+    robofleet_client::ROSSrvInHandler::initialize(nh,
+                                                  server,
+                                                  client_service,
+                                                  rbf_topic,
+                                                  timeout);
+
+    flatbuffers::FlatBufferBuilder fbb;
+    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
+                                       flatbuffers::Offset<flatbuffers::String>,
+                                       flatbuffers::Offset<flatbuffers::String>);
+    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
+                                          std::placeholders::_1,
+                                          fbb.CreateString("{srv_package}::{srv_type}"),
+                                          fbb.CreateString(client_service.c_str()));
+
+    server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
   }}
 
   
@@ -133,17 +153,15 @@ namespace {srv_package}_robofleet {{
 
 
 
-  bool {srv_type}SrvOutHandler::initialize(ros::NodeHandle& nh,
-                                          MessageScheduler* scheduler,
-                                          const std::string client_service,
-                                          const std::string rbf_topic)
+  void {srv_type}SrvOutHandler::initialize(ros::NodeHandle& nh,
+                                           MessageScheduler& scheduler,
+                                           const std::string client_service,
+                                           const std::string rbf_topic)
   {{
-    if (!robofleet_client::ROSSrvOutHandler::initialize(nh,
-                                                       scheduler,
-                                                       client_service,
-                                                       rbf_topic)) {{
-      return false;
-    }}
+    robofleet_client::ROSSrvOutHandler::initialize(nh,
+                                                   scheduler,
+                                                   client_service,
+                                                   rbf_topic);
 
     flatbuffers::FlatBufferBuilder fbb;
     typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
@@ -155,8 +173,28 @@ namespace {srv_package}_robofleet {{
                                           fbb.CreateString(rbf_topic.c_str()));
 
     client_ = nh.serviceClient<SrvType>(client_service);
+  }}
 
-    return true;
+  void {srv_type}SrvOutHandler::initialize(ros::NodeHandle& nh,
+                                           WsServer& server,
+                                           const std::string client_service,
+                                           const std::string rbf_topic)
+  {{
+    robofleet_client::ROSSrvOutHandler::initialize(nh,
+                                                   server,
+                                                   client_service,
+                                                   rbf_topic);
+
+    flatbuffers::FlatBufferBuilder fbb;
+    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
+                                       flatbuffers::Offset<flatbuffers::String>,
+                                       flatbuffers::Offset<flatbuffers::String>);
+    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
+                                          std::placeholders::_1,
+                                          fbb.CreateString("{srv_package}::{srv_type}"),
+                                          fbb.CreateString(rbf_topic.c_str()));
+
+    client_ = nh.serviceClient<SrvType>(client_service);
   }}
 
   const {srv_type}SrvOutHandler::FbRequestType*

@@ -1,10 +1,18 @@
 #include "RosClientNode.hpp"
+#include "WsServer.hpp"
 
 #include <yaml-cpp/yaml.h>
 
 RosClientNode::RosClientNode(Verbosity verbosity, MessageScheduler& scheduler) :
   verbosity_(verbosity),
-  scheduler_(&scheduler)
+  scheduler_(&scheduler),
+  server_(nullptr)
+{}
+
+RosClientNode::RosClientNode(Verbosity verbosity, WsServer& server) :
+  verbosity_(verbosity),
+  scheduler_(nullptr),
+  server_(&server)
 {}
 
 bool RosClientNode::configure(const YAML::Node& root)
@@ -247,15 +255,24 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
       return false;
     }
     
-    if (!handler->initialize(nh_,
-                              scheduler_,
-                              topic_params.client_topic,
-                              topic_params.rbf_topic,
-                              topic_params.priority,
-                              topic_params.rate_limit,
-                              topic_params.no_drop)) {
-      ROS_ERROR("Failed to inizialize subscribe handler for client topic %s.",
-                topic_params.client_topic.c_str());
+    if (scheduler_ != nullptr) {
+      handler->initialize(nh_,
+                          *scheduler_,
+                          topic_params.client_topic,
+                          topic_params.rbf_topic,
+                          topic_params.priority,
+                          topic_params.rate_limit,
+                          topic_params.no_drop);
+    }
+    else if (server_ != nullptr) {
+      handler->initialize(nh_,
+                          *server_,
+                          topic_params.client_topic,
+                          topic_params.rbf_topic);
+    }
+    else {
+      ROS_ERROR("Neither a message scheduler nor a websocket server "
+                "were provided to the client node. Exiting.");
       return false;
     }
 
@@ -321,13 +338,23 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       return false;
     }
     
-    if (!handler->initialize(nh_,
-                             scheduler_,
-                             topic_params.client_topic,
-                             topic_params.rbf_topic+"Responses",
-                             topic_params.timeout)) {
-      ROS_ERROR("Failed to initialize handler for service %s.",
-                topic_params.client_topic.c_str());
+    if (scheduler_ != nullptr) {
+      handler->initialize(nh_,
+                          *scheduler_,
+                          topic_params.client_topic,
+                          topic_params.rbf_topic+"Responses",
+                          topic_params.timeout);
+    }
+    else if (server_ != nullptr) {
+      handler->initialize(nh_,
+                          *server_,
+                          topic_params.client_topic,
+                          topic_params.rbf_topic+"Responses",
+                          topic_params.timeout);
+    }
+    else {
+      ROS_ERROR("Neither a message scheduler nor a websocket server "
+                "were provided to the client node. Exiting.");
       return false;
     }
 
@@ -355,10 +382,23 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       return false;
     }
     
-    handler->initialize(nh_,
-                        scheduler_,
-                        topic_params.client_topic,
-                        topic_params.rbf_topic+"Requests");
+    if (scheduler_ != nullptr) {
+      handler->initialize(nh_,
+                          *scheduler_,
+                          topic_params.client_topic,
+                          topic_params.rbf_topic+"Requests");
+    }
+    else if (server_ != nullptr) {
+      handler->initialize(nh_,
+                          *server_,
+                          topic_params.client_topic,
+                          topic_params.rbf_topic+"Requests");
+    }
+    else {
+      ROS_ERROR("Neither a message scheduler nor a websocket server "
+                "were provided to the client node. Exiting.");
+      return false;
+    }
 
     outgoing_srvs_[topic_params.rbf_topic+"Requests"] = handler;
 

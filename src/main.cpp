@@ -69,35 +69,45 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  const bool use_direct_mode = params.host_url.empty();
-
-  MessageScheduler scheduler(params.max_queue_before_waiting);
-
-  // launch ROS node
-  RosClientNode ros_node(params.verbosity, scheduler);
-  if (!ros_node.configure(root)) {
-    return 3;
-  }
+  const bool use_direct_mode = params.host_url.empty();  
 
   // start websocket
-  if (use_direct_mode > 0) {
+  if (use_direct_mode) {
     // Websocket server
     WsServer ws_server(params.direct_mode_port,
                        params.direct_mode_bytes_per_sec);
 
+    // launch ROS node
+    RosClientNode ros_node(params.verbosity, ws_server);
+    if (!ros_node.configure(root)) {
+      return 3;
+    }
+
     connect_server(ws_server, ros_node);
+
+    ros::AsyncSpinner spinner(params.spin_threads);
+    spinner.start();
+
+    return qapp.exec();
   } else {
+    MessageScheduler scheduler(params.max_queue_before_waiting);
+
+    // launch ROS node
+    RosClientNode ros_node(params.verbosity, scheduler);
+    if (!ros_node.configure(root)) {
+      return 3;
+    }
+
     // Websocket client
     WsClient ws_client{QString::fromStdString(params.host_url)};
 
     connect_client(ws_client, ros_node, scheduler);
+    
+    ros::AsyncSpinner spinner(params.spin_threads);
+    spinner.start();
+
+    return qapp.exec();
   }
-
-  ros::AsyncSpinner spinner(params.spin_threads);
-  spinner.start();
-
-  const int exit_code = qapp.exec();
-  return exit_code;
 }
 
 bool loadYAMLParams(const YAML::Node& root,

@@ -17,6 +17,7 @@
  * classes in it that inherit from these types.
  */
 
+class WsServer;
 class MessageScheduler;
 class QByteArray;
 
@@ -41,14 +42,19 @@ namespace robofleet_client
   class ROSSubscribeHandler
   {
     public:
-      virtual bool initialize(ros::NodeHandle& nh,
-                              MessageScheduler* scheduler,
+      virtual void initialize(ros::NodeHandle& nh,
+                              MessageScheduler& scheduler,
                               const std::string client_topic,
                               const std::string rbf_topic,
                               const double priority,
                               const double rate_limit,
                               const bool no_drop);
       
+      virtual void initialize(ros::NodeHandle& nh,
+                              WsServer& server,
+                              const std::string client_topic,
+                              const std::string rbf_topic);
+
     protected:
       typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
 

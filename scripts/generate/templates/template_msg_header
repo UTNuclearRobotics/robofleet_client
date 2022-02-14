@@ -50,13 +50,18 @@ namespace {msg_package}_robofleet {{
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
-    virtual bool initialize(ros::NodeHandle& nh,
-                            MessageScheduler* scheduler,
+    virtual void initialize(ros::NodeHandle& nh,
+                            MessageScheduler& scheduler,
                             const std::string client_topic,
                             const std::string rbf_topic,
                             const double priority,
                             const double rate_limit,
                             const bool no_drop);
+
+    virtual void initialize(ros::NodeHandle& nh,
+                            WsServer& server,
+                            const std::string client_topic,
+                            const std::string rbf_topic);
     
   private:
     typedef {msg_package}::{msg_name} MsgType;

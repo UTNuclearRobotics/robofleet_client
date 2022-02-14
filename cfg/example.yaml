@@ -4,7 +4,9 @@
 #   std_srvs_robofleet
 
 params:
+  # leave blank to run in Direct Mode
   host_url: "ws://localhost:8080"
+  
   wait_for_pongs: true
   max_queue_before_waiting: 5
 

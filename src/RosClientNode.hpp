@@ -12,13 +12,19 @@ namespace YAML {
   class Node;
 }
 
+class WsServer;
+
 class RosClientNode : public QObject {
   Q_OBJECT
 
 public:
   enum class Verbosity {MINIMAL, CFG_ONLY, ALL};
 
+  // constructor for client mode
   RosClientNode(Verbosity verbosity, MessageScheduler& scheduler);
+
+  // constructor for direct mode
+  RosClientNode(Verbosity verbosity, WsServer& server);
 
   bool configure(const YAML::Node& root);
 
@@ -50,7 +56,8 @@ private:
   };
 
   const Verbosity verbosity_;
-  MessageScheduler* scheduler_;
+  MessageScheduler* const scheduler_;
+  WsServer* const server_;
   ros::NodeHandle nh_;
 
   // handlers are mapped according to their Robofleet topic name

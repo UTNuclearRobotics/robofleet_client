@@ -21,6 +21,7 @@
  * classes in it that inherit from these types.
  */
 
+class WsServer;
 class MessageScheduler;
 
 namespace robofleet_client
@@ -29,8 +30,13 @@ namespace robofleet_client
   class ROSSrvOutHandler
   {
     public:
-      virtual bool initialize(ros::NodeHandle& nh,
-                              MessageScheduler* scheduler,
+      virtual void initialize(ros::NodeHandle& nh,
+                              MessageScheduler& scheduler,
+                              const std::string client_service,
+                              const std::string rbf_topic);
+
+      virtual void initialize(ros::NodeHandle& nh,
+                              WsServer& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic);
       
@@ -52,8 +58,14 @@ namespace robofleet_client
   class ROSSrvInHandler
   {
     public:
-      virtual bool initialize(ros::NodeHandle& nh,
-                              MessageScheduler* scheduler,
+      virtual void initialize(ros::NodeHandle& nh,
+                              MessageScheduler& scheduler,
+                              const std::string client_service,
+                              const std::string rbf_topic,
+                              const ros::Duration timeout);
+
+      virtual void initialize(ros::NodeHandle& nh,
+                              WsServer& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic,
                               const ros::Duration timeout);

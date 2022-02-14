@@ -77,23 +77,21 @@ namespace {msg_package}_robofleet {{
   
 
 
-  bool {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
-                                              MessageScheduler* scheduler,
+  void {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
+                                              MessageScheduler& scheduler,
                                               const std::string client_topic,
                                               const std::string rbf_topic,
                                               const double priority,
                                               const double rate_limit,
                                               const bool no_drop)
   {{
-    if (!robofleet_client::ROSSubscribeHandler::initialize(nh,
-                                                           scheduler,
-                                                           client_topic,
-                                                           rbf_topic,
-                                                           priority,
-                                                           rate_limit,
-                                                           no_drop)) {{
-      return false;
-    }}
+    robofleet_client::ROSSubscribeHandler::initialize(nh,
+                                                      scheduler,
+                                                      client_topic,
+                                                      rbf_topic,
+                                                      priority,
+                                                      rate_limit,
+                                                      no_drop);
 
     flatbuffers::FlatBufferBuilder fbb;
     typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
@@ -105,8 +103,29 @@ namespace {msg_package}_robofleet {{
                                           fbb.CreateString(rbf_topic.c_str()));
 
     sub_ = nh.subscribe(client_topic, 10, &{msg_name}SubscribeHandler::callback, this);
+  }}
 
-    return true;
+
+  void {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
+                                              WsServer& server,
+                                              const std::string client_topic,
+                                              const std::string rbf_topic)
+  {{
+    robofleet_client::ROSSubscribeHandler::initialize(nh,
+                                                      server,
+                                                      client_topic,
+                                                      rbf_topic);
+
+    flatbuffers::FlatBufferBuilder fbb;
+    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
+                                       flatbuffers::Offset<flatbuffers::String>,
+                                       flatbuffers::Offset<flatbuffers::String>);
+    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
+                                          std::placeholders::_1,
+                                          fbb.CreateString("{msg_package}::{msg_name}"),
+                                          fbb.CreateString(rbf_topic.c_str()));
+
+    sub_ = nh.subscribe(client_topic, 10, &{msg_name}SubscribeHandler::callback, this);
   }}
 
   
