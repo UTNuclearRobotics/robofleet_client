@@ -6,14 +6,14 @@ bool RosClientNode::getHandler(const TopicParams& params,
   typedef boost::shared_ptr<Handler> HandlerPtr;
   HandlerPtr msg_handler(nullptr);
   try {
-    const std::string plugin_package = params.message_package + "_robofleet";
     const std::string base_class = "robofleet_client::ROS" + handler_type;
 
     typedef pluginlib::ClassLoader<Handler> ClassLoader;
     ClassLoader loader("robofleet_client",
                         base_class);
-
+    
     try {
+      const std::string plugin_package = params.message_package + "_robofleet";
       const std::string msg_class = plugin_package + "::" + params.message_type + handler_type;
       msg_handler = HandlerPtr(loader.createUnmanagedInstance(msg_class));
     } catch(const pluginlib::LibraryLoadException& e) {

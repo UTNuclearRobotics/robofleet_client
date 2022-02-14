@@ -22,6 +22,8 @@ bool RosClientNode::configure(const YAML::Node& root)
   YAML::Node publishers_list;
   YAML::Node incoming_srv_list;
   YAML::Node outgoing_srv_list;
+  YAML::Node incoming_action_list;
+  YAML::Node outgoing_action_list;
   try {
     subscribers_list = root["subscribers"];
   } catch (const YAML::InvalidNode& e) {}
@@ -34,18 +36,34 @@ bool RosClientNode::configure(const YAML::Node& root)
   try {
     outgoing_srv_list = root["outgoing_services"];
   } catch (const YAML::InvalidNode& e) {}
+  try {
+    incoming_action_list = root["incoming_actions"];
+  } catch (const YAML::InvalidNode& e) {}
+  try {
+    outgoing_action_list = root["outgoing_actions"];
+  } catch (const YAML::InvalidNode& e) {}
 
   if (subscribers_list.IsNull() && publishers_list.IsNull() &&
-      incoming_srv_list.IsNull() && outgoing_srv_list.IsNull()) {
+      incoming_srv_list.IsNull() && outgoing_srv_list.IsNull() &&
+      incoming_action_list.IsNull() && outgoing_action_list.IsNull()) {
     ROS_ERROR("Cannot configure robofleet client. No topics found in config file.");
     return false;
   }
+
+  subs_.clear();
+  pubs_.clear();
+  incoming_srvs_.clear();
+  outgoing_srvs_.clear();
 
   if (!configureTopics(publishers_list, subscribers_list)) {
     return false;
   }
 
   if (!configureServices(incoming_srv_list, outgoing_srv_list)) {
+    return false;
+  }
+
+  if (!configureActions(incoming_action_list, outgoing_action_list)) {
     return false;
   }
 
@@ -128,66 +146,72 @@ bool RosClientNode::readTopicParams(const YAML::Node& node,
 
   try {
     params.client_topic = node["client_topic"].as<TopicString>();
+  } catch (const YAML::InvalidNode& e) {
+    ROS_ERROR("%s", e.what());
+    ROS_ERROR("Missing YAML tag 'client_topic'.");
+    return false;
+  }
+  try {
     params.rbf_topic = node["rbf_topic"].as<TopicString>();
+  } catch (const YAML::InvalidNode& e) {
+    ROS_ERROR("%s", e.what());
+    ROS_ERROR("Missing YAML tag 'rbf_topic'.");
+    return false;
+  }
 
-    if (service) {
-      if (node["timeout"]) {
-        params.timeout = ros::Duration(node["timeout"].as<double>());
+  if (service) {
+    if (node["timeout"]) {
+      params.timeout = ros::Duration(node["timeout"].as<double>());
 
-        if (params.timeout.toSec() < 0.0) {
-          ROS_ERROR("Invalid negative value for timeout on topic %s.", params.client_topic.c_str());
+      if (params.timeout.toSec() < 0.0) {
+        ROS_ERROR("Invalid negative value for timeout on topic %s.", params.client_topic.c_str());
+        return false;
+      }
+    }
+    else {
+      params.timeout = ros::Duration(0.0);
+    }
+  } else {
+    if (publisher) {
+      if (node["latched"]) {
+        params.latched = node["latched"].as<bool>();
+      }
+      else {
+        params.latched = false;
+      }
+    }
+    else {
+      if (node["rate_limit"]) {
+        params.rate_limit = node["rate_limit"].as<double>();
+
+        if (params.rate_limit < 0.0) {
+          ROS_ERROR("Invalid negative value for rate_limit on topic %s.", params.client_topic.c_str());
           return false;
         }
       }
       else {
-        params.timeout = ros::Duration(0.0);
+        params.rate_limit = std::numeric_limits<double>::max();
       }
-    } else {
-      if (publisher) {
-        if (node["latched"]) {
-          params.latched = node["latched"].as<bool>();
-        }
-        else {
-          params.latched = false;
+
+      if (node["priority"]) {
+        params.priority = node["priority"].as<double>();
+
+        if (params.priority < 0) {
+          ROS_ERROR("Invalid negative value for priority on topic %s.", params.client_topic.c_str());
+          return false;
         }
       }
       else {
-        if (node["rate_limit"]) {
-          params.rate_limit = node["rate_limit"].as<double>();
+        params.priority = 1.0;
+      }
 
-          if (params.rate_limit < 0.0) {
-            ROS_ERROR("Invalid negative value for rate_limit on topic %s.", params.client_topic.c_str());
-            return false;
-          }
-        }
-        else {
-          params.rate_limit = std::numeric_limits<double>::max();
-        }
-
-        if (node["priority"]) {
-          params.priority = node["priority"].as<double>();
-
-          if (params.priority < 0) {
-            ROS_ERROR("Invalid negative value for priority on topic %s.", params.client_topic.c_str());
-            return false;
-          }
-        }
-        else {
-          params.priority = 1.0;
-        }
-
-        if (node["no_drop"]) {
-          params.no_drop = node["no_drop"].as<bool>();
-        }
-        else {
-          params.no_drop = false;
-        }
+      if (node["no_drop"]) {
+        params.no_drop = node["no_drop"].as<bool>();
+      }
+      else {
+        params.no_drop = false;
       }
     }
-
-  } catch (const YAML::InvalidNode& e) {
-    ROS_ERROR("%s", e.what());
-    return false;
   }
 
   const MsgTypeString type = node["type"].as<MsgTypeString>();
@@ -238,9 +262,6 @@ bool RosClientNode::getSrvOutHandler(
 bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
                                     const YAML::Node& subscribers_list)
 {
-  subs_.clear();
-  pubs_.clear();
-
   // generate the subscribe handlers
   for (const YAML::Node& subscriber : subscribers_list) {
     TopicParams topic_params;
@@ -321,8 +342,6 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
 bool RosClientNode::configureServices(const YAML::Node& incoming_list,
                                       const YAML::Node& outgoing_list)
 {
-  incoming_srvs_.clear();
-  outgoing_srvs_.clear();
 
   // generate the SrvIn handlers
   for (const YAML::Node& service : incoming_list) {
@@ -361,7 +380,7 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     incoming_srvs_[topic_params.rbf_topic+"Responses"] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Connecting to incoming service: %s [%s]->%s", 
+      ROS_INFO("Connecting to ROS-to-Robofleet service: %s [%s]->%s", 
                 topic_params.client_topic.c_str(),
                 topic_params.message_type.c_str(),
                 topic_params.rbf_topic.c_str());
@@ -403,10 +422,285 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     outgoing_srvs_[topic_params.rbf_topic+"Requests"] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Advertising outgoing service: %s [%s]->%s", 
+      ROS_INFO("Advertising Robofleet-to-ROS service: %s [%s]->%s", 
                 topic_params.rbf_topic.c_str(),
                 topic_params.message_type.c_str(),
                 topic_params.client_topic.c_str());
+    }
+  }
+
+  return true;
+}
+
+bool RosClientNode::configureActions(const YAML::Node& incoming_list,
+                                     const YAML::Node& outgoing_list)
+{
+  struct ActionParams {
+    ActionParams(TopicParams params)
+    {
+      params.latched = false;
+      params.no_drop = true;
+
+      goal =
+      feedback =
+      result =
+      status =
+      cancel = params;
+
+      goal.client_topic     += "/goal";
+      goal.rbf_topic        += "/goal";
+      feedback.client_topic += "/feedback";
+      feedback.rbf_topic    += "/feedback";
+      result.client_topic   += "/result";
+      result.rbf_topic      += "/result";
+      status.client_topic   += "/status";
+      status.rbf_topic      += "/status";
+      cancel.client_topic   += "/cancel";
+      cancel.rbf_topic      += "/cancel";
+
+      goal.message_type     += "ActionGoal";
+      feedback.message_type += "ActionFeedback";
+      result.message_type   += "ActionResult";
+
+      status.message_package =
+      cancel.message_package = "actionlib_msgs";
+      status.message_type    = "GoalStatusArray";
+      cancel.message_type    = "GoalID";
+    }
+
+    TopicParams goal;
+    TopicParams feedback;
+    TopicParams result;
+    TopicParams status;
+    TopicParams cancel;
+  };
+
+  // generate the handlers for incoming topics
+  for (const YAML::Node& action : incoming_list) {
+    TopicParams topic_params;
+    if (!readTopicParams(action, topic_params, false, false)) {
+      ROS_ERROR("Invalid action.");
+      return false;
+    }
+
+    const ActionParams action_params(topic_params);
+
+    struct ActionHandlers {
+      robofleet_client::ROSSubscribeHandlerPtr goal;
+      robofleet_client::ROSPublishHandlerPtr   feedback;
+      robofleet_client::ROSPublishHandlerPtr   result;
+      robofleet_client::ROSPublishHandlerPtr   status;
+      robofleet_client::ROSSubscribeHandlerPtr cancel;
+    };
+
+    ActionHandlers handlers;
+
+    /**
+     * For some reason, we need to get the handlers for actionlib_msgs_robofleet first.
+     * Otherwise it fails to instantiate the handlers.
+     * Feels like this is some sort of bug in pluginlib.
+     */
+    if (!getPublishHandler(action_params.status, handlers.status)) {
+      ROS_ERROR("Failed to generate publish handler.");
+      return false;
+    }
+
+    if (!getSubscribeHandler(action_params.cancel, handlers.cancel)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+
+    if (!getSubscribeHandler(action_params.goal, handlers.goal)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+
+    if (!getPublishHandler(action_params.feedback, handlers.feedback)) {
+      ROS_ERROR("Failed to generate publish handler.");
+      return false;
+    }
+
+    if (!getPublishHandler(action_params.result, handlers.result)) {
+      ROS_ERROR("Failed to generate publish handler.");
+      return false;
+    }
+
+    handlers.feedback->initialize(nh_,
+                                  action_params.feedback.client_topic,
+                                  action_params.feedback.latched);
+
+    handlers.result->initialize(nh_,
+                                action_params.result.client_topic,
+                                action_params.result.latched);
+    
+    handlers.status->initialize(nh_,
+                                action_params.status.client_topic,
+                                action_params.status.latched);
+    
+    if (scheduler_ != nullptr) {    
+      handlers.goal->initialize(nh_,
+                                *scheduler_,
+                                action_params.goal.client_topic,
+                                action_params.goal.rbf_topic,
+                                action_params.goal.priority,
+                                action_params.goal.rate_limit,
+                                action_params.goal.no_drop);
+
+      handlers.cancel->initialize(nh_,
+                                  *scheduler_,
+                                  action_params.cancel.client_topic,
+                                  action_params.cancel.rbf_topic,
+                                  action_params.cancel.priority,
+                                  action_params.cancel.rate_limit,
+                                  action_params.cancel.no_drop);
+    }
+    else if (server_ != nullptr) {
+      handlers.goal->initialize(nh_,
+                                *server_,
+                                action_params.goal.client_topic,
+                                action_params.goal.rbf_topic);
+
+      handlers.cancel->initialize(nh_,
+                                  *server_,
+                                  action_params.cancel.client_topic,
+                                  action_params.cancel.rbf_topic);
+    }
+    else {
+      ROS_ERROR("Neither a message scheduler nor a websocket server "
+                "were provided to the client node. Exiting.");
+      return false;
+    }
+
+    subs_[action_params.goal.rbf_topic] = handlers.goal;
+    pubs_[action_params.feedback.rbf_topic] = handlers.feedback;
+    pubs_[action_params.result.rbf_topic] = handlers.result;
+    pubs_[action_params.status.rbf_topic] = handlers.status;
+    subs_[action_params.cancel.rbf_topic] = handlers.cancel;
+
+    if (verbosity_ >= Verbosity::CFG_ONLY) {
+      ROS_INFO("Advertising ROS-to-Robofleet action: %s [%s]->%s", 
+                (topic_params.client_topic + "/*").c_str(),
+                topic_params.message_type.c_str(),
+                (topic_params.rbf_topic + "/*").c_str());
+    }
+  }
+
+    // generate the handlers for outgoing topics
+  for (const YAML::Node& action : outgoing_list) {
+    TopicParams topic_params;
+    if (!readTopicParams(action, topic_params, false, false)) {
+      ROS_ERROR("Invalid action.");
+      return false;
+    }
+
+    const ActionParams action_params(topic_params);
+
+    struct ActionHandlers {
+      robofleet_client::ROSPublishHandlerPtr   goal;
+      robofleet_client::ROSSubscribeHandlerPtr feedback;
+      robofleet_client::ROSSubscribeHandlerPtr result;
+      robofleet_client::ROSSubscribeHandlerPtr status;
+      robofleet_client::ROSPublishHandlerPtr   cancel;
+    };
+
+    ActionHandlers handlers;
+
+    /**
+     * For some reason, we need to get the handlers for actionlib_msgs_robofleet first.
+     * Otherwise it fails to instantiate the handlers.
+     * Feels like this is some sort of bug in pluginlib.
+     */
+    if (!getSubscribeHandler(action_params.status, handlers.status)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+
+    if (!getPublishHandler(action_params.cancel, handlers.cancel)) {
+      ROS_ERROR("Failed to generate publish handler.");
+      return false;
+    }
+
+    if (!getPublishHandler(action_params.goal, handlers.goal)) {
+      ROS_ERROR("Failed to generate publish handler.");
+      return false;
+    }
+
+    if (!getSubscribeHandler(action_params.feedback, handlers.feedback)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+
+    if (!getSubscribeHandler(action_params.result, handlers.result)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+
+    handlers.goal->initialize(nh_,
+                                  action_params.goal.client_topic,
+                                  action_params.goal.latched);
+
+    handlers.cancel->initialize(nh_,
+                                action_params.cancel.client_topic,
+                                action_params.cancel.latched);
+    
+    if (scheduler_ != nullptr) {    
+      handlers.feedback->initialize(nh_,
+                                    *scheduler_,
+                                    action_params.feedback.client_topic,
+                                    action_params.feedback.rbf_topic,
+                                    action_params.feedback.priority,
+                                    action_params.feedback.rate_limit,
+                                    action_params.feedback.no_drop);
+
+      handlers.result->initialize(nh_,
+                                  *scheduler_,
+                                  action_params.result.client_topic,
+                                  action_params.result.rbf_topic,
+                                  action_params.result.priority,
+                                  action_params.result.rate_limit,
+                                  action_params.result.no_drop);
+
+      handlers.status->initialize(nh_,
+                                  *scheduler_,
+                                  action_params.status.client_topic,
+                                  action_params.status.rbf_topic,
+                                  action_params.status.priority,
+                                  action_params.status.rate_limit,
+                                  action_params.status.no_drop);
+    }
+    else if (server_ != nullptr) {
+      handlers.feedback->initialize(nh_,
+                                    *server_,
+                                    action_params.feedback.client_topic,
+                                    action_params.feedback.rbf_topic);
+
+      handlers.result->initialize(nh_,
+                                  *server_,
+                                  action_params.result.client_topic,
+                                  action_params.result.rbf_topic);
+
+      handlers.status->initialize(nh_,
+                                  *server_,
+                                  action_params.status.client_topic,
+                                  action_params.status.rbf_topic);
+    }
+    else {
+      ROS_ERROR("Neither a message scheduler nor a websocket server "
+                "were provided to the client node. Exiting.");
+      return false;
+    }
+
+    pubs_[action_params.goal.rbf_topic] = handlers.goal;
+    subs_[action_params.feedback.rbf_topic] = handlers.feedback;
+    subs_[action_params.result.rbf_topic] = handlers.result;
+    subs_[action_params.status.rbf_topic] = handlers.status;
+    pubs_[action_params.cancel.rbf_topic] = handlers.cancel;
+
+    if (verbosity_ >= Verbosity::CFG_ONLY) {
+      ROS_INFO("Advertising Robofleet-to-ROS action: %s [%s]->%s", 
+                (topic_params.rbf_topic + "/*").c_str(),
+                topic_params.message_type.c_str(),
+                (topic_params.client_topic + "/*").c_str());
     }
   }
 

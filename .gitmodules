@@ -1,3 +1,0 @@
-[submodule "qt-unix-signals"]
-	path = src/qt-unix-signals
-	url = https://github.com/sijk/qt-unix-signals.git

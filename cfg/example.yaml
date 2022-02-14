@@ -94,3 +94,23 @@ outgoing_services: [
     type: "std_srvs/Empty"
   }
 ]
+
+incoming_actions: [
+  {
+    # actions are configured the same as topics,
+    # except that no_drop is hardcoded true and latched is hardcoded false
+    client_topic: "/move_base",
+    rbf_topic: "/move_base",
+    type: "move_base_msgs/MoveBase"
+  }
+]
+
+outgoing_actions: [
+  {
+    # actions are configured the same as topics,
+    # except that no_drop is hardcoded true and latched is hardcoded false
+    client_topic: "/move_base",
+    rbf_topic: "/move_base",
+    type: "move_base_msgs/MoveBase"
+  }
+]

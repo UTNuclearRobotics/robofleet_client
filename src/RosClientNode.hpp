@@ -96,6 +96,9 @@ private:
 
   bool configureServices(const YAML::Node& incoming_list,
                          const YAML::Node& outgoing_list);
+
+  bool configureActions(const YAML::Node& incoming_list,
+                        const YAML::Node& outgoing_list);
 };
 
 // template definitions
