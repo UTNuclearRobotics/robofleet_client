@@ -738,7 +738,6 @@ def generate_flatbuffer_schema(package,
   This function calls itself recursively such that we build dependencies of
   a package before building the package itself.
   """
-
   # generate .fbs files for all the packages, from the bottom of the dependency graph
   for depend in dependency_graph[package]:
     if depend not in generated_packages:
@@ -748,6 +747,9 @@ def generate_flatbuffer_schema(package,
           # /!\ recursion /!\
           generate_flatbuffer_schema(key, dependency_graph, generated_packages, output_dir, msg2fbs_dir)
   
+  if package in generated_packages:
+    return True
+    
   generated_packages.add(package)
 
   schema_data = msg2fbs.generate_schema([message.full_name for message in package.messages | package.services],
