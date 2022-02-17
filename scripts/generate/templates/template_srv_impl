@@ -163,14 +163,10 @@ namespace {srv_package}_robofleet {{
                                                    client_service,
                                                    rbf_topic);
 
-    flatbuffers::FlatBufferBuilder fbb;
-    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
-                                       flatbuffers::Offset<flatbuffers::String>,
-                                       flatbuffers::Offset<flatbuffers::String>);
-    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
-                                          std::placeholders::_1,
-                                          fbb.CreateString("{srv_package}::{srv_type}"),
-                                          fbb.CreateString(rbf_topic.c_str()));
+    encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
+      {{
+        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+      }};
 
     client_ = nh.serviceClient<SrvType>(client_service);
   }}
@@ -185,14 +181,10 @@ namespace {srv_package}_robofleet {{
                                                    client_service,
                                                    rbf_topic);
 
-    flatbuffers::FlatBufferBuilder fbb;
-    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
-                                       flatbuffers::Offset<flatbuffers::String>,
-                                       flatbuffers::Offset<flatbuffers::String>);
-    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
-                                          std::placeholders::_1,
-                                          fbb.CreateString("{srv_package}::{srv_type}"),
-                                          fbb.CreateString(rbf_topic.c_str()));
+    encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
+      {{
+        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+      }};
 
     client_ = nh.serviceClient<SrvType>(client_service);
   }}
