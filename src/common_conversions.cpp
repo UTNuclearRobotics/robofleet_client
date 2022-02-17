@@ -17,12 +17,12 @@ flatbuffers::Offset<flatbuffers::String> RostoFb(flatbuffers::FlatBufferBuilder&
 
 // time and duration primitives don't follow the usual pattern,
 // so handle them explicitly
-inline ros::Time FbtoRos(const fb::RosTime* fb)
+ros::Time FbtoRos(const fb::RosTime* fb)
 {
   return ros::Time(fb->sec(), fb->nsec());
 }
 
-inline const fb::RosTime* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Time& msg)
+const fb::RosTime* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Time& msg)
 {
   (void)fbb;
   const fb::RosTime* time = new fb::RosTime(msg.sec, msg.nsec);
