@@ -55,14 +55,10 @@ namespace {srv_package}_robofleet {{
                                                   rbf_topic,
                                                   timeout);
 
-    flatbuffers::FlatBufferBuilder fbb;
-    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
-                                       flatbuffers::Offset<flatbuffers::String>,
-                                       flatbuffers::Offset<flatbuffers::String>);
-    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
-                                          std::placeholders::_1,
-                                          fbb.CreateString("{srv_package}::{srv_type}"),
-                                          fbb.CreateString(client_service.c_str()));
+    encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
+      {{
+        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+      }};
 
     server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
   }}
@@ -79,14 +75,10 @@ namespace {srv_package}_robofleet {{
                                                   rbf_topic,
                                                   timeout);
 
-    flatbuffers::FlatBufferBuilder fbb;
-    typedef MetaDataOffset (*func_type)(flatbuffers::FlatBufferBuilder&,
-                                       flatbuffers::Offset<flatbuffers::String>,
-                                       flatbuffers::Offset<flatbuffers::String>);
-    encode_metadata_function_ = std::bind(static_cast<func_type>(&fb::CreateMsgMetadata),
-                                          std::placeholders::_1,
-                                          fbb.CreateString("{srv_package}::{srv_type}"),
-                                          fbb.CreateString(client_service.c_str()));
+    encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
+      {{
+        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+      }};
 
     server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
   }}

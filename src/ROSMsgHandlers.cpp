@@ -12,13 +12,10 @@ namespace robofleet_client
                                        const double rate_limit,
                                        const bool no_drop)
   {    
-    schedule_function_ = std::bind(&MessageScheduler::enqueue,
-                                   &scheduler,
-                                   QString::fromStdString(rbf_topic),
-                                   std::placeholders::_1,
-                                   priority,
-                                   rate_limit,
-                                   no_drop);
+    schedule_function_ = [&scheduler, rbf_topic, priority, rate_limit, no_drop](const QByteArray& data)
+      {
+        scheduler.enqueue(QString::fromStdString(rbf_topic), data, priority, rate_limit, no_drop);
+      };
   }
 
   void ROSSubscribeHandler::initialize(ros::NodeHandle& nh,
@@ -26,10 +23,10 @@ namespace robofleet_client
                                        const std::string client_topic,
                                        const std::string rbf_topic)
   {    
-    schedule_function_ = std::bind(&WsServer::broadcast_message,
-                                   &server,
-                                   std::placeholders::_1,
-                                   nullptr);
+    schedule_function_ = [&server](const QByteArray& data)
+      {
+        server.broadcast_message(data, nullptr);
+      };
   }
 
 } // namespace robofleet_client

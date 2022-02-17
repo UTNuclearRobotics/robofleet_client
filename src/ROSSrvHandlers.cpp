@@ -9,13 +9,14 @@ namespace robofleet_client
                                     const std::string client_service,
                                     const std::string rbf_topic)
   {
-    schedule_function_ = std::bind(&MessageScheduler::enqueue,
-                                   &scheduler,
-                                   QString::fromStdString(rbf_topic),
-                                   std::placeholders::_1,
-                                   std::numeric_limits<double>::max(),
-                                   std::numeric_limits<double>::max(),
-                                   true);
+    schedule_function_ = [&scheduler, rbf_topic](const QByteArray& data)
+      {
+        scheduler.enqueue(QString::fromStdString(rbf_topic),
+                          data,
+                          std::numeric_limits<double>::max(),
+                          std::numeric_limits<double>::max(),
+                          true);
+      };
   }
 
   void ROSSrvOutHandler::initialize(ros::NodeHandle& nh,
@@ -23,10 +24,11 @@ namespace robofleet_client
                                     const std::string client_service,
                                     const std::string rbf_topic)
   {
-    schedule_function_ = std::bind(&WsServer::broadcast_message,
-                                   &server,
-                                   std::placeholders::_1,
-                                   nullptr);
+    schedule_function_ = [&server](const QByteArray& data)
+      {
+        server.broadcast_message(data, nullptr);
+      };
+    
   }
 
 
@@ -36,13 +38,14 @@ namespace robofleet_client
                                    const std::string rbf_topic,
                                    const ros::Duration timeout)
   {
-    schedule_function_ = std::bind(&MessageScheduler::enqueue,
-                                   &scheduler,
-                                   QString::fromStdString(rbf_topic),
-                                   std::placeholders::_1,
-                                   std::numeric_limits<double>::max(),
-                                   std::numeric_limits<double>::max(),
-                                   true);
+    schedule_function_ = [&scheduler, rbf_topic](const QByteArray& data)
+      {
+        scheduler.enqueue(QString::fromStdString(rbf_topic),
+                          data,
+                          std::numeric_limits<double>::max(),
+                          std::numeric_limits<double>::max(),
+                          true);
+      };
 
     timeout_ = timeout;
   }
@@ -53,10 +56,10 @@ namespace robofleet_client
                                    const std::string rbf_topic,
                                    const ros::Duration timeout)
   {
-    schedule_function_ = std::bind(&WsServer::broadcast_message,
-                                   &server,
-                                   std::placeholders::_1,
-                                   nullptr);
+    schedule_function_ = [&server](const QByteArray& data)
+      {
+        server.broadcast_message(data, nullptr);
+      };
 
     timeout_ = timeout;
   }
