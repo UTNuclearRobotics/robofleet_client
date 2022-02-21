@@ -57,7 +57,7 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
       }};
 
     server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
@@ -77,7 +77,7 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
       }};
 
     server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
@@ -157,7 +157,7 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
       }};
 
     client_ = nh.serviceClient<SrvType>(client_service);
@@ -175,7 +175,7 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
       }};
 
     client_ = nh.serviceClient<SrvType>(client_service);
