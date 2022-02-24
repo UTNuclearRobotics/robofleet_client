@@ -79,24 +79,22 @@ int main(int argc, char** argv) {
 
     // launch ROS node
     RosClientNode ros_node(params.verbosity, ws_server);
-    if (!ros_node.configure(root)) {
-      return 3;
-    }
 
     connect_server(ws_server, ros_node);
 
     ros::AsyncSpinner spinner(params.spin_threads);
     spinner.start();
 
+    if (!ros_node.configure(root)) {
+      return 3;
+    }
+    
     return qapp.exec();
   } else {
     MessageScheduler scheduler(params.max_queue_before_waiting);
 
     // launch ROS node
     RosClientNode ros_node(params.verbosity, scheduler);
-    if (!ros_node.configure(root)) {
-      return 3;
-    }
 
     // Websocket client
     WsClient ws_client{QString::fromStdString(params.host_url)};
@@ -105,6 +103,10 @@ int main(int argc, char** argv) {
     
     ros::AsyncSpinner spinner(params.spin_threads);
     spinner.start();
+
+    if (!ros_node.configure(root)) {
+      return 3;
+    }
 
     return qapp.exec();
   }
@@ -189,6 +191,12 @@ void connect_client(WsClient& ws_client,
                    &WsClient::message_received,
                    &ros_node,
                    &RosClientNode::routeMessageToHandlers);
+
+  QObject::connect(
+      &ws_client,
+      &WsClient::connected,
+      &ros_node,
+      &RosClientNode::sendSubscriptionMsg);
 }
 
 void connect_server(WsServer& ws_server,

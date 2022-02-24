@@ -88,6 +88,13 @@ def gen_base_schema(base_ns):
     yield "  sec:int32;"
     yield "  nsec:int32;"
     yield "}"
+
+    yield "table RobofleetSubscription {"
+    for x in gen_metadata_item(base_ns):
+      yield x
+    yield "  topic_regex:string;"
+    yield "  action:uint8;"
+    yield "}"
     yield "// *** end supporting definitions ***"
 
 # direct ROS to Flatbuffers type remappings

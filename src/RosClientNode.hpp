@@ -29,6 +29,8 @@ public:
   bool configure(const YAML::Node& root);
 
 public Q_SLOTS:
+  void sendSubscriptionMsg();
+
   void routeMessageToHandlers(const QByteArray& data) const;
   
 private:

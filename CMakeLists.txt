@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   pluginlib
+  message_generation
 )
 
 find_package(yaml-cpp REQUIRED)
@@ -35,6 +36,14 @@ set(PLUGINS_LIBRARY ${PROJECT_NAME}_plugins)
 
 set(flatbuffers_INCLUDE_DIRS scripts/generate/msg2fbs/flatbuffers/include)
 
+catkin_python_setup()
+
+add_message_files(DIRECTORY msg
+  FILES
+  RobofleetSubscription.msg
+)
+generate_messages(DEPENDENCIES)
+
 catkin_package(
   INCLUDE_DIRS include ${flatbuffers_INCLUDE_DIRS}
   LIBRARIES ${PLUGINS_LIBRARY}
@@ -43,10 +52,9 @@ catkin_package(
     rosmsg
     rospack
     pluginlib
+    message_runtime
   DEPENDS Qt5 YAML_CPP
 )
-
-catkin_python_setup()
 
 add_library(${PLUGINS_LIBRARY})
 target_link_libraries(${PLUGINS_LIBRARY}
@@ -64,7 +72,10 @@ INTERFACE
 )
 
 add_executable(client)
-add_dependencies(client ${PLUGINS_LIBRARY})
+add_dependencies(client
+  ${PLUGINS_LIBRARY}
+  ${PROJECT_NAME}_generate_messages_cpp
+)
 target_link_libraries(client
   ${PLUGINS_LIBRARY}
   ${YAML_CPP_LIBRARIES}
@@ -75,8 +86,6 @@ PRIVATE
   ${YAML_CPP_INCLUDE_DIR}
 )
 add_subdirectory(src)
-
-catkin_python_setup()
 
 ## Package tests
 if(CATKIN_ENABLE_TESTING)

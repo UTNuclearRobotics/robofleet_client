@@ -1,5 +1,8 @@
 #include "RosClientNode.hpp"
 #include "WsServer.hpp"
+#include <robofleet_client/base_schema_generated.h>
+#include <robofleet_client/MessageScheduler.hpp>
+#include <robofleet_client/RobofleetSubscription.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -92,7 +95,7 @@ void RosClientNode::routeMessageToHandlers(const QByteArray& data) const
       it->second->publish(data);
 
       if (verbosity_ >= Verbosity::ALL) {
-        ROS_INFO("Publishing message on topic %s", topic.c_str());
+        ROS_INFO("Publishing message from Robofleet on topic %s", topic.c_str());
       }
 
       return;
@@ -705,4 +708,35 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
   }
 
   return true;
+}
+
+void RosClientNode::sendSubscriptionMsg()
+{
+  for (const HandlerMap<robofleet_client::ROSPublishHandlerPtr>::value_type& pair : pubs_) {
+    flatbuffers::FlatBufferBuilder fbb;
+
+    const flatbuffers::Offset<fb::MsgMetadata> metadata =
+      fb::CreateMsgMetadataDirect(fbb, "amrl_msgs/RobofleetSubscription", "/subscriptions");
+
+    const flatbuffers::uoffset_t root_offset = fb::CreateRobofleetSubscriptionDirect(
+      fbb,
+      metadata,
+      pair.first.c_str(),
+      robofleet_client::RobofleetSubscription::ACTION_SUBSCRIBE).o;
+
+    fbb.Finish(flatbuffers::Offset<void>(root_offset));
+    const QByteArray data{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                          static_cast<int>(fbb.GetSize())};
+
+    if (scheduler_ != nullptr) {
+      scheduler_->enqueue(QString("/subscriptions"),
+                          data,
+                          0.0,
+                          std::numeric_limits<double>::max(),
+                          true);
+    }
+    else {
+      server_->broadcast_message(data, nullptr);
+    }
+  }
 }
