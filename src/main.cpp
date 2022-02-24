@@ -181,7 +181,8 @@ void connect_client(WsClient& ws_client,
   // send scheduled message
   QObject::connect(&scheduler,
                    &MessageScheduler::scheduled,
-                   [&ws_client](const QByteArray& data) { ws_client.send_message(data); });
+                   &ws_client,
+                   &WsClient::send_message);
 
   // receive
   QObject::connect(&ws_client,
