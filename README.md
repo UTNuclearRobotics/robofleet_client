@@ -1,41 +1,55 @@
 # robofleet_client
 
-*The Robofleet 2.0 Robot Client*
+*The Robofleet 2.0 Robot Client for ROS*
 
-catkin Edition
+This client serves as the interface between a ROS system and the Robofleet server. It advertises and/or subscribes to ROS topics, services, and actions as specified in a YAML configuration file.
+
+## Building
+
+Unlike earlier versions of `robofleet_client`, this release is to be built using `catkin` as normal for a ROS package.
 
 ## Dependencies
 
-* C++ compiler for std >= 11
 * ROS Melodic
 * Qt5 >= 5.5
 * libqt5websockets5-dev
 
-## Configuration
+## Creating your message plugins
 
-The client must be configured before building.
-1. `cp src/config.example.hpp src/config.hpp`
-2. Edit parameters in `src/config.hpp`
+![Dependency graph for some example message plugin packages.](img/plugin-packages-deps.png?raw=true "Message Plugin Packages")
 
-Below is more information about configuration options in `src/config.hpp`.
+To handle ROS messages, the client uses **plugin packages**. A plugin package provides handler classes and conversion functions that the client needs to pass given messages to and from the server.
 
-### Topic configuration
-You must tell the client exactly which ROS topics to exchange with the Robofleet server. To set which topics the client sends and receives, you can follow the examples in the `configure_msg_types()` function.
+For example, to use ROS messages from the `geometry_msgs` package, you need a corresponding plugin package `geometry_msgs_robofleet`. You must have plugin packages for all the message types specified in your client's YAML config file.
 
-Keep in mind that all ROS topic [names][names] are [resolved][name resolution], meaning most importantly that topics not beginning with a `/` are prefixed with the ROS namespace.
+`robofleet_client` provides a script which generates your plugin packages for you. It can be run like so:
+___
+    usage: generate_plugin_pkg.py [-h] [-o OUT] [-w] [-i] packages [packages ...]
 
-There are two available configuration builders:
+    positional arguments:
+      packages            The msg or srv packages that we want to generate plugins
+                          for. The program will automatically include dependencies
+                          of the listed packages.
 
-`SendLocalTopic<T>` - subscribe to messages on a local ROS topic and send them to the server. `T` is a ROS message class.
-* `.from` - the name of the local ROS topic
-* `.to` - the name of the remote ROS topic (can be the same; allows for remapping)
-* `.priority` - larger priority means the topic will receive more bandwidth. Priority is an arbitrary positive value where the ratio of priorities between topics determines how much bandwidth each is allocated.
-* `.no_drop` - `true` means to never drop messages on this topic and queue them instead. **Can cause lag** and should only be used for messages that are sent infrequently. Messages on topics flagged as `no_drop` are scheduled in FIFO order and always take priority over other messages.
-* `.rate_limit_hz` - set the maximum rate of message sending to a given value in hz (default unlimited). This is only required if you want to impose a hard limit on message frequency; you can always use `priority` to adjust how much bandwidth is allocated to each topic.
+    optional arguments:
+      -h, --help          show this help message and exit
+      -o OUT, --out OUT   Specify the output directory. Defaults to
+                          'robofleet_client/scripts/generate/output'
+      -w, --overwrite     If the requested plugin packages already exist in the
+                          output location, they will be deleted and recreated.
+      -i, --leave-schema  Intermediate fatbuffer schema files will not be deleted
+                          during cleanup.
+___
 
-`ReceiveRemoteTopic<T>` - receive messages from the server and publish them to a local ROS topic. `T` is a ROS message class.
-* `.from` - the name of the remote ROS topic
-* `.to` - the name of the local ROS topic
+**Example:** rosrun robofleet_client generate_plugin_pkg.py geometry_msgs std_srvs
+
+After generating the plugin packages you need, place them in your ROS workspace and build them using `catkin`.
+
+## Running the client node
+
+**use:** rosrun robofleet_client client config_file_path
+
+**config_file_path** - Path to a YAML configuration file which specifies the input and output topics of the client. See robofleet_client/cfg/example.yaml as a guide. Topic names from the config file are resolved by the client according to ROS's normal name resolution rules. You must have built plugin packages for any message types referenced in the configuration.
 
 ### Direct mode
 
@@ -43,14 +57,4 @@ By default, the Robofleet robot client runs a WebSocket client, which connects t
 
 Direct mode does not have features such as authentication or subscriptions, nor does it currently support secure WebSockets. It simply broadcasts each incoming message to all other clients, as well as sending messages from local ROS topics as usual.
 
-To switch to direct mode, set the `direct_mode` flag in `src/config.hpp` and make sure to choose a `direct_mode_port`. You may need to tune `direct_mode_bytes_per_sec`, increasing it to prevent dropped messages or decreasing it to prevent time lag when large amounts of message data are sent.
-
-## Building
-
-Build using catkin.
-
-## Development
-
-* Debugging
-  1. `cd build && cmake -DCMAKE_BUILD_TYPE=Debug && make -j`
-  1. Either launch `(gdb) Launch` or `(gdb) Tests` in VSCode or use `gdb build/client`
+To switch to direct mode, edit your config file so that `host_url` is an empty string, and provide values for `direct_mode_port` and `direct_mode_bytes_per_sec`. Increase `direct_mode_bytes_per_sec` to prevent dropped messages or decrease it to prevent time lag when large amounts of message data are sent.
