@@ -1,4 +1,4 @@
-# robofleet_client
+# robofleet_client for AugRE
 
 *The Robofleet 2.0 Robot Client for ROS*
 
