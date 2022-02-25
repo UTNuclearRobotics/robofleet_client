@@ -1,0 +1,13 @@
+<launch>
+
+  <arg name="config_file" value="$(find robofleet_client)/cfg/example.yaml"/>
+
+	<node
+		name    = "robofleet_client"
+		pkg     = "robofleet_client"
+		type    = "client"
+		output  = "screen"
+		args	  = "$(arg config_file)"
+	/>
+
+</launch>

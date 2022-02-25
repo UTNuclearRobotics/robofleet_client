@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>robofleet_client</name>
+  <version>0.0.0</version>
+  <description>Client for ROS nodes to send messages to Robofleet.</description>
+
+  <maintainer email="joydeepb@cs.utexas.edu">Joydeep Biswas</maintainer>
+
+  <author email="joydeepb@cs.utexas.edu">Joydeep Biswas</author>
+
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>pluginlib</depend>
+  <depend>yaml-cpp</depend>
+  <depend>message_generation</depend>
+
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>rosmsg</exec_depend>
+  <exec_depend>rospack</exec_depend>
+</package>

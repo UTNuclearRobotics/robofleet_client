@@ -1,0 +1,79 @@
+#pragma once
+
+// the plugin parent class
+#include <robofleet_client/ROSMsgHandlers.hpp>
+
+// get the msg type
+#include <{msg_package}/{msg_name}.h>
+
+#include <{msg_package}_robofleet/{msg_package}_generated.h>
+
+// message dependencies
+{dependencies}
+
+/** Conversion Functions **/
+{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src);
+
+std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src);
+
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& msg);
+
+flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg);
+
+namespace {msg_package}_robofleet {{
+
+  /** Publish Handler **/
+  class {msg_name}PublishHandler : public robofleet_client::ROSPublishHandler
+  {{
+  public:
+
+    // advertises the topic
+    virtual void initialize(ros::NodeHandle& nh,
+                            const std::string client_topic,
+                            const bool latched);
+    
+    // decodes raw data into the flatbuffer type,
+    // then converts to the ROS type, then publishes to the topic
+    virtual void publish(const QByteArray& data);
+
+  private:
+    typedef {msg_package}::{msg_name} MsgType;
+    typedef fb::{msg_package}::{msg_name} FbMsgType;
+
+    // converts from raw data to flatbuffer type
+    const FbMsgType* decode(const QByteArray& data);
+  }};
+  
+  
+  /** Subscribe Handler **/
+  class {msg_name}SubscribeHandler : public robofleet_client::ROSSubscribeHandler
+  {{
+  public:
+    // sets up subscriber, message scheduler function, and metadata function
+    virtual void initialize(ros::NodeHandle& nh,
+                            MessageScheduler& scheduler,
+                            const std::string client_topic,
+                            const std::string rbf_topic,
+                            const double priority,
+                            const double rate_limit,
+                            const bool no_drop);
+
+    virtual void initialize(ros::NodeHandle& nh,
+                            WsServer& server,
+                            const std::string client_topic,
+                            const std::string rbf_topic);
+    
+  private:
+    typedef {msg_package}::{msg_name} MsgType;
+    typedef boost::shared_ptr<MsgType> MsgTypeConstPtr;
+
+    // produces a buffer with metadata
+    QByteArray encodeWithMetadata(const MsgType& msg);
+
+    // converts from flatbuffer type to raw data
+    QByteArray encode(const MsgType& msg);
+    
+    // encodes the message
+    void callback(const MsgTypeConstPtr& msg);
+  }};
+}}

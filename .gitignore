@@ -1,1 +1,3 @@
-build
+.vscode
+scripts/generate/output
+*.pyc

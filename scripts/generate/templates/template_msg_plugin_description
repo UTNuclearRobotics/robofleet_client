@@ -1,0 +1,12 @@
+  <class type="{msg_package}_robofleet::{msg_name}PublishHandler"
+         base_class_type="robofleet_client::ROSPublishHandler">
+    <description>
+      Publish handler for {msg_full_name}.
+    </description>
+  </class>
+  <class type="{msg_package}_robofleet::{msg_name}SubscribeHandler"
+         base_class_type="robofleet_client::ROSSubscribeHandler">
+    <description>
+      Subscribe handler for {msg_full_name}.
+    </description>
+  </class>

@@ -1,0 +1,12 @@
+  <class type="{msg_package}_robofleet::{srv_name}SrvInHandler"
+         base_class_type="robofleet_client::ROSSrvInHandler">
+    <description>
+      In handler for {srv_full_name}.
+    </description>
+  </class>
+  <class type="{msg_package}_robofleet::{srv_name}SrvOutHandler"
+         base_class_type="robofleet_client::ROSSrvOutHandler">
+    <description>
+      Out handler for {srv_full_name}.
+    </description>
+  </class>
