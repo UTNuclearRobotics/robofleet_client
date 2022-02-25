@@ -63,7 +63,7 @@ def parse_args(args):
   """ Parses the command line args. """
   default_output_path = os.path.join(rospkg.RosPack().get_path('robofleet_client'), 'scripts/generate/output')
 
-  parser = argparse.ArgumentParser("Generates plugin packages which expose ROS msgs and services to robofleet_client.")
+  parser = argparse.ArgumentParser(description="Generates plugin packages which expose ROS msgs and services to robofleet_client.")
   parser.add_argument('-o', '--out', default=default_output_path,
                       help="Specify the output directory. Defaults to 'robofleet_client/scripts/generate/output'")
   parser.add_argument('-w', '--overwrite', action='store_true',
@@ -72,7 +72,7 @@ def parse_args(args):
                       help='Intermediate fatbuffer schema files will not be deleted during cleanup.')
   parser.add_argument('packages', nargs='+',
                       help='The msg or srv packages that we want to generate plugins for.'
-                           'The program will automatically include dependencies of the listed packages.')
+                           ' The program will automatically include dependencies of the listed packages.')
 
   return parser.parse_args(args)
 
