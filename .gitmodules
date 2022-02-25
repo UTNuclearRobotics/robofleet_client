@@ -1,0 +1,3 @@
+[submodule "scripts/generate/msg2fbs/flatbuffers"]
+	path = scripts/generate/msg2fbs/flatbuffers
+	url = https://github.com/google/flatbuffers.git
