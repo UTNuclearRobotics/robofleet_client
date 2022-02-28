@@ -1,7 +1,8 @@
 #include "RosClientNode.hpp"
+#include "MessageScheduler.hpp"
 #include "WsServer.hpp"
+
 #include <robofleet_client/base_schema_generated.h>
-#include <robofleet_client/MessageScheduler.hpp>
 #include <robofleet_client/RobofleetSubscription.h>
 
 #include <yaml-cpp/yaml.h>

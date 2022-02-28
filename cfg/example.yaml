@@ -2,10 +2,11 @@
 #   std_msgs_robofleet
 #   geometry_msgs_robofleet
 #   std_srvs_robofleet
+#   move_base_msgs
 
 params:
   # leave blank to run in Direct Mode
-  host_url: "ws://192.168.1.11:8080"
+  host_url: "ws://localhost:8080"
   
   wait_for_pongs: true
   max_queue_before_waiting: 5
@@ -56,31 +57,61 @@ subscribers: [
     # default: false
     # Topics with the no_drop flag receive absolute priority over those without
     no_drop: false
-  },
+  }
+]
 
+publishers: [
   {
-    client_topic: "/pose_topic",
-    rbf_topic: "/NRG/move_base_simple/goal",
-    type: "geometry_msgs/PoseStamped",
+    client_topic: "/twist_topic",
+    rbf_topic: "/twist_topic",
+    type: "geometry_msgs/Twist",
 
     # param: latched (optional)
     # type: boolean
     # default: false
     # Sets up a latched ROS publisher
     latched: false
-  },
-
-  {
-    client_topic: "/status_topic",
-    rbf_topic: "/test/status",
-    type: "amrl_msgs/RobofleetStatus"
   }
 ]
 
-publishers: [
+incoming_services: [
   {
-    client_topic: "/status_topic2",
-    rbf_topic: "/2D_NRG_testbot/status",
-    type: "amrl_msgs/RobofleetStatus"
+    client_topic: "/set_camera_info_service",
+    rbf_topic: "/set_camera_info_service",
+    type: "std_srvs/SetBool",
+
+    # timeout (optional)
+    # type: double (seconds)
+    # default: no timeout
+    # Zero indicates no timeout.
+    timeout: 10.0
+  }
+]
+
+outgoing_services: [
+  {
+    client_topic: "/empty_service",
+    rbf_topic: "/empty_service",
+    type: "std_srvs/Empty"
+  }
+]
+
+incoming_actions: [
+  {
+    # actions are configured the same as topics,
+    # except that no_drop is hardcoded true and latched is hardcoded false
+    client_topic: "/move_base",
+    rbf_topic: "/move_base",
+    type: "move_base_msgs/MoveBase"
+  }
+]
+
+outgoing_actions: [
+  {
+    # actions are configured the same as topics,
+    # except that no_drop is hardcoded true and latched is hardcoded false
+    client_topic: "/move_base",
+    rbf_topic: "/move_base",
+    type: "move_base_msgs/MoveBase"
   }
 ]

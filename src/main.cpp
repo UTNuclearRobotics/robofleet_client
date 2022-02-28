@@ -8,7 +8,7 @@
 #include <string>
 #include <thread>
 
-#include "robofleet_client/MessageScheduler.hpp"
+#include "MessageScheduler.hpp"
 #include "RosClientNode.hpp"
 #include "WsClient.hpp"
 #include "WsServer.hpp"

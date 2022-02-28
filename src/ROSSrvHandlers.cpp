@@ -1,5 +1,5 @@
 #include "robofleet_client/ROSSrvHandlers.hpp"
-#include "robofleet_client/MessageScheduler.hpp"
+#include "MessageScheduler.hpp"
 #include "WsServer.hpp"
 
 namespace robofleet_client

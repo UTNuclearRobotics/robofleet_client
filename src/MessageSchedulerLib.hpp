@@ -9,15 +9,28 @@
 using SchedulerClock = std::chrono::high_resolution_clock;
 
 template <typename T> struct WaitingMessage {
+
+  WaitingMessage() {}
+
+  WaitingMessage(const T& _message,
+                 const bool _message_ready,
+                 const double _priority,
+                 const double _publish_interval) :
+    message(_message),
+    message_ready(_message_ready),
+    priority(_priority),
+    publish_interval(_publish_interval)
+  {}
+
   // the message data
   T message;
 
   // is this message unsent and waiting?
-  bool message_ready = false;
+  bool message_ready;
 
-  double priority = 0;
+  double priority;
 
-  double publish_interval = 0;
+  double publish_interval;
 
   // when a message was last sent on this topic
   SchedulerClock::time_point last_send_time = SchedulerClock::now();
@@ -55,10 +68,7 @@ template <typename T> class MessageSchedulerLib {
       if (no_drop) {
         no_drop_queue.push_back(data);
       } else {
-        topic_queue[topic].message = data;
-        topic_queue[topic].message_ready = true;
-        topic_queue[topic].priority = priority;
-        topic_queue[topic].publish_interval = rate_limit != 0 ? 1.0 / rate_limit : 0.0;
+        topic_queue[topic] = WaitingMessage<T>(data, true, priority, rate_limit != 0 ? 1.0 / rate_limit : 0.0);
       }
       schedule();
     }
@@ -88,7 +98,7 @@ template <typename T> class MessageSchedulerLib {
           const auto& next = no_drop_queue.front();
           sc_(next);
           no_drop_queue.pop_front();
-          network_backpressure_counter_++;
+          ++network_backpressure_counter_;
         }
         if (network_backpressure_counter_ >= max_queue_before_waiting_) {
           return;

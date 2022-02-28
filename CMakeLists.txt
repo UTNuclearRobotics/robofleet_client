@@ -64,6 +64,7 @@ target_link_libraries(${PLUGINS_LIBRARY}
 target_include_directories(${PLUGINS_LIBRARY}
 PUBLIC
   include
+  src
   ${Qt5_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
   ${flatbuffers_INCLUDE_DIRS}

@@ -26,17 +26,24 @@ public:
   // constructor for direct mode
   RosClientNode(Verbosity verbosity, WsServer& server);
 
+  // sets up the client topics as instructed by the configuration file
   bool configure(const YAML::Node& root);
 
 public Q_SLOTS:
+  // sends the subscriptinos info to the Robofleet server
   void sendSubscriptionMsg();
 
+  /**
+   * @brief Finds the handler to send received data to
+   * @param data Raw data from the websocket
+   */
   void routeMessageToHandlers(const QByteArray& data) const;
   
 private:
   typedef std::string TopicString;
   typedef std::string MsgTypeString;
 
+  // holds the configuration params for a data topic
   struct TopicParams {
     // used for all topic types
     std::string message_package;
@@ -58,24 +65,33 @@ private:
   };
 
   const Verbosity verbosity_;
+
+  // used in normal mode
   MessageScheduler* const scheduler_;
+
+  // used in direct mode
   WsServer* const server_;
+
   ros::NodeHandle nh_;
 
   // handlers are mapped according to their Robofleet topic name
   template<class Handler>
   using HandlerMap = std::unordered_map<TopicString, Handler>;
 
+  // holds all of our topic handlers
   HandlerMap<robofleet_client::ROSSubscribeHandlerPtr> subs_;
   HandlerMap<robofleet_client::ROSPublishHandlerPtr> pubs_;
   HandlerMap<robofleet_client::ROSSrvInHandlerPtr> incoming_srvs_;
   HandlerMap<robofleet_client::ROSSrvOutHandlerPtr> outgoing_srvs_;
 
+  // parses the configuration file
   bool readTopicParams(const YAML::Node& node,
                        TopicParams& out_params,
                        const bool publisher,
                        const bool service);
 
+  // instantiates handlers for a given data type
+  // getHandler is invoked through getSubscribeHandler, etc
   template<class Handler>
   bool getHandler(const TopicParams& params,
                   const std::string handler_type,
@@ -93,12 +109,15 @@ private:
   bool getSrvOutHandler(const TopicParams& params,
                           robofleet_client::ROSSrvOutHandlerPtr& out_handler);
 
+  // instantiate topic handlers
   bool configureTopics(const YAML::Node& publishers_list,
                        const YAML::Node& subscribers_list);
 
+  // instantiate service handlers
   bool configureServices(const YAML::Node& incoming_list,
                          const YAML::Node& outgoing_list);
 
+  // instantiate action handlers
   bool configureActions(const YAML::Node& incoming_list,
                         const YAML::Node& outgoing_list);
 };
