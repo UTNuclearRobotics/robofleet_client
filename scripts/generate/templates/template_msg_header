@@ -69,9 +69,6 @@ namespace {msg_package}_robofleet {{
 
     // produces a buffer with metadata
     QByteArray encodeWithMetadata(const MsgType& msg);
-
-    // converts from flatbuffer type to raw data
-    QByteArray encode(const MsgType& msg);
     
     // encodes the message
     void callback(const MsgTypeConstPtr& msg);

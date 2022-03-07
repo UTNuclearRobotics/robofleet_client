@@ -86,8 +86,5 @@ namespace {srv_package}_robofleet {{
 
     // produces a buffer with metadata
     QByteArray encodeResponseWithMetadata(const ResponseType& msg);
-
-    // converts from flatbuffer type to raw data
-    QByteArray encodeResponse(const ResponseType& data);
   }};
 }}
