@@ -114,7 +114,7 @@ namespace {msg_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, "{msg_package}::{msg_name}", rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, ros::message_traits::DataType<MsgType>().value(), rbf_topic.c_str());
       }};
 
     sub_ = nh.subscribe(client_topic, 10, &{msg_name}SubscribeHandler::callback, this);
