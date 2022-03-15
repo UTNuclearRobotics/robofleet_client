@@ -130,6 +130,15 @@ bool loadYAMLParams(const YAML::Node& root,
     }
     out_params.max_queue_before_waiting = max_queue_value;
 
+    const int spin_threads = params_yaml["spin_threads"].as<int>();
+    if (spin_threads < 0) {
+      ROS_FATAL("Invalid value %d for param spin_threads. "
+                "Must be positive.", spin_threads);
+
+      return false;
+    }
+    out_params.spin_threads = spin_threads;
+
     /** DIRECT MODE PARAMS **/
     if (use_direct_mode) {
       const int port_value = params_yaml["direct_mode_port"].as<int>();
