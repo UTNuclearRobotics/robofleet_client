@@ -11,7 +11,7 @@ std::string FbtoRos(const flatbuffers::String* src)
 
 flatbuffers::Offset<flatbuffers::String> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::string& src)
 {
-  fbb.CreateString(src.c_str());
+  return fbb.CreateString(src.c_str());
 }
 
 
