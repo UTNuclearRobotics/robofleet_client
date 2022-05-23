@@ -1,9 +1,7 @@
 #pragma once
 
 #include <QObject>
-
-template <typename T>
-class MessageSchedulerLib;
+#include "MessageSchedulerLib.hpp"
 
 /**
  * @brief Queues messages and schedules them on demand.
@@ -15,7 +13,8 @@ class MessageScheduler : public QObject {
   Q_OBJECT
   
   // MessageScheduler mostly just exposes this class through Qt
-  MessageSchedulerLib<QByteArray>* ms_;
+  typedef MessageSchedulerLib<QByteArray> Backend;
+  Backend ms_;
 
  public:
   MessageScheduler(const uint64_t max_queue_before_waiting);
