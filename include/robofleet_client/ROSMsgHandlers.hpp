@@ -48,7 +48,8 @@ namespace robofleet_client
                               const std::string rbf_topic,
                               const double priority,
                               const double rate_limit,
-                              const bool no_drop);
+                              const bool no_drop,
+                              const int queue_size);
       
       virtual void initialize(ros::NodeHandle& nh,
                               WsServer& server,

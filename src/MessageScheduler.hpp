@@ -43,9 +43,10 @@ class MessageScheduler : public QObject {
    */
   void enqueue(const QString& topic,
                const QByteArray& data,
-               double priority,
-               double rate_limit,
-               bool no_drop);
+               const double priority,
+               const double rate_limit,
+               const bool no_drop,
+               const int queue_size);
 
   /**
    * @brief Fire this to indicate that the network is free

@@ -56,7 +56,13 @@ subscribers: [
     # type: boolean
     # default: false
     # Topics with the no_drop flag receive absolute priority over those without
-    no_drop: false
+    no_drop: false,
+
+    # param: queue_size (optional)
+    # type: integer
+    # default: 1
+    # The client will queue up to this number of messages before starting to drop them
+    queue: 10
   }
 ]
 

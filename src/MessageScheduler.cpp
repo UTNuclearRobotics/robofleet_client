@@ -22,11 +22,14 @@ void MessageScheduler::scheduling_callback(const QByteArray& data)
   Q_EMIT scheduled(data);
 }
 
-void MessageScheduler::enqueue(
-    const QString& topic, const QByteArray& data, double priority, double rate_limit,
-    bool no_drop)
+void MessageScheduler::enqueue(const QString& topic,
+                               const QByteArray& data,
+                               const double priority,
+                               const double rate_limit,
+                               const bool no_drop,
+                               const int queue_size)
 {
-  ms_.enqueue(topic.toUtf8().constData(), data, priority, rate_limit, no_drop);
+  ms_.enqueue(topic.toUtf8().constData(), data, priority, rate_limit, no_drop, queue_size);
 }
 
 void MessageScheduler::backpressure_update(const uint64_t message_index,

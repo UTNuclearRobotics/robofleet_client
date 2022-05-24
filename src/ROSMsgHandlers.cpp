@@ -10,11 +10,12 @@ namespace robofleet_client
                                        const std::string rbf_topic,
                                        const double priority,
                                        const double rate_limit,
-                                       const bool no_drop)
+                                       const bool no_drop,
+                                       const int queue_size)
   {    
-    schedule_function_ = [&scheduler, rbf_topic, priority, rate_limit, no_drop](const QByteArray& data)
+    schedule_function_ = [&scheduler, rbf_topic, priority, rate_limit, no_drop, queue_size](const QByteArray& data)
       {
-        scheduler.enqueue(QString::fromStdString(rbf_topic), data, priority, rate_limit, no_drop);
+        scheduler.enqueue(QString::fromStdString(rbf_topic), data, priority, rate_limit, no_drop, queue_size);
       };
   }
 
