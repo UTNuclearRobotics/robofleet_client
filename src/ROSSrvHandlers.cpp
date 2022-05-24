@@ -15,7 +15,8 @@ namespace robofleet_client
                           data,
                           std::numeric_limits<double>::max(),
                           std::numeric_limits<double>::max(),
-                          true);
+                          true,
+                          1);
       };
   }
 
@@ -44,7 +45,8 @@ namespace robofleet_client
                           data,
                           std::numeric_limits<double>::max(),
                           std::numeric_limits<double>::max(),
-                          true);
+                          true,
+                          1);
       };
 
     timeout_ = timeout;

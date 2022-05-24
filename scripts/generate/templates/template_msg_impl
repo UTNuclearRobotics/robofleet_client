@@ -83,7 +83,8 @@ namespace {msg_package}_robofleet {{
                                               const std::string rbf_topic,
                                               const double priority,
                                               const double rate_limit,
-                                              const bool no_drop)
+                                              const bool no_drop,
+                                              const int queue_size)
   {{
     robofleet_client::ROSSubscribeHandler::initialize(nh,
                                                       scheduler,
@@ -91,14 +92,15 @@ namespace {msg_package}_robofleet {{
                                                       rbf_topic,
                                                       priority,
                                                       rate_limit,
-                                                      no_drop);
+                                                      no_drop,
+                                                      queue_size);
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
         return fb::CreateMsgMetadataDirect(fbb, ros::message_traits::DataType<MsgType>().value(), rbf_topic.c_str());
       }};
 
-    sub_ = nh.subscribe(client_topic, 10, &{msg_name}SubscribeHandler::callback, this);
+    sub_ = nh.subscribe(client_topic, queue_size, &{msg_name}SubscribeHandler::callback, this);
   }}
 
 

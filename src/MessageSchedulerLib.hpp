@@ -63,7 +63,8 @@ public:
                const T& data,
                const double priority,
                const double rate_limit,
-               const bool no_drop)
+               const bool no_drop,
+               const int queue_size)
   {
     if (no_drop)
     {
@@ -79,7 +80,7 @@ public:
         const double publish_period = rate_limit != 0 ? 1.0 / rate_limit : 0.0;
         it = topic_queues_.emplace(std::piecewise_construct,
                                    std::forward_as_tuple(topic),
-                                   std::forward_as_tuple(10, priority, publish_period)).first;
+                                   std::forward_as_tuple(queue_size, priority, publish_period)).first;
       }
 
       TopicQueue& queue = it->second;

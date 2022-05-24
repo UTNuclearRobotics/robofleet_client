@@ -55,6 +55,7 @@ private:
     double priority;
     double rate_limit;
     bool no_drop;
+    int queue_size;
 
     // only used for message publisher topics
     bool latched;

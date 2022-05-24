@@ -215,6 +215,18 @@ bool RosClientNode::readTopicParams(const YAML::Node& node,
       else {
         params.no_drop = false;
       }
+
+      if (node["queue_size"]) {
+        params.queue_size = node["queue_size"].as<int>();
+
+        if (params.queue_size < 1) {
+          ROS_ERROR("Invalid non-positive value for queue_size on topic %s.", params.client_topic.c_str());
+          return false;
+        }
+      }
+      else {
+        params.queue_size = 1;
+      }
     }
   }
 
@@ -287,7 +299,8 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
                           topic_params.rbf_topic,
                           topic_params.priority,
                           topic_params.rate_limit,
-                          topic_params.no_drop);
+                          topic_params.no_drop,
+                          topic_params.queue_size);
     }
     else if (server_ != nullptr) {
       handler->initialize(nh_,
@@ -444,6 +457,7 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
     {
       params.latched = false;
       params.no_drop = true;
+      params.queue_size = 1;
 
       goal =
       feedback =
@@ -548,7 +562,8 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                 action_params.goal.rbf_topic,
                                 action_params.goal.priority,
                                 action_params.goal.rate_limit,
-                                action_params.goal.no_drop);
+                                action_params.goal.no_drop,
+                                action_params.goal.queue_size);
 
       handlers.cancel->initialize(nh_,
                                   *scheduler_,
@@ -556,7 +571,8 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                   action_params.cancel.rbf_topic,
                                   action_params.cancel.priority,
                                   action_params.cancel.rate_limit,
-                                  action_params.cancel.no_drop);
+                                  action_params.cancel.no_drop,
+                                  action_params.goal.queue_size);
     }
     else if (server_ != nullptr) {
       handlers.goal->initialize(nh_,
@@ -654,7 +670,8 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                     action_params.feedback.rbf_topic,
                                     action_params.feedback.priority,
                                     action_params.feedback.rate_limit,
-                                    action_params.feedback.no_drop);
+                                    action_params.feedback.no_drop,
+                                    action_params.goal.queue_size);
 
       handlers.result->initialize(nh_,
                                   *scheduler_,
@@ -662,7 +679,8 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                   action_params.result.rbf_topic,
                                   action_params.result.priority,
                                   action_params.result.rate_limit,
-                                  action_params.result.no_drop);
+                                  action_params.result.no_drop,
+                                  action_params.goal.queue_size);
 
       handlers.status->initialize(nh_,
                                   *scheduler_,
@@ -670,7 +688,8 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                   action_params.status.rbf_topic,
                                   action_params.status.priority,
                                   action_params.status.rate_limit,
-                                  action_params.status.no_drop);
+                                  action_params.status.no_drop,
+                                  action_params.goal.queue_size);
     }
     else if (server_ != nullptr) {
       handlers.feedback->initialize(nh_,
@@ -734,7 +753,8 @@ void RosClientNode::sendSubscriptionMsg()
                           data,
                           0.0,
                           std::numeric_limits<double>::max(),
-                          true);
+                          true,
+                          pubs_.size());
     }
     else {
       server_->broadcast_message(data, nullptr);
