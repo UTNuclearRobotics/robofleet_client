@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 """
 Utilities for generating Flatbuffers schemas for ROS message types. 
 
@@ -16,7 +16,7 @@ import sys
 
 # from rosbridge_library.internal.ros_loader import get_message_class
 from roslib.message import get_message_class, get_service_class
-from msg_util import get_msg_spec, get_srv_spec
+from .msg_util import get_msg_spec, get_srv_spec
 
 # Flatbuffers types considered "scalar"
 scalar_types = {
