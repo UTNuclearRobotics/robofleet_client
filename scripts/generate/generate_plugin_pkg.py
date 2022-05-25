@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ######################################################################
 #      Title     : generate_plugin_pkg.py
 #      Author    : Blake Anderson
@@ -17,6 +17,22 @@ import rospkg.rospack
 import shutil
 import subprocess
 import sys
+
+class MsgSpecHashable(msg_util.genmsg.MsgSpec):
+  def __init__(self, spec):
+    super().__init__(spec.types, spec.names, spec.constants,spec.text,
+                     spec.full_name, spec.package, spec.short_name)
+  
+  def __hash__(self):
+    return hash(self.full_name)
+
+class SrvSpecHashable(msg_util.genmsg.SrvSpec):
+  def __init__(self, spec):
+    super().__init__(spec.request, spec.response, spec.text,
+                     spec.full_name, spec.short_name, spec.package)
+  
+  def __hash__(self):
+    return hash(self.full_name)    
 
 class PackageData:
   """
@@ -128,21 +144,21 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
   srv_search_path = msg_util.get_srv_search_path()
 
   # get the definitions of each message
-  package.messages = set(msg_util.get_msg_spec(name, msg_search_path)
+  package.messages = set(MsgSpecHashable(msg_util.get_msg_spec(name, msg_search_path))
                          for name in message_names)
 
   # get the definitions of each service
-  package.services = set(msg_util.get_srv_spec(name, srv_search_path)
+  package.services = set(SrvSpecHashable(msg_util.get_srv_spec(name, srv_search_path))
                          for name in service_names)
 
   # service consists of a Request message and a Response message
   # combine all the regular messages and service messages together
-  package.all_messages = package.messages.union(set(x.request for x in package.services),
-                                        set(x.response for x in package.services))
+  package.all_messages = package.messages.union(set(MsgSpecHashable(x.request) for x in package.services),
+                                        set(MsgSpecHashable(x.response) for x in package.services))
 
   # get all the dependencies of the package
-  for message in package.messages.union(set(x.request for x in package.services),
-                                        set(x.response for x in package.services)):
+  for message in package.messages.union(set(MsgSpecHashable(x.request) for x in package.services),
+                                        set(MsgSpecHashable(x.response) for x in package.services)):
     msg_depends_graph[message.full_name] = set()
 
     # iterate over the fields of each message
