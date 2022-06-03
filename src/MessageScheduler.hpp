@@ -23,7 +23,7 @@ class MessageScheduler : public QObject {
    * @brief Just emits the scheduled Q_SIGNAL
    * @param data The raw data
    */
-  void scheduling_callback(const QByteArray& data);
+  void scheduling_callback(const QByteArray data);
 
  Q_SIGNALS:
   /**
