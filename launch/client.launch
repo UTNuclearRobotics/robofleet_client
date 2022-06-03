@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="config_file" value="$(find robofleet_client)/cfg/example.yaml"/>
+  <arg name="config_file" default="$(find robofleet_client)/cfg/example.yaml"/>
 
 	<node
 		name    = "robofleet_client"
