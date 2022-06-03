@@ -72,7 +72,7 @@ class WsClient : public QObject {
     ws.ping(msg_index_payload);
   }
 
-  void send_message(const QByteArray& data) {
+  void send_message(const QByteArray data) {
     ++msg_index;
     ws.sendBinaryMessage(data);
     send_ping();
