@@ -7,7 +7,7 @@
 		pkg     = "robofleet_client"
 		type    = "client"
 		output  = "screen"
-		args	  = "$(arg config_file)"
+		args	= "$(arg config_file)"
 	/>
 
 </launch>
