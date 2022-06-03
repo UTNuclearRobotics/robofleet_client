@@ -17,7 +17,7 @@ MessageScheduler::MessageScheduler(const uint64_t max_queue_before_waiting) :
 {
 }
 
-void MessageScheduler::scheduling_callback(const QByteArray data)
+void MessageScheduler::scheduling_callback(const QByteArray& data)
 {
   Q_EMIT scheduled(data);
 }
