@@ -1,0 +1,26 @@
+<launch>
+
+	<arg name="package_set" doc="List the packages for which we want to generate Robofleet plugins."/>
+	
+	<arg name="here"
+		 default="false"
+		 doc="If true, the plugin packages are placed in the terminal location."
+	/>
+
+	<node if="$(arg here)"
+		name    = "generate_plugin_pkg"
+		pkg     = "robofleet_client"
+		type    = "generate_plugin_pkg.py"
+		output  = "screen"
+		args	= "-w -o . $(arg package_set)"
+	/>
+
+	<node unless="$(arg here)"
+		name    = "generate_plugin_pkg"
+		pkg     = "robofleet_client"
+		type    = "generate_plugin_pkg.py"
+		output  = "screen"
+		args	= "-w $(arg package_set)"
+	/>
+
+</launch>

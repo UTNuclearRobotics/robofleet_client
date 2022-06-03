@@ -964,7 +964,6 @@ def main(args):
   # parse arguments
   parsed_args = parse_args(my_args[1:])
   num_pkgs = len(parsed_args.packages)
-  print(parsed_args)
   
   # get input and output locations
   my_package_path = rospkg.RosPack().get_path('robofleet_client')
