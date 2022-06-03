@@ -23,14 +23,14 @@ class MessageScheduler : public QObject {
    * @brief Just emits the scheduled Q_SIGNAL
    * @param data The raw data
    */
-  void scheduling_callback(const QByteArray data);
+  void scheduling_callback(const QByteArray& data);
 
  Q_SIGNALS:
   /**
    * @brief Submits data to the websocket for transmission
    * @param data The raw data
    */
-  void scheduled(const QByteArray& data);
+  void scheduled(const QByteArray data);
 
  public Q_SLOTS:
   /**
