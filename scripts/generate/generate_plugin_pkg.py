@@ -8,6 +8,7 @@
 
 import argparse
 import glob
+import rospy
 import msg2fbs.msg2fbs as msg2fbs
 import msg2fbs.msg_util as msg_util
 import os.path
@@ -958,9 +959,12 @@ def cleanup(msg2fbs_path):
       print(err)
 
 def main(args):
+  my_args = rospy.myargv(argv=sys.argv)
+
   # parse arguments
-  parsed_args = parse_args(args[1:])
+  parsed_args = parse_args(my_args[1:])
   num_pkgs = len(parsed_args.packages)
+  print(parsed_args)
   
   # get input and output locations
   my_package_path = rospkg.RosPack().get_path('robofleet_client')
