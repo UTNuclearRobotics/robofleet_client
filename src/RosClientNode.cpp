@@ -194,7 +194,7 @@ bool RosClientNode::readTopicParams(const YAML::Node& node,
         }
       }
       else {
-        params.rate_limit = std::numeric_limits<double>::max();
+        params.rate_limit = 0.0;
       }
 
       if (node["priority"]) {

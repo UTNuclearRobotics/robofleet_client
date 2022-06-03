@@ -20,38 +20,62 @@ private:
   using SchedulerClock = std::chrono::high_resolution_clock;
   using TopicName = std::string;
 
-  struct  TopicQueue {
-    TopicQueue(const size_t _max_queue_size,
-               const double _priority,
-               const double _publish_interval) :
-      max_queue_size(_max_queue_size),
-      priority(_priority),
-      publish_interval(_publish_interval)
-    {
-    }
+  class TopicQueue {
+    public:
+      TopicQueue(const size_t _max_queue_size,
+                const double _priority,
+                const double _publish_interval) :
+        max_queue_size(_max_queue_size),
+        priority(_priority),
+        publish_interval(_publish_interval)
+      {
+      }
 
-    T extractNextMessage()
-    {
-      const T next = messages.front();
-      messages.pop();
-      return next;
-    }
+      bool extractNextMessage(T& out_msg)
+      {
+        if (hasMsgs())
+        {
+          out_msg = messages.front();
+          messages.pop();
+          return true;
+        }
 
-    std::queue<T> messages;
+        return false;
+      }
 
-    const size_t max_queue_size;
+      void addMsg(const T& msg)
+      {
+        if (messages.size() >= max_queue_size)
+        {
+          // the queue is full, so drop the oldest message (the one in front)
+          messages.pop();
+        }
 
-    const double priority;
+        // add new message to the back of the queue
+        messages.push(msg);
+      }
 
-    const double publish_interval;
+      inline bool hasMsgs() const
+      {
+        return !messages.empty();
+      }
 
-    // when a message was last sent on this topic
-    SchedulerClock::time_point last_send_time = SchedulerClock::now();
+      const size_t max_queue_size;
+
+      const double priority;
+
+      const double publish_interval;
+
+      // when a message was last sent on this topic
+      SchedulerClock::time_point last_send_time = SchedulerClock::now();
+
+    private:
+      std::queue<T> messages;
   };
 
 public:
   // signature of the function to call when a message is scheduled for transmission
-  typedef std::function<void(const T&)> ScheduleCallback;
+  typedef std::function<void(const T)> ScheduleCallback;
 
   MessageSchedulerLib(const uint64_t mq, const ScheduleCallback sc) :
       max_queue_before_waiting_(mq)
@@ -77,22 +101,13 @@ public:
       if (it == topic_queues_.end())
       {
         // set up the new queue
-        const double publish_period = rate_limit != 0 ? 1.0 / rate_limit : 0.0;
+        const double publish_period = rate_limit != 0.0 ? 1.0 / rate_limit : 0.0;
         it = topic_queues_.emplace(std::piecewise_construct,
                                    std::forward_as_tuple(topic),
                                    std::forward_as_tuple(queue_size, priority, publish_period)).first;
       }
 
-      TopicQueue& queue = it->second;
-
-      if (queue.messages.size() == queue.max_queue_size)
-      {
-        // the queue is full, so drop the oldest message (the one in front)
-        queue.messages.pop();
-      }
-
-      // add new message to the back of the queue
-      queue.messages.push(data);
+      it->second.addMsg(data);
     }
 
     schedule();
@@ -153,12 +168,13 @@ public:
         TopicQueue* queue = &pair.second;
 
         using Milliseconds = std::chrono::milliseconds;
-        constexpr double millisec_to_sec = 1e-3;
         const Milliseconds time_since_sent =
           std::chrono::duration_cast<Milliseconds>(now - queue->last_send_time);
 
+        constexpr double millisec_to_sec = 1e-3;
+
         // check if the topic is ready to transmit
-        if (!queue->messages.empty()
+        if (queue->hasMsgs()
             && time_since_sent.count() * millisec_to_sec > queue->publish_interval)
         {
           candidates.emplace_back(queue, time_since_sent * queue->priority);
@@ -180,15 +196,19 @@ public:
                );
       
       // determine how many messages we are allowed to send
-      const uint64_t msgs_allowed_to_send = max_queue_before_waiting_ - network_backpressure_counter_;
-      const uint64_t msgs_to_send = std::min(msgs_allowed_to_send,(uint64_t)candidates.size());
+      const size_t msgs_allowed_to_send = max_queue_before_waiting_ - network_backpressure_counter_;
+      const size_t msgs_to_send = std::min(msgs_allowed_to_send, candidates.size());
 
       // attempt to publish top-K candidates
-      for (uint64_t cand_idx = 0; cand_idx < msgs_to_send; ++cand_idx)
+      for (size_t cand_idx = 0; cand_idx < msgs_to_send; ++cand_idx)
       {
-        sc_(candidates[cand_idx].queue->extractNextMessage());
-        candidates[cand_idx].queue->last_send_time = now;
-        ++network_backpressure_counter_;
+        T data;
+        if (candidates[cand_idx].queue->extractNextMessage(data))
+        {
+          sc_(data);
+          candidates[cand_idx].queue->last_send_time = now;
+          ++network_backpressure_counter_;
+        }
       }
     }
   }
