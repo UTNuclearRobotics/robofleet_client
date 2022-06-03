@@ -56,7 +56,13 @@ catkin_package(
   DEPENDS Qt5 YAML_CPP
 )
 
-add_library(${PLUGINS_LIBRARY})
+add_library(${PLUGINS_LIBRARY}
+  src/ROSMsgHandlers.cpp
+  src/ROSSrvHandlers.cpp
+  src/MessageScheduler.cpp
+  src/common_conversions.cpp
+  src/MessageSchedulerLib.hpp
+)
 target_link_libraries(${PLUGINS_LIBRARY}
   ${Qt5_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -72,7 +78,13 @@ INTERFACE
   include
 )
 
-add_executable(client)
+add_executable(client
+  src/main.cpp
+  src/WsClient.hpp
+  src/WsServer.hpp
+  src/RosClientNode.cpp
+  src/MessageScheduler.hpp
+)
 add_dependencies(client
   ${PLUGINS_LIBRARY}
   ${PROJECT_NAME}_generate_messages_cpp
@@ -86,7 +98,6 @@ target_include_directories(client
 PRIVATE
   ${YAML_CPP_INCLUDE_DIR}
 )
-add_subdirectory(src)
 
 ## Package tests
 if(CATKIN_ENABLE_TESTING)
