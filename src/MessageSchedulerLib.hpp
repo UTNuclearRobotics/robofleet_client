@@ -75,7 +75,7 @@ private:
 
 public:
   // signature of the function to call when a message is scheduled for transmission
-  typedef std::function<void(const T)> ScheduleCallback;
+  typedef std::function<void(const T&)> ScheduleCallback;
 
   MessageSchedulerLib(const uint64_t mq, const ScheduleCallback sc) :
       max_queue_before_waiting_(mq)
