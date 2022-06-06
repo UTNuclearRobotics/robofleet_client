@@ -62,7 +62,7 @@ subscribers: [
     # type: integer
     # default: 1
     # The client will queue up to this number of messages before starting to drop them
-    queue: 10
+    queue_size: 10
   }
 ]
 
