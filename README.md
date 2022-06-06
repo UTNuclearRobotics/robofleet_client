@@ -1,4 +1,4 @@
-# robofleet_client for AugRE
+# robofleet_client
 
 *The Robofleet 2.0 Robot Client for ROS*
 
@@ -16,9 +16,10 @@ Unlike earlier versions of `robofleet_client`, this release is to be built using
 
 ## Creating your message plugins
 
-![Dependency graph for some example message plugin packages.](img/plugin-packages-deps.png?raw=true "Message Plugin Packages")
-
 To handle ROS messages, the client uses **plugin packages**. A plugin package provides handler classes and conversion functions that the client needs to pass given messages to and from the server.
+
+![Dependency graph for some example message plugin packages.](img/plugin-packages-deps.png?raw=true "Message Plugin Packages")
+Build dependency graph for some example message plugin packages. The arrows point from dependents to dependencies. Note that, critically, the `robofleet_client` package does not depend on the plugin packages. The client accesses the plugins at runtime only.
 
 For example, to use ROS messages from the `geometry_msgs` package, you need a corresponding plugin package `geometry_msgs_robofleet`. You must have plugin packages for all the message types specified in your client's YAML config file.
 
@@ -37,7 +38,7 @@ ___
                           'robofleet_client/scripts/generate/output'
       -w, --overwrite     If the requested plugin packages already exist in the
                           output location, they will be deleted and recreated.
-      -i, --leave-schema  Intermediate fatbuffer schema files will not be deleted
+      -i, --leave-schema  Intermediate flatbuffer schema files will not be deleted
                           during cleanup.
 ___
 
@@ -47,9 +48,15 @@ After generating the plugin packages you need, place them in your ROS workspace 
 
 ## Running the client node
 
-**use:** rosrun robofleet_client client config_file_path
+___
+    usage: rosrun robofleet_client client config_file
 
-**config_file_path** - Path to a YAML configuration file which specifies the input and output topics of the client. See robofleet_client/cfg/example.yaml as a guide. Topic names from the config file are resolved by the client according to ROS's normal name resolution rules. You must have built plugin packages for any message types referenced in the configuration.
+    positional arguments:
+      config_file    Path to a YAML configuration file which specifies the input and output topics of the client.
+                     See robofleet_client/cfg/example.yaml as a guide. Topic names from the config file are resolved
+                     by the client according to ROS's normal name resolution rules. You must have built plugin
+                     packages for any message types referenced in the configuration. See the example in robofleet_client/cfg/example.yaml
+___
 
 ### Direct mode
 
