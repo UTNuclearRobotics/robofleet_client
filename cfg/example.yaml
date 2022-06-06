@@ -42,6 +42,7 @@ subscribers: [
 
     # param: rate_limit (optional)
     # type: double (Hz)
+    # default: No rate limit
     # The maximum rate at which the client will transmit for this topic
     rate_limit: 1.0,
 
