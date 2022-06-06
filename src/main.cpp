@@ -43,8 +43,8 @@ int main(int argc, char** argv) {
 
   // check args
   if (argc != 2) {
-    ROS_FATAL("usage: robofleet_client client cfg_file\n"
-              "\tcfg_file: The program config file. See robofleet_client/cfg/example.yaml");
+    ROS_FATAL("usage: robofleet_client client config_file\n"
+              "\config_file: The program config file. See robofleet_client/cfg/example.yaml");
 
     return 1;
   }
