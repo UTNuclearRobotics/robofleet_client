@@ -85,7 +85,7 @@ def parse_args(args):
   parser.add_argument('-w', '--overwrite', action='store_true',
                       help='If the requested plugin packages already exist in the output location, they will be deleted and recreated.')
   parser.add_argument('-i', '--leave-schema', action='store_true',
-                      help='Intermediate fatbuffer schema files will not be deleted during cleanup.')
+                      help='Intermediate flatbuffer schema files will not be deleted during cleanup.')
   parser.add_argument('packages', nargs='+',
                       help='The msg or srv packages that we want to generate plugins for.'
                            ' The program will automatically include dependencies of the listed packages.')
