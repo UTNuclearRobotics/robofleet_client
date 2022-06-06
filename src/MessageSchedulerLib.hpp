@@ -2,6 +2,7 @@
 #include <chrono>
 #include <queue>
 #include <iostream>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 #include <functional>
@@ -92,10 +93,13 @@ public:
   {
     if (no_drop)
     {
+      const std::lock_guard<std::mutex> lock(no_drop_mutex_);
       no_drop_queue_.push(data);
     }
     else
     {
+      const std::lock_guard<std::mutex> lock(queues_mutex_);
+
       // check if we have a queue for this topic yet
       typename QueueMap::iterator it = topic_queues_.find(topic);
       if (it == topic_queues_.end())
@@ -130,13 +134,17 @@ public:
    */
   void schedule()
   {
-    // flush no-drop queue
-    while (!no_drop_queue_.empty() && !serverIsBusy())
     {
-      const T& next = no_drop_queue_.front();
-      sc_(next);
-      no_drop_queue_.pop();
-      ++network_backpressure_counter_;
+      const std::lock_guard<std::mutex> lock(no_drop_mutex_);
+
+      // flush no-drop queue
+      while (!no_drop_queue_.empty() && !serverIsBusy())
+      {
+        const T& next = no_drop_queue_.front();
+        sc_(next);
+        no_drop_queue_.pop();
+        ++network_backpressure_counter_;
+      }
     }
 
     if (serverIsBusy())
@@ -157,6 +165,8 @@ public:
       TopicQueue* queue;
       std::chrono::duration<double> wait_time;
     };
+
+    const std::lock_guard<std::mutex> lock(queues_mutex_);
 
     while (!serverIsBusy())
     {
@@ -227,4 +237,7 @@ private:
 
   typedef std::unordered_map<TopicName, TopicQueue> QueueMap;
   QueueMap topic_queues_;
+
+  std::mutex no_drop_mutex_;
+  std::mutex queues_mutex_;
 };
