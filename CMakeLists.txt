@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.16.3)
 project(robofleet_client)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -19,7 +19,8 @@ set(CMAKE_AUTOMOC on)
 set(CMAKE_AUTORCC on)
 set(CMAKE_AUTOUIC on)
 set(CMAKE_INCLUDE_CURRENT_DIR on)
-find_package(Qt5 REQUIRED COMPONENTS
+set(MIN_QT_VERSION "5.5.0")
+find_package(Qt5 ${MIN_QT_VERSION} REQUIRED COMPONENTS
   Core
   WebSockets
 )
