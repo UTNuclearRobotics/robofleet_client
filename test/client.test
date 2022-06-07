@@ -1,0 +1,20 @@
+<launch>
+  <arg name="client_cfg"  default="$(find robofleet_client)/test/test.yaml"/>
+
+  <node
+    name     = "robofleet_client"
+    ns       = "test"
+    pkg      = "robofleet_client"
+    type     = "client"
+    output   = "screen"
+    required = "true"
+    args     = "$(arg client_cfg)"
+  />
+  
+  <test
+    test-name   = "client_test"
+    pkg         = "robofleet_client"
+    type        = "client_test"
+    time-limit  = "10.0"
+  />
+</launch>
