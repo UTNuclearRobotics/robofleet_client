@@ -1,14 +1,24 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>robofleet_client</name>
-  <version>0.0.0</version>
+  <version>1.0.0</version>
   <description>Client for ROS nodes to send messages to Robofleet.</description>
 
-  <maintainer email="joydeepb@cs.utexas.edu">Joydeep Biswas</maintainer>
+  <maintainer email="blakeanderson@utexas.edu">Blake Anderson</maintainer>
 
+  <author email="blakeanderson@utexas.edu">Blake Anderson</author>
+  <author email="kvsikand@utexas.edu">Kavan Sikand</author>
+  <author email="logan.zartman@utexas.edu">Logan Zartman</author>
+  <author email="srabiee@utexas.edu">Sadegh Rabiee</author>
   <author email="joydeepb@cs.utexas.edu">Joydeep Biswas</author>
 
   <license>MIT</license>
+
+  <url>https://github.com/UTNuclearRobotics/robofleet_client</url>
+  <url>https://arxiv.org/abs/2103.06993</url>
+
+  <url>https://robotics.me.utexas.edu/</url>
+  <url>https://amrl.cs.utexas.edu/</url>
 
   <buildtool_depend>catkin</buildtool_depend>
 
