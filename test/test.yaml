@@ -1,0 +1,38 @@
+# Requires these plugin packages at runtime:
+#   std_msgs_robofleet
+
+params:
+  host_url: "ws://localhost:8080"
+  
+  wait_for_pongs: true
+  max_queue_before_waiting: 5
+
+  # Verbosity 0 - MINIMAL
+  # Verbosity 1 - CONFIG_ONLY
+  # Verbosity 2 - ALL
+  verbosity: 2
+
+  spin_threads: 1
+
+subscribers: [
+  {
+    client_topic: "string_out",
+    rbf_topic: "/reserved/loopback/to_server",
+    type: "std_msgs/String"
+  }
+]
+
+publishers: [
+  {
+    client_topic: "server_time",
+    rbf_topic: "/reserved/server_time",
+    type: "std_msgs/UInt64"
+  },
+
+  {
+    client_topic: "string_in",
+    rbf_topic: "/reserved/loopback/from_server",
+    type: "std_msgs/String",
+    latched: false
+  }
+]
