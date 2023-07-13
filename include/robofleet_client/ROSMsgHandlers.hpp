@@ -8,7 +8,7 @@
 #include <robofleet_client/common_conversions.hpp>
 
 /**
- * The ROSPublishHandler and ROSSubscribeHandler interfaces
+ * The RBFSubscribeHandler and RBFPublishHandler interfaces
  * are used by the client to encode, decode, subscribe, and publish
  * ROS message types.
  * 
@@ -24,22 +24,22 @@ class QByteArray;
 namespace robofleet_client
 {
 
-  class ROSPublishHandler
+  class RBFSubscribeHandler
   {
     public:
       virtual void initialize(ros::NodeHandle& nh,
                               const std::string client_topic,
                               const bool latched) = 0;
       
-      virtual void publish(const QByteArray& data) = 0;
+      virtual void publishROS(const QByteArray& data) = 0;
         
     protected:
-      ros::Publisher pub_;
+      ros::Publisher ros_pub_;
   };
 
 
 
-  class ROSSubscribeHandler
+  class RBFPublishHandler
   {
     public:
       virtual void initialize(ros::NodeHandle& nh,
@@ -59,7 +59,7 @@ namespace robofleet_client
     protected:
       typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
 
-      ros::Subscriber sub_;
+      ros::Subscriber ros_sub_;
       
       // sends raw data to the message scheduler
       std::function<void(const QByteArray&)> schedule_function_;
@@ -68,7 +68,7 @@ namespace robofleet_client
       std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
   };
   
-  typedef boost::shared_ptr<ROSPublishHandler> ROSPublishHandlerPtr;
-  typedef boost::shared_ptr<ROSSubscribeHandler> ROSSubscribeHandlerPtr;
+  typedef boost::shared_ptr<RBFSubscribeHandler> RBFSubscribeHandlerPtr;
+  typedef boost::shared_ptr<RBFPublishHandler> RBFPublishHandlerPtr;
 
 } // namespace robofleet_client

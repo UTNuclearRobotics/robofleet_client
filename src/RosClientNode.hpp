@@ -80,8 +80,8 @@ private:
   using HandlerMap = std::unordered_map<TopicString, Handler>;
 
   // holds all of our topic handlers
-  HandlerMap<robofleet_client::ROSSubscribeHandlerPtr> subs_;
-  HandlerMap<robofleet_client::ROSPublishHandlerPtr> pubs_;
+  HandlerMap<robofleet_client::RBFPublishHandlerPtr> pubs_;
+  HandlerMap<robofleet_client::RBFSubscribeHandlerPtr> subs_;
   HandlerMap<robofleet_client::ROSSrvInHandlerPtr> incoming_srvs_;
   HandlerMap<robofleet_client::ROSSrvOutHandlerPtr> outgoing_srvs_;
 
@@ -98,11 +98,11 @@ private:
                   const std::string handler_type,
                   boost::shared_ptr<Handler>& out_handler);
 
-  bool getSubscribeHandler(const TopicParams& params,
-                           robofleet_client::ROSSubscribeHandlerPtr& out_handler);
-
   bool getPublishHandler(const TopicParams& params,
-                         robofleet_client::ROSPublishHandlerPtr& out_handler);
+                           robofleet_client::RBFPublishHandlerPtr& out_handler);
+
+  bool getSubscribeHandler(const TopicParams& params,
+                         robofleet_client::RBFSubscribeHandlerPtr& out_handler);
 
   bool getSrvInHandler(const TopicParams& params,
                          robofleet_client::ROSSrvInHandlerPtr& out_handler);

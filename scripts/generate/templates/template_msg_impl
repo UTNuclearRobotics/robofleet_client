@@ -47,17 +47,17 @@ flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBuff
 
 namespace {msg_package}_robofleet {{
     
-  void {msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
+  void {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
                                                  const std::string client_topic,
                                                  const bool latched)
   {{
-    pub_ = nh.advertise<MsgType>(client_topic,
+    ros_pub_ = nh.advertise<MsgType>(client_topic,
                                  10,
                                  latched);
   }}
 
-  const {msg_name}PublishHandler::FbMsgType*
-  {msg_name}PublishHandler::decode(const QByteArray& data)
+  const {msg_name}SubscribeHandler::FbMsgType*
+  {msg_name}SubscribeHandler::decode(const QByteArray& data)
   {{
     const FbMsgType* root = 
       flatbuffers::GetRoot<FbMsgType>(data.data());
@@ -65,19 +65,19 @@ namespace {msg_package}_robofleet {{
     return root;
   }}
   
-  void {msg_name}PublishHandler::publish(const QByteArray& data)
+  void {msg_name}SubscribeHandler::publishROS(const QByteArray& data)
   {{
     const FbMsgType* fb = decode(data);
     const MsgType msg = FbtoRos(fb);
     
-    pub_.publish(msg);
+    ros_pub_.publish(msg);
   }}
 
-  PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}PublishHandler, robofleet_client::ROSPublishHandler)
+  PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}SubscribeHandler, robofleet_client::RBFSubscribeHandler)
   
 
 
-  void {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
+  void {msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
                                               MessageScheduler& scheduler,
                                               const std::string client_topic,
                                               const std::string rbf_topic,
@@ -86,7 +86,7 @@ namespace {msg_package}_robofleet {{
                                               const bool no_drop,
                                               const int queue_size)
   {{
-    robofleet_client::ROSSubscribeHandler::initialize(nh,
+    robofleet_client::RBFPublishHandler::initialize(nh,
                                                       scheduler,
                                                       client_topic,
                                                       rbf_topic,
@@ -100,16 +100,16 @@ namespace {msg_package}_robofleet {{
         return fb::CreateMsgMetadataDirect(fbb, ros::message_traits::DataType<MsgType>().value(), rbf_topic.c_str());
       }};
 
-    sub_ = nh.subscribe(client_topic, queue_size, &{msg_name}SubscribeHandler::callback, this);
+    ros_sub_ = nh.subscribe(client_topic, queue_size, &{msg_name}PublishHandler::callback, this);
   }}
 
 
-  void {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
+  void {msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
                                               WsServer& server,
                                               const std::string client_topic,
                                               const std::string rbf_topic)
   {{
-    robofleet_client::ROSSubscribeHandler::initialize(nh,
+    robofleet_client::RBFPublishHandler::initialize(nh,
                                                       server,
                                                       client_topic,
                                                       rbf_topic);
@@ -119,11 +119,11 @@ namespace {msg_package}_robofleet {{
         return fb::CreateMsgMetadataDirect(fbb, ros::message_traits::DataType<MsgType>().value(), rbf_topic.c_str());
       }};
 
-    sub_ = nh.subscribe(client_topic, 10, &{msg_name}SubscribeHandler::callback, this);
+    ros_sub_ = nh.subscribe(client_topic, 10, &{msg_name}PublishHandler::callback, this);
   }}
 
   
-  QByteArray {msg_name}SubscribeHandler::encodeWithMetadata(const MsgType& msg)
+  QByteArray {msg_name}PublishHandler::encodeWithMetadata(const MsgType& msg)
   {{
     flatbuffers::FlatBufferBuilder fbb;
 
@@ -143,11 +143,11 @@ namespace {msg_package}_robofleet {{
   }}
   
 
-  void {msg_name}SubscribeHandler::callback(const MsgTypeConstPtr& msg)
+  void {msg_name}PublishHandler::callback(const MsgTypeConstPtr& msg)
   {{
     const QByteArray data = encodeWithMetadata(*msg);
     schedule_function_(data);
   }}
 }} // namespace {msg_package}_robofleet
 
-PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}SubscribeHandler, robofleet_client::ROSSubscribeHandler)
+PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}PublishHandler, robofleet_client::RBFPublishHandler)

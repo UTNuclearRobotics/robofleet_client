@@ -22,17 +22,17 @@ RosClientNode::RosClientNode(Verbosity verbosity, WsServer& server) :
 bool RosClientNode::configure(const YAML::Node& root)
 {
   // get the subscribers and publishers
-  YAML::Node subscribers_list;
   YAML::Node publishers_list;
+  YAML::Node subscribers_list;
   YAML::Node incoming_srv_list;
   YAML::Node outgoing_srv_list;
   YAML::Node incoming_action_list;
   YAML::Node outgoing_action_list;
   try {
-    subscribers_list = root["subscribers"];
+    publishers_list = root["publishers"];
   } catch (const YAML::InvalidNode& e) {}
   try {
-    publishers_list = root["publishers"];
+    subscribers_list = root["subscribers"];
   } catch (const YAML::InvalidNode& e) {}
   try {
     incoming_srv_list = root["incoming_services"];
@@ -47,7 +47,7 @@ bool RosClientNode::configure(const YAML::Node& root)
     outgoing_action_list = root["outgoing_actions"];
   } catch (const YAML::InvalidNode& e) {}
 
-  if (subscribers_list.IsNull() && publishers_list.IsNull() &&
+  if (publishers_list.IsNull() && subscribers_list.IsNull() &&
       incoming_srv_list.IsNull() && outgoing_srv_list.IsNull() &&
       incoming_action_list.IsNull() && outgoing_action_list.IsNull()) {
     ROS_ERROR("Cannot configure robofleet client. No topics found in config file.");
@@ -59,7 +59,7 @@ bool RosClientNode::configure(const YAML::Node& root)
   incoming_srvs_.clear();
   outgoing_srvs_.clear();
 
-  if (!configureTopics(publishers_list, subscribers_list)) {
+  if (!configureTopics(subscribers_list, publishers_list)) {
     return false;
   }
 
@@ -89,14 +89,14 @@ void RosClientNode::routeMessageToHandlers(const QByteArray& data) const
 
   // look for a publisher on this topic
   {
-    const HandlerMap<robofleet_client::ROSPublishHandlerPtr>::const_iterator it =
-        pubs_.find(topic);
+    const HandlerMap<robofleet_client::RBFSubscribeHandlerPtr>::const_iterator it =
+        subs_.find(topic);
 
-    if (it != pubs_.end()) {
-      it->second->publish(data);
+    if (it != subs_.end()) {
+      it->second->publishROS(data);
 
       if (verbosity_ >= Verbosity::ALL) {
-        ROS_INFO("Publishing message from Robofleet on topic %s", topic.c_str());
+        ROS_INFO("Subscribing to robofleet and publishing ROS message on ROS topic %s", topic.c_str());
       }
 
       return;
@@ -143,7 +143,7 @@ void RosClientNode::routeMessageToHandlers(const QByteArray& data) const
 
 bool RosClientNode::readTopicParams(const YAML::Node& node,
                                     TopicParams& out_params,
-                                    const bool publisher,
+                                    const bool subscriber,
                                     const bool service)
 {
   TopicParams params;
@@ -176,7 +176,7 @@ bool RosClientNode::readTopicParams(const YAML::Node& node,
       params.timeout = ros::Duration(0.0);
     }
   } else {
-    if (publisher) {
+    if (subscriber) {
       if (node["latched"]) {
         params.latched = node["latched"].as<bool>();
       }
@@ -246,18 +246,18 @@ bool RosClientNode::readTopicParams(const YAML::Node& node,
 }
 
 
-bool RosClientNode::getSubscribeHandler(
-  const TopicParams& params,
-  robofleet_client::ROSSubscribeHandlerPtr& out_handler)
-{
-  return getHandler(params, "SubscribeHandler", out_handler);
-}
-
 bool RosClientNode::getPublishHandler(
   const TopicParams& params,
-  robofleet_client::ROSPublishHandlerPtr& out_handler)
+  robofleet_client::RBFPublishHandlerPtr& out_handler)
 {
   return getHandler(params, "PublishHandler", out_handler);
+}
+
+bool RosClientNode::getSubscribeHandler(
+  const TopicParams& params,
+  robofleet_client::RBFSubscribeHandlerPtr& out_handler)
+{
+  return getHandler(params, "SubscribeHandler", out_handler);
 }
 
 
@@ -275,20 +275,20 @@ bool RosClientNode::getSrvOutHandler(
   return getHandler(params, "SrvOutHandler", out_handler);
 }
 
-bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
-                                    const YAML::Node& subscribers_list)
+bool RosClientNode::configureTopics(const YAML::Node& subscribers_list,
+                                    const YAML::Node& publishers_list)
 {
-  // generate the subscribe handlers
-  for (const YAML::Node& subscriber : subscribers_list) {
+  // generate the ros subscribe handlers
+  for (const YAML::Node& publisher : publishers_list) {
     TopicParams topic_params;
-    if (!readTopicParams(subscriber, topic_params, false, false)) {
-      ROS_ERROR("Invalid subscriber.");
+    if (!readTopicParams(publisher, topic_params, false, false)) {
+      ROS_ERROR("Invalid publisher.");
       return false;
     }
 
-    robofleet_client::ROSSubscribeHandlerPtr handler;
-    if (!getSubscribeHandler(topic_params, handler)) {
-      ROS_ERROR("Failed to generate subscribe handler.");
+    robofleet_client::RBFPublishHandlerPtr handler;
+    if (!getPublishHandler(topic_params, handler)) {
+      ROS_ERROR("Failed to generate publish handler.");
       return false;
     }
     
@@ -314,38 +314,38 @@ bool RosClientNode::configureTopics(const YAML::Node& publishers_list,
       return false;
     }
 
-    subs_[topic_params.rbf_topic] = handler;
+    pubs_[topic_params.rbf_topic] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Subscribing to incoming topic: %s [%s]->%s", 
+      ROS_INFO("Publishing to robofleet from ROS topic: %s->%s [%s]", 
                 topic_params.client_topic.c_str(),
-                topic_params.message_type.c_str(),
-                topic_params.rbf_topic.c_str());
+                topic_params.rbf_topic.c_str(),
+                topic_params.message_type.c_str());
     }
   }
 
   // generate the publish handlers
-  for (const YAML::Node& publisher : publishers_list) {
+  for (const YAML::Node& subscriber : subscribers_list) {
     TopicParams topic_params;
-    if (!readTopicParams(publisher, topic_params, true, false)) {
-      ROS_ERROR("Invalid publisher.");
+    if (!readTopicParams(subscriber, topic_params, true, false)) {
+      ROS_ERROR("Invalid subscriber.");
       return false;
     }
 
-    robofleet_client::ROSPublishHandlerPtr handler;
-    if (!getPublishHandler(topic_params, handler)) {
-      ROS_ERROR("Failed to generate publish handler.");
+    robofleet_client::RBFSubscribeHandlerPtr handler;
+    if (!getSubscribeHandler(topic_params, handler)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
       return false;
     }
 
     handler->initialize(nh_, topic_params.client_topic, topic_params.latched);
-    pubs_[topic_params.rbf_topic] = handler;
+    subs_[topic_params.rbf_topic] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
-      ROS_INFO("Advertising outgoing topic: %s [%s]->%s", 
+      ROS_INFO("Subscribing to robofleet and outputting to ROS topic: %s->%s [%s]", 
                 topic_params.rbf_topic.c_str(),
-                topic_params.message_type.c_str(),
-                topic_params.client_topic.c_str());
+                topic_params.client_topic.c_str(),
+                topic_params.message_type.c_str());
     }
   }
 
@@ -504,11 +504,11 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
     const ActionParams action_params(topic_params);
 
     struct ActionHandlers {
-      robofleet_client::ROSSubscribeHandlerPtr goal;
-      robofleet_client::ROSPublishHandlerPtr   feedback;
-      robofleet_client::ROSPublishHandlerPtr   result;
-      robofleet_client::ROSPublishHandlerPtr   status;
-      robofleet_client::ROSSubscribeHandlerPtr cancel;
+      robofleet_client::RBFPublishHandlerPtr    goal;
+      robofleet_client::RBFSubscribeHandlerPtr  feedback;
+      robofleet_client::RBFSubscribeHandlerPtr  result;
+      robofleet_client::RBFSubscribeHandlerPtr  status;
+      robofleet_client::RBFPublishHandlerPtr    cancel;
     };
 
     ActionHandlers handlers;
@@ -518,27 +518,27 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
      * Otherwise it fails to instantiate the handlers.
      * Feels like this is some sort of bug in pluginlib.
      */
-    if (!getPublishHandler(action_params.status, handlers.status)) {
+    if (!getSubscribeHandler(action_params.status, handlers.status)) {
       ROS_ERROR("Failed to generate publish handler.");
       return false;
     }
 
-    if (!getSubscribeHandler(action_params.cancel, handlers.cancel)) {
+    if (!getPublishHandler(action_params.cancel, handlers.cancel)) {
       ROS_ERROR("Failed to generate subscribe handler.");
       return false;
     }
 
-    if (!getSubscribeHandler(action_params.goal, handlers.goal)) {
+    if (!getPublishHandler(action_params.goal, handlers.goal)) {
       ROS_ERROR("Failed to generate subscribe handler.");
       return false;
     }
 
-    if (!getPublishHandler(action_params.feedback, handlers.feedback)) {
+    if (!getSubscribeHandler(action_params.feedback, handlers.feedback)) {
       ROS_ERROR("Failed to generate publish handler.");
       return false;
     }
 
-    if (!getPublishHandler(action_params.result, handlers.result)) {
+    if (!getSubscribeHandler(action_params.result, handlers.result)) {
       ROS_ERROR("Failed to generate publish handler.");
       return false;
     }
@@ -591,11 +591,11 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
       return false;
     }
 
-    subs_[action_params.goal.rbf_topic] = handlers.goal;
-    pubs_[action_params.feedback.rbf_topic] = handlers.feedback;
-    pubs_[action_params.result.rbf_topic] = handlers.result;
-    pubs_[action_params.status.rbf_topic] = handlers.status;
-    subs_[action_params.cancel.rbf_topic] = handlers.cancel;
+    pubs_[action_params.goal.rbf_topic] = handlers.goal;
+    subs_[action_params.feedback.rbf_topic] = handlers.feedback;
+    subs_[action_params.result.rbf_topic] = handlers.result;
+    subs_[action_params.status.rbf_topic] = handlers.status;
+    pubs_[action_params.cancel.rbf_topic] = handlers.cancel;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
       ROS_INFO("Advertising ROS-to-Robofleet action: %s [%s]->%s", 
@@ -616,11 +616,11 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
     const ActionParams action_params(topic_params);
 
     struct ActionHandlers {
-      robofleet_client::ROSPublishHandlerPtr   goal;
-      robofleet_client::ROSSubscribeHandlerPtr feedback;
-      robofleet_client::ROSSubscribeHandlerPtr result;
-      robofleet_client::ROSSubscribeHandlerPtr status;
-      robofleet_client::ROSPublishHandlerPtr   cancel;
+      robofleet_client::RBFSubscribeHandlerPtr  goal;
+      robofleet_client::RBFPublishHandlerPtr    feedback;
+      robofleet_client::RBFPublishHandlerPtr    result;
+      robofleet_client::RBFPublishHandlerPtr    status;
+      robofleet_client::RBFSubscribeHandlerPtr  cancel;
     };
 
     ActionHandlers handlers;
@@ -630,28 +630,28 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
      * Otherwise it fails to instantiate the handlers.
      * Feels like this is some sort of bug in pluginlib.
      */
-    if (!getSubscribeHandler(action_params.status, handlers.status)) {
-      ROS_ERROR("Failed to generate subscribe handler.");
-      return false;
-    }
-
-    if (!getPublishHandler(action_params.cancel, handlers.cancel)) {
+    if (!getPublishHandler(action_params.status, handlers.status)) {
       ROS_ERROR("Failed to generate publish handler.");
       return false;
     }
 
-    if (!getPublishHandler(action_params.goal, handlers.goal)) {
+    if (!getSubscribeHandler(action_params.cancel, handlers.cancel)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+
+    if (!getSubscribeHandler(action_params.goal, handlers.goal)) {
+      ROS_ERROR("Failed to generate subscribe handler.");
+      return false;
+    }
+
+    if (!getPublishHandler(action_params.feedback, handlers.feedback)) {
       ROS_ERROR("Failed to generate publish handler.");
       return false;
     }
 
-    if (!getSubscribeHandler(action_params.feedback, handlers.feedback)) {
-      ROS_ERROR("Failed to generate subscribe handler.");
-      return false;
-    }
-
-    if (!getSubscribeHandler(action_params.result, handlers.result)) {
-      ROS_ERROR("Failed to generate subscribe handler.");
+    if (!getPublishHandler(action_params.result, handlers.result)) {
+      ROS_ERROR("Failed to generate publish handler.");
       return false;
     }
 
@@ -713,11 +713,11 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
       return false;
     }
 
-    pubs_[action_params.goal.rbf_topic] = handlers.goal;
-    subs_[action_params.feedback.rbf_topic] = handlers.feedback;
-    subs_[action_params.result.rbf_topic] = handlers.result;
-    subs_[action_params.status.rbf_topic] = handlers.status;
-    pubs_[action_params.cancel.rbf_topic] = handlers.cancel;
+    subs_[action_params.goal.rbf_topic] = handlers.goal;
+    pubs_[action_params.feedback.rbf_topic] = handlers.feedback;
+    pubs_[action_params.result.rbf_topic] = handlers.result;
+    pubs_[action_params.status.rbf_topic] = handlers.status;
+    subs_[action_params.cancel.rbf_topic] = handlers.cancel;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
       ROS_INFO("Advertising Robofleet-to-ROS action: %s [%s]->%s", 
@@ -732,7 +732,7 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
 
 void RosClientNode::sendSubscriptionMsg()
 {
-  for (const HandlerMap<robofleet_client::ROSPublishHandlerPtr>::value_type& pair : pubs_) {
+  for (const HandlerMap<robofleet_client::RBFSubscribeHandlerPtr>::value_type& pair : subs_) {
     flatbuffers::FlatBufferBuilder fbb;
 
     const flatbuffers::Offset<fb::MsgMetadata> metadata =
@@ -754,7 +754,7 @@ void RosClientNode::sendSubscriptionMsg()
                           0.0,
                           std::numeric_limits<double>::max(),
                           true,
-                          pubs_.size());
+                          subs_.size());
     }
     else {
       server_->broadcast_message(data, nullptr);

@@ -14,7 +14,7 @@ params:
 
   spin_threads: 1
 
-subscribers: [
+publishers: [
   {
     client_topic: "string_out",
     rbf_topic: "/reserved/loopback/to_server",
@@ -22,7 +22,7 @@ subscribers: [
   }
 ]
 
-publishers: [
+subscribers: [
   {
     client_topic: "server_time",
     rbf_topic: "/reserved/server_time",

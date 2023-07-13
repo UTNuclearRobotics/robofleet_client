@@ -23,7 +23,8 @@ params:
   # you may need more threads to handle a large amount of traffic
   spin_threads: 1
 
-subscribers: [
+# publishers establish topic streams for messages going out from the client to the robofleet server
+publishers: [
   {
     # param: client_topic
     # type: string
@@ -67,7 +68,8 @@ subscribers: [
   }
 ]
 
-publishers: [
+# subscribers establish topic streams for messages coming in from the robofleet server to the client
+subscribers: [
   {
     client_topic: "/twist_topic",
     rbf_topic: "/twist_topic",

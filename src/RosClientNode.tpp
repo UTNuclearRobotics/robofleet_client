@@ -6,7 +6,7 @@ bool RosClientNode::getHandler(const TopicParams& params,
   typedef boost::shared_ptr<Handler> HandlerPtr;
   HandlerPtr msg_handler(nullptr);
   try {
-    const std::string base_class = "robofleet_client::ROS" + handler_type;
+    const std::string base_class = "robofleet_client::RBF" + handler_type;
 
     typedef pluginlib::ClassLoader<Handler> ClassLoader;
     ClassLoader loader("robofleet_client",

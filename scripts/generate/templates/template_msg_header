@@ -22,8 +22,8 @@ flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBuff
 
 namespace {msg_package}_robofleet {{
 
-  /** Publish Handler **/
-  class {msg_name}PublishHandler : public robofleet_client::ROSPublishHandler
+  /** Robofleet Subscribe Handler **/
+  class {msg_name}SubscribeHandler : public robofleet_client::RBFSubscribeHandler
   {{
   public:
 
@@ -33,8 +33,8 @@ namespace {msg_package}_robofleet {{
                             const bool latched);
     
     // decodes raw data into the flatbuffer type,
-    // then converts to the ROS type, then publishes to the topic
-    virtual void publish(const QByteArray& data);
+    // then converts to the ROS type, then publishes to the ROS topic
+    virtual void publishROS(const QByteArray& data);
 
   private:
     typedef {msg_package}::{msg_name} MsgType;
@@ -45,8 +45,8 @@ namespace {msg_package}_robofleet {{
   }};
   
   
-  /** Subscribe Handler **/
-  class {msg_name}SubscribeHandler : public robofleet_client::ROSSubscribeHandler
+  /** Robofleet Publish Handler **/
+  class {msg_name}PublishHandler : public robofleet_client::RBFPublishHandler
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function

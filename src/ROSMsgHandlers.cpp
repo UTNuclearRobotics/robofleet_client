@@ -4,7 +4,7 @@
 
 namespace robofleet_client
 {
-  void ROSSubscribeHandler::initialize(ros::NodeHandle& nh,
+  void RBFPublishHandler::initialize(ros::NodeHandle& nh,
                                        MessageScheduler& scheduler,
                                        const std::string client_topic,
                                        const std::string rbf_topic,
@@ -19,7 +19,7 @@ namespace robofleet_client
       };
   }
 
-  void ROSSubscribeHandler::initialize(ros::NodeHandle& nh,
+  void RBFPublishHandler::initialize(ros::NodeHandle& nh,
                                        WsServer& server,
                                        const std::string client_topic,
                                        const std::string rbf_topic)
