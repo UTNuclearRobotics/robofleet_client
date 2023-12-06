@@ -25,7 +25,7 @@ For example, to use ROS messages from the `geometry_msgs` package, you need a co
 
 `robofleet_client` provides a script which generates your plugin packages for you. It can be run like so:
 ___
-    usage: generate_plugin_pkg.py [-h] [-o OUT] [-w] [-i] packages [packages ...]
+    usage: rosrun robofleet_client generate_plugin_pkg.py [-h] [-o OUT] [-w] [-i] packages [packages ...]
 
     positional arguments:
       packages            The msg or srv packages that we want to generate plugins
