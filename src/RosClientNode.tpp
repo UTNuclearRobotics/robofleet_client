@@ -1,9 +1,9 @@
 template<class Handler>
 bool RosClientNode::getHandler(const TopicParams& params,
                                const std::string handler_type,
-                               boost::shared_ptr<Handler>& out_handler)
+                               std::shared_ptr<Handler>& out_handler)
 {
-  typedef boost::shared_ptr<Handler> HandlerPtr;
+  typedef std::shared_ptr<Handler> HandlerPtr;
   HandlerPtr msg_handler(nullptr);
   try {
     const std::string base_class = "robofleet_client::RBF" + handler_type;
@@ -17,14 +17,14 @@ bool RosClientNode::getHandler(const TopicParams& params,
       const std::string msg_class = plugin_package + "::" + params.message_type + handler_type;
       msg_handler = HandlerPtr(loader.createUnmanagedInstance(msg_class));
     } catch(const pluginlib::LibraryLoadException& e) {
-      ROS_ERROR("%s", e.what());
+      RCLCPP_ERROR(this->get_logger(), "%s", e.what());
       return false;
     } catch (const pluginlib::CreateClassException& e) {
-      ROS_ERROR("%s", e.what());
+      RCLCPP_ERROR(this->get_logger(), "%s", e.what());
       return false;
     }
   } catch (const pluginlib::ClassLoaderException& e) {
-    ROS_ERROR("%s", e.what());
+    RCLCPP_ERROR(this->get_logger(), "%s", e.what());
     return false;
   }
 

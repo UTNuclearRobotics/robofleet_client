@@ -16,64 +16,16 @@ struct MsgWithMetadata;
 struct MsgWithMetadataBuilder;
 struct MsgWithMetadataT;
 
-struct RosTime;
-
-struct RosDuration;
-
 struct RobofleetSubscription;
 struct RobofleetSubscriptionBuilder;
 struct RobofleetSubscriptionT;
 
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) RosTime FLATBUFFERS_FINAL_CLASS {
- private:
-  uint32_t sec_;
-  uint32_t nsec_;
-
- public:
-  RosTime()
-      : sec_(0),
-        nsec_(0) {
-  }
-  RosTime(uint32_t _sec, uint32_t _nsec)
-      : sec_(flatbuffers::EndianScalar(_sec)),
-        nsec_(flatbuffers::EndianScalar(_nsec)) {
-  }
-  uint32_t sec() const {
-    return flatbuffers::EndianScalar(sec_);
-  }
-  uint32_t nsec() const {
-    return flatbuffers::EndianScalar(nsec_);
-  }
-};
-FLATBUFFERS_STRUCT_END(RosTime, 8);
-
-FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) RosDuration FLATBUFFERS_FINAL_CLASS {
- private:
-  int32_t sec_;
-  int32_t nsec_;
-
- public:
-  RosDuration()
-      : sec_(0),
-        nsec_(0) {
-  }
-  RosDuration(int32_t _sec, int32_t _nsec)
-      : sec_(flatbuffers::EndianScalar(_sec)),
-        nsec_(flatbuffers::EndianScalar(_nsec)) {
-  }
-  int32_t sec() const {
-    return flatbuffers::EndianScalar(sec_);
-  }
-  int32_t nsec() const {
-    return flatbuffers::EndianScalar(nsec_);
-  }
-};
-FLATBUFFERS_STRUCT_END(RosDuration, 8);
-
 struct MsgMetadataT : public flatbuffers::NativeTable {
   typedef MsgMetadata TableType;
-  std::string type{};
-  std::string topic{};
+  std::string type;
+  std::string topic;
+  MsgMetadataT() {
+  }
 };
 
 struct MsgMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -149,11 +101,9 @@ flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(flatbuffers::FlatBufferBuilde
 
 struct MsgWithMetadataT : public flatbuffers::NativeTable {
   typedef MsgWithMetadata TableType;
-  std::unique_ptr<fb::MsgMetadataT> __metadata{};
-  MsgWithMetadataT() = default;
-  MsgWithMetadataT(const MsgWithMetadataT &o);
-  MsgWithMetadataT(MsgWithMetadataT&&) FLATBUFFERS_NOEXCEPT = default;
-  MsgWithMetadataT &operator=(MsgWithMetadataT o) FLATBUFFERS_NOEXCEPT;
+  std::unique_ptr<fb::MsgMetadataT> __metadata;
+  MsgWithMetadataT() {
+  }
 };
 
 struct MsgWithMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -206,13 +156,12 @@ flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(flatbuffers::FlatBuff
 
 struct RobofleetSubscriptionT : public flatbuffers::NativeTable {
   typedef RobofleetSubscription TableType;
-  std::unique_ptr<fb::MsgMetadataT> __metadata{};
-  std::string topic_regex{};
-  uint8_t action = 0;
-  RobofleetSubscriptionT() = default;
-  RobofleetSubscriptionT(const RobofleetSubscriptionT &o);
-  RobofleetSubscriptionT(RobofleetSubscriptionT&&) FLATBUFFERS_NOEXCEPT = default;
-  RobofleetSubscriptionT &operator=(RobofleetSubscriptionT o) FLATBUFFERS_NOEXCEPT;
+  std::unique_ptr<fb::MsgMetadataT> __metadata;
+  std::string topic_regex;
+  uint8_t action;
+  RobofleetSubscriptionT()
+      : action(0) {
+  }
 };
 
 struct RobofleetSubscription FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -238,7 +187,7 @@ struct RobofleetSubscription FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tabl
            verifier.VerifyTable(__metadata()) &&
            VerifyOffset(verifier, VT_TOPIC_REGEX) &&
            verifier.VerifyString(topic_regex()) &&
-           VerifyField<uint8_t>(verifier, VT_ACTION, 1) &&
+           VerifyField<uint8_t>(verifier, VT_ACTION) &&
            verifier.EndTable();
   }
   RobofleetSubscriptionT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -298,7 +247,7 @@ inline flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscriptionDir
 flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 inline MsgMetadataT *MsgMetadata::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<MsgMetadataT>(new MsgMetadataT());
+  std::unique_ptr<fb::MsgMetadataT> _o = std::unique_ptr<fb::MsgMetadataT>(new MsgMetadataT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -326,17 +275,8 @@ inline flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(flatbuffers::FlatBuffe
       _topic);
 }
 
-inline MsgWithMetadataT::MsgWithMetadataT(const MsgWithMetadataT &o)
-      : __metadata((o.__metadata) ? new fb::MsgMetadataT(*o.__metadata) : nullptr) {
-}
-
-inline MsgWithMetadataT &MsgWithMetadataT::operator=(MsgWithMetadataT o) FLATBUFFERS_NOEXCEPT {
-  std::swap(__metadata, o.__metadata);
-  return *this;
-}
-
 inline MsgWithMetadataT *MsgWithMetadata::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<MsgWithMetadataT>(new MsgWithMetadataT());
+  std::unique_ptr<fb::MsgWithMetadataT> _o = std::unique_ptr<fb::MsgWithMetadataT>(new MsgWithMetadataT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -344,7 +284,7 @@ inline MsgWithMetadataT *MsgWithMetadata::UnPack(const flatbuffers::resolver_fun
 inline void MsgWithMetadata::UnPackTo(MsgWithMetadataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = __metadata(); if (_e) { if(_o->__metadata) { _e->UnPackTo(_o->__metadata.get(), _resolver); } else { _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); } } }
+  { auto _e = __metadata(); if (_e) _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); }
 }
 
 inline flatbuffers::Offset<MsgWithMetadata> MsgWithMetadata::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -361,21 +301,8 @@ inline flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(flatbuffers::F
       ___metadata);
 }
 
-inline RobofleetSubscriptionT::RobofleetSubscriptionT(const RobofleetSubscriptionT &o)
-      : __metadata((o.__metadata) ? new fb::MsgMetadataT(*o.__metadata) : nullptr),
-        topic_regex(o.topic_regex),
-        action(o.action) {
-}
-
-inline RobofleetSubscriptionT &RobofleetSubscriptionT::operator=(RobofleetSubscriptionT o) FLATBUFFERS_NOEXCEPT {
-  std::swap(__metadata, o.__metadata);
-  std::swap(topic_regex, o.topic_regex);
-  std::swap(action, o.action);
-  return *this;
-}
-
 inline RobofleetSubscriptionT *RobofleetSubscription::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::unique_ptr<RobofleetSubscriptionT>(new RobofleetSubscriptionT());
+  std::unique_ptr<fb::RobofleetSubscriptionT> _o = std::unique_ptr<fb::RobofleetSubscriptionT>(new RobofleetSubscriptionT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
@@ -383,7 +310,7 @@ inline RobofleetSubscriptionT *RobofleetSubscription::UnPack(const flatbuffers::
 inline void RobofleetSubscription::UnPackTo(RobofleetSubscriptionT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = __metadata(); if (_e) { if(_o->__metadata) { _e->UnPackTo(_o->__metadata.get(), _resolver); } else { _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); } } }
+  { auto _e = __metadata(); if (_e) _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); }
   { auto _e = topic_regex(); if (_e) _o->topic_regex = _e->str(); }
   { auto _e = action(); _o->action = _e; }
 }

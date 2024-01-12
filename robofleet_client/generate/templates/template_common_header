@@ -53,6 +53,6 @@ ros::Time FbtoRos(const fb::RosTime* fb);
 
 const fb::RosTime* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Time& msg);
 
-ros::Duration FbtoRos(const fb::RosDuration* fb);
+rclcpp::Duration FbtoRos(const fb::RosDuration* fb);
 
-const fb::RosDuration* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Duration& msg);
+const fb::RosDuration* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const rclcpp::Duration& msg);

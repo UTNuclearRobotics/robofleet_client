@@ -3,7 +3,7 @@
 #include <QObject>
 #include <unordered_map>
 
-#include <pluginlib/class_loader.h>
+#include <pluginlib/class_loader.hpp>
 
 #include "robofleet_client/ROSMsgHandlers.hpp"
 #include "robofleet_client/ROSSrvHandlers.hpp"
@@ -14,7 +14,7 @@ namespace YAML {
 
 class WsServer;
 
-class RosClientNode : public QObject {
+class RosClientNode : public QObject, public rclcpp::Node {
   Q_OBJECT
 
 public:
@@ -45,6 +45,10 @@ private:
 
   // holds the configuration params for a data topic
   struct TopicParams {
+    TopicParams():
+      timeout(0,0)
+    {}
+
     // used for all topic types
     std::string message_package;
     MsgTypeString message_type;
@@ -62,7 +66,7 @@ private:
 
     // only used for service topics
     // set to zero if we don't want to time out
-    ros::Duration timeout;
+    rclcpp::Duration timeout;
   };
 
   const Verbosity verbosity_;
@@ -72,9 +76,7 @@ private:
 
   // used in direct mode
   WsServer* const server_;
-
-  ros::NodeHandle nh_;
-
+  
   // handlers are mapped according to their Robofleet topic name
   template<class Handler>
   using HandlerMap = std::unordered_map<TopicString, Handler>;
@@ -96,7 +98,7 @@ private:
   template<class Handler>
   bool getHandler(const TopicParams& params,
                   const std::string handler_type,
-                  boost::shared_ptr<Handler>& out_handler);
+                  std::shared_ptr<Handler>& out_handler);
 
   bool getPublishHandler(const TopicParams& params,
                            robofleet_client::RBFPublishHandlerPtr& out_handler);

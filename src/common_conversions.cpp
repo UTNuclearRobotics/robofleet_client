@@ -14,29 +14,12 @@ flatbuffers::Offset<flatbuffers::String> RostoFb(flatbuffers::FlatBufferBuilder&
   return fbb.CreateString(src.c_str());
 }
 
-
-// time and duration primitives don't follow the usual pattern,
-// so handle them explicitly
-ros::Time FbtoRos(const fb::RosTime* fb)
+std::u16string FbtoRos(const flatbuffers::Vector<char16_t>* src)
 {
-  return ros::Time(fb->sec(), fb->nsec());
+  return std::u16string(src->begin(), src->end());
 }
 
-const fb::RosTime* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Time& msg)
+flatbuffers::Offset<flatbuffers::Vector<char16_t>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::u16string& src)
 {
-  (void)fbb;
-  const fb::RosTime* time = new fb::RosTime(msg.sec, msg.nsec);
-  return time;
-}
-
-ros::Duration FbtoRos(const fb::RosDuration* fb)
-{
-  return ros::Duration(fb->sec(), fb->nsec());
-}
-
-const fb::RosDuration* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Duration& msg)
-{
-  (void)fbb;
-  const fb::RosDuration* duration = new fb::RosDuration(msg.sec, msg.nsec);
-  return duration;
+  return fbb.CreateVector(std::vector<char16_t>(src.begin(), src.end()));
 }

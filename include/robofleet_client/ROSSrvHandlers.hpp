@@ -1,9 +1,6 @@
 #pragma once
 
-#include <ros/ros.h>
-
-// contains macros used to register plugin classes
-#include <pluginlib/class_list_macros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <robofleet_client/common_conversions.hpp>
 
@@ -30,12 +27,12 @@ namespace robofleet_client
   class ROSSrvOutHandler
   {
     public:
-      virtual void initialize(ros::NodeHandle& nh,
+      virtual void initialize(rclcpp::Node* node,
                               MessageScheduler& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic);
 
-      virtual void initialize(ros::NodeHandle& nh,
+      virtual void initialize(rclcpp::Node* node,
                               WsServer& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic);
@@ -44,7 +41,6 @@ namespace robofleet_client
 
     protected:
       typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
-      ros::ServiceClient client_;
 
       // sends raw data to the message scheduler
       std::function<void(const QByteArray&)> schedule_function_;
@@ -58,30 +54,28 @@ namespace robofleet_client
   class ROSSrvInHandler
   {
     public:
-      virtual void initialize(ros::NodeHandle& nh,
+      virtual void initialize(rclcpp::Node* node,
                               MessageScheduler& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic,
-                              const ros::Duration timeout);
+                              const rclcpp::Duration timeout);
 
-      virtual void initialize(ros::NodeHandle& nh,
+      virtual void initialize(rclcpp::Node* node,
                               WsServer& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic,
-                              const ros::Duration timeout);
+                              const rclcpp::Duration timeout);
       
       virtual void returnResponse(const QByteArray& data);
 
     protected:
       typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
-
-      ros::ServiceServer server_;
       
       bool awaitReponse();
 
       bool has_received_response_;
 
-      ros::Duration timeout_;
+      rclcpp::Duration timeout_;
 
       std::mutex response_mutex_;
 
@@ -94,7 +88,7 @@ namespace robofleet_client
       std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
   };
   
-  typedef boost::shared_ptr<ROSSrvInHandler> ROSSrvInHandlerPtr;
-  typedef boost::shared_ptr<ROSSrvOutHandler> ROSSrvOutHandlerPtr;
+  typedef std::shared_ptr<ROSSrvInHandler> ROSSrvInHandlerPtr;
+  typedef std::shared_ptr<ROSSrvOutHandler> ROSSrvOutHandlerPtr;
 
 } // namespace robofleet_client

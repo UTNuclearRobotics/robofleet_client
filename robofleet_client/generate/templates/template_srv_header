@@ -4,7 +4,7 @@
 #include <robofleet_client/ROSSrvHandlers.hpp>
 
 // get the srv type
-#include <{srv_package}/{srv_type}.h>
+#include <{srv_package}/{srv_type_lowercase}.h>
 
 #include <{srv_package}_robofleet/{srv_package}_generated.h>
 
@@ -27,18 +27,19 @@ namespace {srv_package}_robofleet {{
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
-    virtual void initialize(ros::NodeHandle& nh,
+    virtual void initialize(rclcpp::Node* node,
                             MessageScheduler& scheduler,
                             const std::string client_service,
                             const std::string rbf_topic,
-                            const ros::Duration timeout);
+                            const rclcpp::Duration timeout);
     
-    virtual void initialize(ros::NodeHandle& nh,
+    virtual void initialize(rclcpp::Node* node,
                             WsServer& scheduler,
                             const std::string client_service,
                             const std::string rbf_topic,
-                            const ros::Duration timeout);
+                            const rclcpp::Duration timeout);
   private:
+    typedef {srv_package}::{srv_type} SrvType;
     typedef {srv_package}::{request_type} RequestType;
     typedef {srv_package}::{response_type} ResponseType;
     typedef fb::{srv_package}::{request_type} FbRequestType;
@@ -55,6 +56,8 @@ namespace {srv_package}_robofleet {{
     
     // encodes the message
     bool callback(RequestType& req, ResponseType& res);
+
+    rclcpp::Service<SrvType>::SharedPtr server_;
   }};
 
     /** Response Handler **/
@@ -62,12 +65,12 @@ namespace {srv_package}_robofleet {{
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
-    virtual void initialize(ros::NodeHandle& nh,
+    virtual void initialize(rclcpp::Node* node,
                             MessageScheduler& scheduler,
                             const std::string client_service,
                             const std::string rbf_topic);
     
-    virtual void initialize(ros::NodeHandle& nh,
+    virtual void initialize(rclcpp::Node* node,
                             WsServer& server,
                             const std::string client_service,
                             const std::string rbf_topic);
@@ -86,5 +89,7 @@ namespace {srv_package}_robofleet {{
 
     // produces a buffer with metadata
     QByteArray encodeResponseWithMetadata(const ResponseType& msg);
+
+    rclcpp::Client<SrvType>::SharedPtr client_;
   }};
 }}

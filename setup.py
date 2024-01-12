@@ -8,7 +8,6 @@ setup_args = generate_distutils_setup(
     packages=['robofleet_client'],
     package_dir={'': 'src'},
     scripts=['scripts/generate/generate_plugin_pkg.py'],
-    requires=['rosmsg', 'rospkg']
 )
 
 setup(**setup_args)

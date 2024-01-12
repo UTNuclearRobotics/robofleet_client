@@ -4,7 +4,7 @@
 #include <robofleet_client/ROSMsgHandlers.hpp>
 
 // get the msg type
-#include <{msg_package}/{msg_name}.h>
+#include <{msg_package}/msg/{msg_name_lowercase}.hpp>
 
 #include <{msg_package}_robofleet/{msg_package}_generated.h>
 
@@ -12,13 +12,13 @@
 {dependencies}
 
 /** Conversion Functions **/
-{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src);
+{msg_package}::msg::{msg_name} FbtoRos(const fb::{msg_package}::msg::{msg_name}* src);
 
-std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src);
+std::vector<{msg_package}::msg::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}>>* src);
 
-flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& msg);
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::msg::{msg_name}>& msg);
 
-flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg);
+flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::msg::{msg_name}& msg);
 
 namespace {msg_package}_robofleet {{
 
@@ -28,7 +28,7 @@ namespace {msg_package}_robofleet {{
   public:
 
     // advertises the topic
-    virtual void initialize(ros::NodeHandle& nh,
+    virtual void initialize(rclcpp::Node* node,
                             const std::string client_topic,
                             const bool latched);
     
@@ -37,11 +37,13 @@ namespace {msg_package}_robofleet {{
     virtual void publishROS(const QByteArray& data);
 
   private:
-    typedef {msg_package}::{msg_name} MsgType;
-    typedef fb::{msg_package}::{msg_name} FbMsgType;
+    typedef {msg_package}::msg::{msg_name} MsgType;
+    typedef fb::{msg_package}::msg::{msg_name} FbMsgType;
 
     // converts from raw data to flatbuffer type
     const FbMsgType* decode(const QByteArray& data);
+
+    rclcpp::Publisher<MsgType>::SharedPtr ros_pub_;
   }};
   
   
@@ -50,7 +52,7 @@ namespace {msg_package}_robofleet {{
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
-    virtual void initialize(ros::NodeHandle& nh,
+    virtual void initialize(rclcpp::Node* node,
                             MessageScheduler& scheduler,
                             const std::string client_topic,
                             const std::string rbf_topic,
@@ -59,19 +61,21 @@ namespace {msg_package}_robofleet {{
                             const bool no_drop,
                             const int queue_size);
 
-    virtual void initialize(ros::NodeHandle& nh,
+    virtual void initialize(rclcpp::Node* node,
                             WsServer& server,
                             const std::string client_topic,
                             const std::string rbf_topic);
     
   private:
-    typedef {msg_package}::{msg_name} MsgType;
-    typedef boost::shared_ptr<MsgType> MsgTypeConstPtr;
+    typedef {msg_package}::msg::{msg_name} MsgType;
+    typedef std::shared_ptr<MsgType> MsgTypeConstPtr;
 
     // produces a buffer with metadata
     QByteArray encodeWithMetadata(const MsgType& msg);
     
     // encodes the message
-    void callback(const MsgTypeConstPtr& msg);
+    void callback(const MsgType& msg);
+
+    rclcpp::Subscription<MsgType>::SharedPtr ros_sub_;
   }};
 }}

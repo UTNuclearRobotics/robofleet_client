@@ -8,32 +8,32 @@
 
 import argparse
 import glob
-import rospy
-import msg2fbs.msg2fbs as msg2fbs
-import msg2fbs.msg_util as msg_util
-import os.path
+import robofleet_client.generate.msg2fbs.msg2fbs as msg2fbs
+import robofleet_client.generate.msg2fbs.msg_util as msg_util
+import pathlib
+import os
 import re
-import rosmsg
-import rospkg.rospack
+from ament_index_python.packages import get_package_prefix, get_package_share_path
+from rosidl_runtime_py import get_message_interfaces, get_service_interfaces
+from rosidl_adapter.parser import MessageSpecification, ServiceSpecification
 import shutil
 import subprocess
 import sys
 
-class MsgSpecHashable(msg_util.genmsg.MsgSpec):
+class MsgSpecHashable(MessageSpecification):
   def __init__(self, spec):
-    super().__init__(spec.types, spec.names, spec.constants,spec.text,
-                     spec.full_name, spec.package, spec.short_name)
+    #pkg_name = parts = spec.base_type.split('/')[0]
+    super().__init__(spec.base_type.pkg_name, spec.msg_name, spec.fields, spec.constants)
   
   def __hash__(self):
-    return hash(self.full_name)
+    return hash(self.base_type)
 
-class SrvSpecHashable(msg_util.genmsg.SrvSpec):
+class SrvSpecHashable(ServiceSpecification):
   def __init__(self, spec):
-    super().__init__(spec.request, spec.response, spec.text,
-                     spec.full_name, spec.short_name, spec.package)
+    super().__init__(spec.pkg_name, spec.service_name, spec.request, spec.response)
   
   def __hash__(self):
-    return hash(self.full_name)    
+    return hash(self.pkg_name + '/' + self.service_name)    
 
 class PackageData:
   """
@@ -67,18 +67,18 @@ class PackageData:
     if self.messages:
       output += '\n\tMessages'
       for msg in self.messages:
-        output += '\n\t\t' + msg.full_name 
+        output += '\n\t\t' + str(msg.base_type)
     if self.services:
       output += '\n\tServices'
       for srv in self.services:
-        output += '\n\t\t' + srv.full_name
+        output += '\n\t\t' + str(srv.base_type)
 
     return output
 
 
 def parse_args(args):
   """ Parses the command line args. """
-  default_output_path = os.path.join(rospkg.RosPack().get_path('robofleet_client'), 'scripts/generate/output')
+  default_output_path = pathlib.Path(get_package_share_path('robofleet_client'), 'generate/output')
 
   parser = argparse.ArgumentParser(description="Generates plugin packages which expose ROS msgs and services to robofleet_client.")
   parser.add_argument('-o', '--out', default=default_output_path,
@@ -101,11 +101,11 @@ def check_product_existence(packages, output_dir, overwrite):
  """
   for package in packages:
     # does the generated package exist in the output directory?
-    if os.path.isdir(os.path.join(output_dir,package.plugin_pkg_name)):
+    if pathlib.Path(output_dir, package.plugin_pkg_name).exists():
       # if yes, we must be in overwrite mode to proceed
       if overwrite:
         # delete the package
-        shutil.rmtree(output_dir + '/' + package.plugin_pkg_name)
+        shutil.rmtree(pathlib.Path(output_dir, package.plugin_pkg_name))
       else:
         # exit with error message
         print('ERROR: Requested package {} already exists. '
@@ -127,30 +127,32 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
 
   # get the names of all the messages in the package
   try:
-    message_names = set(rosmsg.list_msgs(package.name))
-  except rospkg.common.ResourceNotFound as err:
+    message_names = get_message_interfaces([package.name])
+  except LookupError as err:
     print('ERROR: Package {} not found.').format(err.args[0])
     print(err)
     return 1
   
   # get the names of all the services in the package
-  service_names = set(rosmsg.list_srvs(package.name))
+  try:
+    service_names = get_service_interfaces([package.name])
+  except LookupError as err:
+    print('ERROR: Package {} not found.').format(err.args[0])
+    print(err)
+    return 1
   
-  print('Found package ' + package.name)
   if not message_names and not service_names:
     print('WARNING: No messages or services found for package' + package.name)
-
-  # the search paths from which to pull msg and srv data
-  msg_search_path = msg_util.get_msg_search_path()
-  srv_search_path = msg_util.get_srv_search_path()
-
+  
   # get the definitions of each message
-  package.messages = set(MsgSpecHashable(msg_util.get_msg_spec(name, msg_search_path))
-                         for name in message_names)
+  if package.name in message_names.keys():
+    package.messages = set(MsgSpecHashable(msg_util.get_msg_spec(package.name, message_name))
+                          for message_name in message_names[package.name])
 
   # get the definitions of each service
-  package.services = set(SrvSpecHashable(msg_util.get_srv_spec(name, srv_search_path))
-                         for name in service_names)
+  if package.name in service_names.keys():
+    package.services = set(SrvSpecHashable(msg_util.get_srv_spec(package.name, service_name))
+                          for service_name in service_names[package.name])
 
   # service consists of a Request message and a Response message
   # combine all the regular messages and service messages together
@@ -160,15 +162,16 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
   # get all the dependencies of the package
   for message in package.messages.union(set(MsgSpecHashable(x.request) for x in package.services),
                                         set(MsgSpecHashable(x.response) for x in package.services)):
-    msg_depends_graph[message.full_name] = set()
+    msg_depends_graph[message.base_type] = set()
 
     # iterate over the fields of each message
-    for field in message.parsed_fields():
-      if '/' in field.base_type:
+    for field in message.fields:
+      # check if this field's type is a primitive
+      if not field.type.is_primitive_type():
 
-        # get the part of the message in front of the '/' - this is the package name
-        dep_package_name = field.base_type.split('/')[0]
-        msg_depends_graph[message.full_name].add(field.base_type)
+        # get the package this field's type is from
+        dep_package_name = field.type.pkg_name
+        msg_depends_graph[message.base_type].add(field.type)
 
         # don't depend on self
         if dep_package_name != package.name:
@@ -182,24 +185,25 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
 
 
 
-def generate_directories(name, output_path):
+def generate_directories(pkg_name: str, output_path: pathlib.Path):
   """
   Creates the directory tree for the plugin package, in the 'output' directory.
   """
 
-  print('Generating ' + name)
+  print('Generating ' + pkg_name)
   
-  if not os.path.exists(output_path):
-    os.mkdir(output_path)
+  if not output_path.is_dir():
+    output_path.mkdir(parents=True)
 
-  package_dir = os.path.join(output_path, name)
+  package_dir = pathlib.Path(output_path, pkg_name)
 
   try:
-    os.mkdir(package_dir)
-    os.makedirs(os.path.join(package_dir, 'include', name))
-    os.mkdir(os.path.join(package_dir, 'src'))
+    pathlib.Path(package_dir, 'include', pkg_name, 'msg').mkdir(parents=True)
+    pathlib.Path(package_dir, 'include', pkg_name, 'srv').mkdir(parents=True)
+    pathlib.Path(package_dir, 'src/msg').mkdir(parents=True)
+    pathlib.Path(package_dir, 'src/srv').mkdir(parents=True)
   except OSError as err:
-    print(err)
+    print(err.strerror)
     return False
 
   return True
@@ -209,38 +213,43 @@ def generate_cmakelists(package, depends, output_path, templates_path):
   """
   Builds the plugin package's CMakelists.txt from a template.
   """
-  cmakelists_template_path = os.path.join(templates_path, 
+  cmakelists_template_path = pathlib.Path(templates_path, 
                                           'template_CMakeLists')
-  cmakelists_out_path = os.path.join(output_path,
+  cmakelists_out_path = pathlib.Path(output_path,
                                      package.plugin_pkg_name,
                                      'CMakeLists.txt')
 
   # read in the template
   try:
-    with open(cmakelists_template_path, 'r') as file :
+    with open(cmakelists_template_path, 'r') as file:
       filedata = file.read()
-  except IOError:
-    print('ERROR: Failed to read CMakeLists template.')
+  except IOError as err:
+    print('ERROR: Failed to read CMakeLists template at ' + err.filename)
+    print(err.strerror)
     return False
 
-  # Build dependencies
+  # Build find_package({dependencies})
+  find_dependencies_str = '\n'.join(['find_package({}_robofleet)'.format(x.name) for x in depends])
   dependencies_str = '\n'.join(['\t{}_robofleet'.format(x.name) for x in depends])
 
   # Source files for the library target
-  source_files_list = '\n'.join(['\tsrc/{}.cpp'.format(message.short_name)
-                       for message in package.messages | package.services])
+  source_files_list = '\n'.join(['\tsrc/msg/{}.cpp'.format(message.msg_name)
+                       for message in package.messages] +
+                       ['\tsrc/srv/{}.cpp'.format(service.srv_name)
+                       for service in  package.services])
 
   # replace the target strings
   filedata = filedata.format(msg_package=package.name,
                              sources_list=source_files_list,
+                             find_dependencies=find_dependencies_str,
                              dependencies=dependencies_str)
 
   # write the filled out CMakelists
   try:
     with open(cmakelists_out_path, 'w') as file:
       file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write CMakeLists.txt.')
+  except OSError as err:
+    print('ERROR: Failed to write CMakeLists.txt. ' + err.strerror)
     return False
 
   return True
@@ -251,8 +260,8 @@ def generate_package_xml(package, depends, output_path, templates_path):
   """
   Builds the plugin package's Package.xml from a template.
   """
-  xml_template_path = os.path.join(templates_path, 'template_packagexml')
-  xml_out_path = os.path.join(output_path, package.plugin_pkg_name, 'package.xml')
+  xml_template_path = pathlib.Path(templates_path, 'template_packagexml')
+  xml_out_path = pathlib.Path(output_path, package.plugin_pkg_name, 'package.xml')
 
   # read in the template
   try:
@@ -274,8 +283,8 @@ def generate_package_xml(package, depends, output_path, templates_path):
   try:
     with open(xml_out_path, 'w') as file:
       file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write package.xml.')
+  except OSError as err:
+    print('ERROR: Failed to write package.xml. ' + err.strerror)
     return False
 
   return True
@@ -286,12 +295,13 @@ def generate_msg_headers(message, msg_depends_graph, output_path, templates_path
   """
   Generates the header file for a message's handler classes
   """
-  header_template_path = os.path.join(templates_path, 'template_msg_header')
-  header_out_path = os.path.join(output_path,
-                                 message.package + '_robofleet',
+  header_template_path = pathlib.Path(templates_path, 'template_msg_header')
+  header_out_path = pathlib.Path(output_path,
+                                 message.base_type.pkg_name + '_robofleet',
                                  'include',
-                                 message.package + '_robofleet',
-                                 message.short_name + '.h')
+                                 message.base_type.pkg_name + '_robofleet',
+                                 'msg',
+                                 message.msg_name + '.hpp')
 
   # read in the template
   try:
@@ -302,20 +312,21 @@ def generate_msg_headers(message, msg_depends_graph, output_path, templates_path
     return False
 
   # includes for the message types used in this message's fields
-  dependencies = '\n'.join(['#include <{}_robofleet/{}.h>'.format(*depend.split('/'))\
-                           for depend in msg_depends_graph[message.full_name]])
-
+  dependencies = '\n'.join(['#include <{}_robofleet/{}.hpp>'.format(depend.pkg_name, depend.type)\
+                           for depend in msg_depends_graph[message.base_type]])
+  
   # replace the target strings
-  filedata = filedata.format(msg_package=message.package,
-                             msg_name=message.short_name,
+  filedata = filedata.format(msg_package=message.base_type.pkg_name,
+                             msg_name_lowercase=message.msg_name.lower(),
+                             msg_name=message.msg_name,
                              dependencies=dependencies)
 
   # write the filled out class header
   try:
     with open(header_out_path, 'w') as file:
       file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write msg header.')
+  except OSError as err:
+    print('ERROR: Failed to write msg header {}. {}'.format(err.filename, err.strerror))
     return False
 
   return True
@@ -326,11 +337,11 @@ def generate_msg_impl(message, output_path, templates_path):
   """
   Generates the implementation (.cpp) file for a message's handler classes
   """
-  impl_template_path = os.path.join(templates_path, 'template_msg_impl')
-  impl_out_path = os.path.join(output_path,
-                               message.package + '_robofleet',
-                               'src',
-                               message.short_name + '.cpp')
+  impl_template_path = pathlib.Path(templates_path, 'template_msg_impl')
+  impl_out_path = pathlib.Path(output_path,
+                               message.base_type.pkg_name + '_robofleet',
+                               'src/msg',
+                               message.msg_name + '.cpp')
 
   # read in the template
   try:
@@ -346,39 +357,32 @@ def generate_msg_impl(message, output_path, templates_path):
   # code for assignments from ROS fields to flatbuffer fields
   msg_encode_assignments = ''
 
-  for field in message.parsed_fields():
-
-    # We need the call to lower() because some ROS messages don't follow the
-    # convention of all lower case. For example, see sensor_msgs/CameraInfo
-    field_name_decode = 'src->' + field.name.lower() + '()'
+  for field in message.fields:
+    field_name_decode = 'src->' + field.name + '()'
     field_name_encode = 'msg.' + field.name
 
     # handle variables that themselves require a call to a conversion function
     # RosTime and RosDuration require special handling
     # also have to handle arrays and primitives
-    if not field.is_builtin or field.base_type in ['string', 'time', 'duration']\
-          or (field.is_builtin and field.is_array):
+    if not field.type.is_primitive_type() or field.type.type in ['string']\
+          or (not field.type.is_primitive_type() and field.is_array):
 
       # a modifier string to add to the end of the conversion function name
       p = ''
 
       # construct function template parameters to help the compiler find the right overloads.
-      type_with_c_ns = field.base_type.replace('/','::')
-      if field.base_type == 'string' and field.is_array:
+      # TODO: remove line - type_with_c_ns = field.type.replace('/','::')
+      if field.type.type == 'string' and field.type.is_array:
         p = '<std::string,flatbuffers::String>'
-      elif field.base_type == 'time' and field.is_array:
-        p = '<ros::Time,fb::RosTime'
-      elif field.base_type == 'duration' and field.is_array:
-        p = '<ros::Duration,fb::RosDuration'
       
       # decide if we should be calling the primitive set of conversion templates,
       # or the set for compound types. Only compound types require the
       # template parameters constructed above
-      if field.is_builtin and field.is_array and field.base_type != 'string':
+      if field.type.pkg_name is None and field.type.is_array and field.type.type != 'string':
         p = 'Primitive'
       field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
-      if field.array_len is None:
+      if field.type.array_size is None:
         field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
       else:
         # ROS uses boost::array to represent fixed-length vector message fields
@@ -406,8 +410,8 @@ def generate_msg_impl(message, output_path, templates_path):
     msg_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
   
 
-  filedata = filedata.format(msg_package=message.package,
-                             msg_name=message.short_name,
+  filedata = filedata.format(msg_package=message.base_type.pkg_name,
+                             msg_name=message.msg_name,
                              msg_decode_assignments=msg_decode_assignments,
                              msg_encode_assignments=msg_encode_assignments)
 
@@ -415,8 +419,8 @@ def generate_msg_impl(message, output_path, templates_path):
   try:
     with open(impl_out_path, 'w') as file:
       file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write msg implementation.')
+  except OSError as err:
+    print('ERROR: Failed to write msg implementation. ' + err.strerror)
     return False
 
   return True
@@ -432,7 +436,8 @@ def generate_srv_headers(service, msg_depends_graph, output_path, templates_path
                                  service.package + '_robofleet',
                                  'include',
                                  service.package + '_robofleet',
-                                 service.short_name + '.h')
+                                 'srv',
+                                 service.short_name + '.hpp')
 
   request = service.request
   response = service.response
@@ -446,22 +451,23 @@ def generate_srv_headers(service, msg_depends_graph, output_path, templates_path
     return False
 
   # includes for the service types used in this service's fields
-  dependencies = '\n'.join(['#include <{}_robofleet/{}.h>'.format(*depend.split('/'))\
-                           for depend in msg_depends_graph[request.full_name] | msg_depends_graph[response.full_name]])
+  dependencies = '\n'.join(['#include <{}_robofleet/{}.hpp>'.format(*depend.split('/'))\
+                           for depend in msg_depends_graph[request.base_type.type] | msg_depends_graph[response.base_type.type]])
 
   # replace the target strings
   filedata = filedata.format(srv_package=request.package,
-                             srv_type=service.short_name,
-                             request_type=service.request.short_name,
-                             response_type=service.response.short_name,
+                             srv_type=service.srv_name,
+                             srv_type_lowercase=service.msg_name.lower(),
+                             request_type=service.request.msg_name,
+                             response_type=service.response.msg_name,
                              dependencies=dependencies)
 
   # write the filled out class header
   try:
     with open(header_out_path, 'w') as file:
       file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write srv header.')
+  except OSError as err:
+    print('ERROR: Failed to write srv header. ' + err.strerror)
     return False
 
   return True
@@ -475,7 +481,7 @@ def generate_srv_impl(service, output_path, templates_path):
   impl_template_path = os.path.join(templates_path, 'template_srv_impl')
   impl_out_path = os.path.join(output_path,
                                service.package + '_robofleet',
-                               'src',
+                               'src/srv',
                                service.short_name + '.cpp')
 
   request = service.request
@@ -518,7 +524,7 @@ def generate_srv_impl(service, output_path, templates_path):
       elif field.base_type == 'time' and field.is_array:
         p = '<ros::Time,fb::RosTime'
       elif field.base_type == 'duration' and field.is_array:
-        p = '<ros::Duration,fb::RosDuration'
+        p = '<rclcpp::Duration,fb::RosDuration'
       
       # decide if we should be calling the primitive set of conversion templates,
       # or the set for compound types. Only compound types require the
@@ -580,21 +586,17 @@ def generate_srv_impl(service, output_path, templates_path):
 
       # construct function template parameters to help the compiler find the right overloads.
       type_with_c_ns = field.base_type.replace('/','::')
-      if field.base_type == 'string' and field.is_array:
+      if field.type.type == 'string' and field.type.is_array:
         p = '<std::string,flatbuffers::String>'
-      elif field.base_type == 'time' and field.is_array:
-        p = '<ros::Time,fb::RosTime'
-      elif field.base_type == 'duration' and field.is_array:
-        p = '<ros::Duration,fb::RosDuration'
       
       # decide if we should be calling the primitive set of conversion templates,
       # or the set for compound types. Only compound types require the
       # template parameters constructed above
-      if field.is_builtin and field.is_array and field.base_type != 'string':
+      if field.is_builtin and field.type.is_array and field.type.type != 'string':
         p = 'Primitive'
       field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
-      if field.array_len is None:
+      if field.array_size is None:
         field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
       else:
         # ROS uses boost::array to represent fixed-length vector fields
@@ -622,9 +624,9 @@ def generate_srv_impl(service, output_path, templates_path):
     response_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
 
   filedata = filedata.format(srv_package=service.package,
-                             srv_type=service.short_name,
-                             request_type=service.request.short_name,
-                             response_type=service.response.short_name,
+                             srv_type=service.srv_name,
+                             request_type=service.request.msg_name,
+                             response_type=service.response.msg_name,
                              response_decode_assignments=response_decode_assignments,
                              response_encode_assignments=response_encode_assignments,
                              request_decode_assignments=request_decode_assignments,
@@ -634,8 +636,8 @@ def generate_srv_impl(service, output_path, templates_path):
   try:
     with open(impl_out_path, 'w') as file:
       file.write(filedata)
-  except OSError:
-    print('ERROR: Failed to write srv implementation.')
+  except OSError as err:
+    print('ERROR: Failed to write srv implementation. ' + err.strerror)
     return False
 
   return True
@@ -646,11 +648,11 @@ def generate_plugin_manifest(package, output_path, templates_path):
   Build the plugin descriptions file which exposes the
   message handlers to pluginlib
   """
-  msg_template_path = os.path.join(templates_path, 
+  msg_template_path = pathlib.Path(templates_path, 
                                         'template_msg_plugin_description')
-  srv_template_path = os.path.join(templates_path, 
+  srv_template_path = pathlib.Path(templates_path, 
                                         'template_srv_plugin_description')
-  manifest_out_path = os.path.join(output_path,
+  manifest_out_path = pathlib.Path(output_path,
                                    package.plugin_pkg_name,
                                    'plugin_description.xml')
 
@@ -673,12 +675,12 @@ def generate_plugin_manifest(package, output_path, templates_path):
   output = '<library path="lib/lib{msg_package}_robofleet">\n'
   for message in package.messages:
     output += msgdata.format(msg_package=package.name,
-                              msg_name=message.short_name,
-                              msg_full_name=message.full_name)
+                              msg_name=message.base_type.type,
+                              msg_full_name=message.msg_name)
   for service in package.services:
     output += srvdata.format(msg_package=package.name,
-                              srv_name=service.short_name,
-                              srv_full_name=service.full_name)
+                              srv_name=service.base_type.type,
+                              srv_full_name=service.msg_name)
   output += '</library>'
   output = output.format(msg_package=package.name)
 
@@ -686,15 +688,15 @@ def generate_plugin_manifest(package, output_path, templates_path):
   try:
     with open(manifest_out_path, 'w') as file:
       file.write(output)
-  except OSError:
-    print('ERROR: Failed to write plugin_description.xml.')
+  except OSError as err:
+    print('ERROR: Failed to write plugin_description.xml. ' + err.strerror)
     return False
 
   return True
 
 
 
-def generate_base_schema_file(msg2fbs_dir, robofleet_client_path):
+def generate_base_schema_file(msg2fbs_dir, includes_destination):
   """
   Creates and compiles the schema file for the base definitions (MetaData, etc).
   Also copies the compiled file to robofleet_client's public includes location,
@@ -709,10 +711,10 @@ def generate_base_schema_file(msg2fbs_dir, robofleet_client_path):
   # save the schema definitions file
   schema_filename = "base_schema.fbs"
   try:
-    path = os.path.join(msg2fbs_dir, schema_filename)
+    path = pathlib.Path(msg2fbs_dir, schema_filename)
     output_file = open(path, "w+")
-  except OSError:
-    print('ERROR: Failed to write base definitions schema file')
+  except OSError as err:
+    print('ERROR: Failed to write base definitions schema file to ' + err.filename)
     return False
   
   output_file.writelines(line + os.linesep for line in schema_data)
@@ -722,21 +724,18 @@ def generate_base_schema_file(msg2fbs_dir, robofleet_client_path):
   # we actually call a make file which calls flatc
   print('Compiling flatbuffer schema for base definitions')
   try:
-    make_file_path = os.path.join(msg2fbs_dir, schema_filename)
+    make_file_path = pathlib.Path(msg2fbs_dir, schema_filename)
     # TODO: Add a timeout in Python3
-    compile_prcs = subprocess.check_call(['make', 'all', 'SCHEMA_FILE=base_schema', '--directory='+msg2fbs_dir],
+    compile_prcs = subprocess.check_call(['make', 'all', 'SCHEMA_FILE=base_schema', '--directory='+str(msg2fbs_dir)],
                                          stdout=subprocess.PIPE)
   except subprocess.CalledProcessError:
     print('ERROR: Failed to compile the flatbuffer schema for base definitions')
     return False
   
   # copy the compiled file to robofleet_client's public includes location
-  includes_path = os.path.join(robofleet_client_path,
-                              'include',
-                              "robofleet_client")
   try:
-    shutil.copyfile(os.path.join(msg2fbs_dir, 'base_schema_generated.h'),
-                    os.path.join(includes_path, 'base_schema_generated.h'))
+    shutil.copyfile(pathlib.Path(msg2fbs_dir, 'base_schema_generated.h'),
+                    pathlib.Path(includes_destination, 'base_schema_generated.h'))
   except PermissionError:
     print("Permission denied to copy the base schema file to the robofleet_client includes.")
     return False
@@ -768,8 +767,7 @@ def generate_flatbuffer_schema(package,
     return True
     
   generated_packages.add(package)
-
-  schema_data = msg2fbs.generate_schema([message.full_name for message in package.messages | package.services],
+  schema_data = msg2fbs.generate_schema([str(message.base_type) for message in package.messages | package.services],
                                         depended_packages=dependency_graph[package],
                                         base_ns='fb',
                                         gen_enums=False,
@@ -778,7 +776,7 @@ def generate_flatbuffer_schema(package,
   # save the file
   schema_filename = package.name + ".fbs"
   try:
-    path = os.path.join(msg2fbs_dir, schema_filename)
+    path = pathlib.Path(msg2fbs_dir, schema_filename)
     output_file = open(path, "w+")
   except OSError:
     print('ERROR: Failed to write flatbuffer schema file.')
@@ -803,12 +801,15 @@ def compile_flatbuffer_schema(package, msg2fbs_dir):
   # compile the schema by calling the flatc compiler
   print('Compiling flatbuffer schema for ' + package.plugin_pkg_name)
   try:
-    make_file_path = os.path.join(msg2fbs_dir, schema_filename)
-    # TODO: Add a timeout in Python3
-    compile_prcs = subprocess.check_call(['make', 'all', 'SCHEMA_FILE='+package.name, '--directory='+msg2fbs_dir],
-                                         stdout=subprocess.PIPE)
+    make_file_path = pathlib.Path(msg2fbs_dir, schema_filename)
+    
+    compile_prcs = subprocess.check_call(['make', 'all', 'SCHEMA_FILE='+package.name, '--directory='+str(msg2fbs_dir)],
+                                         stdout=subprocess.PIPE, timeout=60.0)
   except subprocess.CalledProcessError:
     print('ERROR: Failed to compile the flatbuffer schema for ' + package.name)
+    return TimeoutError
+  except subprocess.CalledProcessError:
+    print('ERROR: Compillation of flatbuffer schema timed out for ' + package.name)
     return False
 
   return True
@@ -872,9 +873,9 @@ def modify_and_install_schema(packages, output_path, msg2fbs_dir):
 
 def generate_plugin_packages(packages,
                              msg_depends_graph,
-                             output_path,
-                             templates_path,
-                             msg2fbs_dir):
+                             output_path: pathlib.Path,
+                             templates_path: pathlib.Path,
+                             msg2fbs_dir: pathlib.Path):
 
   for package,depends in packages.items():
     if not generate_directories(package.plugin_pkg_name, output_path):
@@ -919,8 +920,11 @@ def generate_plugin_packages(packages,
   5. Place the C++ headers in their respective plugin packages.
   6. Clean up the definition files, if the user doesn't specify otherwise.
   """
+  includes_path = pathlib.Path(get_package_prefix('robofleet_client'),
+                              'include',
+                              'robofleet_client')
 
-  if not generate_base_schema_file(msg2fbs_dir, rospkg.RosPack().get_path('robofleet_client')):
+  if not generate_base_schema_file(msg2fbs_dir, includes_path):
     return False
 
   generated_packages = set()
@@ -941,35 +945,34 @@ def generate_plugin_packages(packages,
 
 def cleanup(msg2fbs_path):
   # delete .fbs files
-  pattern = msg2fbs_path + '/*.fbs'
-  for file in glob.glob(pattern):
+  for file in msg2fbs_path.glob('*.fbs'):
     try:
-      os.remove(file)
+      file.unlink()
     except OSError as err:
       print('Unable to delete file ' + file)
       print(err)
 
   # delete generated header files
-  pattern = msg2fbs_path + '/*_generated.h'
-  for file in glob.glob(pattern):
+  for file in msg2fbs_path.glob('*_generated.h'):
     try:
-      os.remove(file)
+      file.unlink()
     except OSError as err:
       print('Unable to delete file ' + file)
       print(err)
 
 def main(args):
-  my_args = rospy.myargv(argv=sys.argv)
+  my_args = sys.argv
 
   # parse arguments
   parsed_args = parse_args(my_args[1:])
   num_pkgs = len(parsed_args.packages)
   
   # get input and output locations
-  my_package_path = rospkg.RosPack().get_path('robofleet_client')
-  templates_dir = os.path.join(my_package_path, 'scripts/generate/templates')
-  msg2fbs_dir = os.path.join(my_package_path, 'scripts/generate/msg2fbs')
-  output_dir = parsed_args.out
+  my_share_directory = get_package_share_path('robofleet_client')
+
+  templates_dir = pathlib.Path(my_share_directory, 'generate/templates')
+  msg2fbs_dir = pathlib.Path(my_share_directory, 'generate/msg2fbs')
+  output_dir = pathlib.Path(parsed_args.out)
 
   input_package_set = set(parsed_args.packages)
 
@@ -998,7 +1001,7 @@ def main(args):
     return 1
 
   print('---------------------------')
-  print('Generating output in ' + output_dir)
+  print(pathlib.Path('Generating output in ', output_dir))
 
   # create the output
   if not generate_plugin_packages(package_depends_graph,

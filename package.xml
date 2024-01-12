@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<package format="2">
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>robofleet_client</name>
   <version>1.0.0</version>
   <description>Client for ROS nodes to send messages to Robofleet.</description>
@@ -20,15 +21,23 @@
   <url>https://robotics.me.utexas.edu/</url>
   <url>https://amrl.cs.utexas.edu/</url>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <depend>roscpp</depend>
-  <depend>rospy</depend>
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>pluginlib</depend>
   <depend>yaml-cpp</depend>
-  <depend>message_generation</depend>
+  <depend>Flatbuffers</depend>
+  <depend>qtbase5-dev</depend>
+  <depend>libqt5-websockets-dev</depend>
+  <depend>robofleet_client_msgs</depend>
 
-  <exec_depend>message_runtime</exec_depend>
-  <exec_depend>rosmsg</exec_depend>
-  <exec_depend>rospack</exec_depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
+  <exec_depend>rosidl_adapter</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>

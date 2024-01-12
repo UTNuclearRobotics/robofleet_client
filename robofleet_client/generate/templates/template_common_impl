@@ -14,12 +14,12 @@ const fb::RosTime* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Time&
   return time;
 }
 
-ros::Duration FbtoRos(const fb::RosDuration* fb)
+rclcpp::Duration FbtoRos(const fb::RosDuration* fb)
 {
-  return ros::Duration(fb->sec(), fb->nsec());
+  return rclcpp::Duration(fb->sec(), fb->nsec());
 }
 
-const fb::RosDuration* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Duration& msg)
+const fb::RosDuration* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const rclcpp::Duration& msg)
 {
   (void)fbb;
   const fb::RosDuration* duration = new fb::RosDuration(msg.sec, msg.nsec);

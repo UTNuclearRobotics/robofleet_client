@@ -43,11 +43,11 @@ std::vector<{srv_package}::{request_type}> FbtoRos(const flatbuffers::Vector<fla
 
 namespace {srv_package}_robofleet {{
 
-  void {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
+  void {srv_type}SrvInHandler::initialize(rclcpp::Node* node,
                                           MessageScheduler& scheduler,
                                           const std::string client_service,
                                           const std::string rbf_topic,
-                                          const ros::Duration timeout)
+                                          const rclcpp::Duration timeout)
   {{
     robofleet_client::ROSSrvInHandler::initialize(nh,
                                                   scheduler,
@@ -63,11 +63,11 @@ namespace {srv_package}_robofleet {{
     server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
   }}
 
-  void {srv_type}SrvInHandler::initialize(ros::NodeHandle& nh,
+  void {srv_type}SrvInHandler::initialize(rclcpp::Node* node,
                                           WsServer& server,
                                           const std::string client_service,
                                           const std::string rbf_topic,
-                                          const ros::Duration timeout)
+                                          const rclcpp::Duration timeout)
   {{
     robofleet_client::ROSSrvInHandler::initialize(nh,
                                                   server,
@@ -141,11 +141,9 @@ namespace {srv_package}_robofleet {{
     return true;
   }}
 
-  PLUGINLIB_EXPORT_CLASS({srv_package}_robofleet::{srv_type}SrvInHandler, robofleet_client::ROSSrvInHandler)
 
 
-
-  void {srv_type}SrvOutHandler::initialize(ros::NodeHandle& nh,
+  void {srv_type}SrvOutHandler::initialize(rclcpp::Node* node,
                                            MessageScheduler& scheduler,
                                            const std::string client_service,
                                            const std::string rbf_topic)
@@ -157,13 +155,15 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, ros::service_traits::DataType<SrvType>().value(), rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb,
+                                           rosidl_generator_traits::data_type<SrvType>(),
+                                           rbf_topic.c_str());
       }};
 
     client_ = nh.serviceClient<SrvType>(client_service);
   }}
 
-  void {srv_type}SrvOutHandler::initialize(ros::NodeHandle& nh,
+  void {srv_type}SrvOutHandler::initialize(rclcpp::Node* node,
                                            WsServer& server,
                                            const std::string client_service,
                                            const std::string rbf_topic)
@@ -175,7 +175,7 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, ros::service_traits::DataType<SrvType>().value(), rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, rosidl_generator_traits::data_type<SrvType>(), rbf_topic.c_str());
       }};
 
     client_ = nh.serviceClient<SrvType>(client_service);
@@ -230,6 +230,8 @@ namespace {srv_package}_robofleet {{
     // send the response back
     schedule_function_(response_data);
   }}
-
-  PLUGINLIB_EXPORT_CLASS({srv_package}_robofleet::{srv_type}SrvOutHandler, robofleet_client::ROSSrvOutHandler)
 }} // namespace {srv_package}_robofleet
+
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS({srv_package}_robofleet::{srv_type}SrvInHandler, robofleet_client::ROSSrvInHandler)
+PLUGINLIB_EXPORT_CLASS({srv_package}_robofleet::{srv_type}SrvOutHandler, robofleet_client::ROSSrvOutHandler)

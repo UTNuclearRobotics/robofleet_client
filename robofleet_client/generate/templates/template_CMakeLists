@@ -1,0 +1,38 @@
+cmake_minimum_required(VERSION 3.5)
+project({msg_package}_robofleet)
+
+find_package(rclcpp)
+find_package(robofleet_client)
+find_package({msg_package})
+{find_dependencies}
+
+set(PLUGIN_SRC
+{sources_list}
+)
+
+set(DEPENDENCIES
+  rclcpp
+  robofleet_client
+  {msg_package}
+  {dependencies}
+)
+
+add_library({msg_package}_robofleet ${{PLUGIN_SRC}})
+target_include_directories({msg_package}_robofleet PRIVATE
+  include
+)
+ament_target_dependencies({msg_package}_robofleet
+  rclcpp
+  robofleet_client
+  ${{DEPENDENCIES}}
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+install(TARGETS
+  {msg_package}_robofleet 
+  DESTINATION lib/${{PROJECT_NAME}}
+)

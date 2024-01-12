@@ -43,7 +43,7 @@ public:
     nh_priv_queue.setCallbackQueue(&queue);
   }
 
-  bool waitForReply(const ros::Duration timeout = ros::Duration(1.0))
+  bool waitForReply(const rclcpp::Duration timeout = rclcpp::Duration(1.0))
   {
     const ros::Time start_time = ros::Time::now();
 
@@ -124,6 +124,6 @@ int main(int argc, char *argv[])
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  ROS_INFO("Starting Tests: robofleet_client client_test");
+  RCLCPP_INFO(this->get_logger(), "Starting Tests: robofleet_client client_test");
   return RUN_ALL_TESTS();
 }

@@ -1,4 +1,4 @@
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <QObject>
 #include <QtCore/QCoreApplication>
@@ -27,23 +27,28 @@ struct ProgramParams
 };
 
 bool loadYAMLParams(const YAML::Node& root,
-                    ProgramParams& out_params);
+                    ProgramParams& out_params,
+                    rclcpp::Logger& logger);
 
 void connect_server(WsServer& ws_server,
-                    RosClientNode& ros_node);
+                    std::shared_ptr<RosClientNode> ros_node);
 
 void connect_client(WsClient& ws_client,
-                    RosClientNode& ros_node,
+                    std::shared_ptr<RosClientNode> ros_node,
                     MessageScheduler& scheduler);
 
 int main(int argc, char** argv) {
   QCoreApplication qapp(argc, argv);
 
-  ros::init(argc, argv, "robofleet_client", ros::init_options::NoSigintHandler);
+  rclcpp::InitOptions opts;
+  opts.shutdown_on_signal = false;
+  rclcpp::init(argc, argv, opts);
+
+  rclcpp::Logger logger = rclcpp::get_logger("my_logger");
 
   // check args
   if (argc != 2) {
-    ROS_FATAL("usage: robofleet_client client config_file\n"
+    RCLCPP_FATAL(logger, "usage: robofleet_client client config_file\n"
               "\tconfig_file: The program config file. See robofleet_client/cfg/example.yaml");
 
     return 1;
@@ -56,7 +61,7 @@ int main(int argc, char** argv) {
   try {
     root = YAML::LoadFile(cfg_file);
   } catch (const YAML::BadFile& e) {
-    ROS_FATAL("Failed to open config file %s.\n%s",
+    RCLCPP_FATAL(logger, "Failed to open config file %s.\n%s",
               cfg_file.c_str(), e.what());
 
     return false;
@@ -65,11 +70,14 @@ int main(int argc, char** argv) {
   // parse YAML params
   ProgramParams params;
   if (!loadYAMLParams(root,
-                      params)) {
+                      params,
+                      logger)) {
     return 2;
   }
 
   const bool use_direct_mode = params.host_url.empty();  
+
+  rclcpp::executors::MultiThreadedExecutor executor;
 
   // start websocket
   if (use_direct_mode) {
@@ -78,42 +86,41 @@ int main(int argc, char** argv) {
                        params.direct_mode_bytes_per_sec);
 
     // launch ROS node
-    RosClientNode ros_node(params.verbosity, ws_server);
+    std::shared_ptr<RosClientNode> ros_node = std::make_shared<RosClientNode>(params.verbosity, ws_server);
 
     connect_server(ws_server, ros_node);
 
-    ros::AsyncSpinner spinner(params.spin_threads);
-    spinner.start();
-
-    if (!ros_node.configure(root)) {
+    if (!ros_node->configure(root)) {
       return 3;
     }
+
+    executor.add_node(ros_node);
     
     return qapp.exec();
   } else {
     MessageScheduler scheduler(params.max_queue_before_waiting);
 
     // launch ROS node
-    RosClientNode ros_node(params.verbosity, scheduler);
+    std::shared_ptr<RosClientNode> ros_node = std::make_shared<RosClientNode>(params.verbosity, scheduler);
 
     // Websocket client
     WsClient ws_client{QString::fromStdString(params.host_url)};
 
     connect_client(ws_client, ros_node, scheduler);
-    
-    ros::AsyncSpinner spinner(params.spin_threads);
-    spinner.start();
 
-    if (!ros_node.configure(root)) {
+    if (!ros_node->configure(root)) {
       return 3;
     }
+
+    executor.add_node(ros_node);
 
     return qapp.exec();
   }
 }
 
 bool loadYAMLParams(const YAML::Node& root,
-                    ProgramParams& out_params)
+                    ProgramParams& out_params,
+                    rclcpp::Logger& logger)
 {
   try {
     const YAML::Node params_yaml = root["params"];
@@ -123,7 +130,7 @@ bool loadYAMLParams(const YAML::Node& root,
 
     const int max_queue_value = params_yaml["max_queue_before_waiting"].as<int>();
     if (max_queue_value < 0) {
-      ROS_FATAL("Invalid value %d for param max_queue_before_waiting. "
+      RCLCPP_FATAL(logger, "Invalid value %d for param max_queue_before_waiting. "
                 "Must be positive.", max_queue_value);
 
       return false;
@@ -132,7 +139,7 @@ bool loadYAMLParams(const YAML::Node& root,
 
     const int spin_threads = params_yaml["spin_threads"].as<int>();
     if (spin_threads < 0) {
-      ROS_FATAL("Invalid value %d for param spin_threads. "
+      RCLCPP_FATAL(logger, "Invalid value %d for param spin_threads. "
                 "Must be positive.", spin_threads);
 
       return false;
@@ -143,7 +150,7 @@ bool loadYAMLParams(const YAML::Node& root,
     if (use_direct_mode) {
       const int port_value = params_yaml["direct_mode_port"].as<int>();
       if (port_value < 0) {
-        ROS_FATAL("Invalid value %d for param direct_mode_port. "
+        RCLCPP_FATAL(logger, "Invalid value %d for param direct_mode_port. "
                   "Must be positive.", port_value);
 
         return false;
@@ -152,7 +159,7 @@ bool loadYAMLParams(const YAML::Node& root,
 
       const int byte_rate_value = params_yaml["direct_mode_bytes_per_sec"].as<int>();
       if (byte_rate_value < 0) {
-        ROS_FATAL("Invalid value %d for param direct_mode_bytes_per_sec. "
+        RCLCPP_FATAL(logger, "Invalid value %d for param direct_mode_bytes_per_sec. "
                   "Must be positive.", byte_rate_value);
 
         return false;
@@ -165,7 +172,7 @@ bool loadYAMLParams(const YAML::Node& root,
 
     const int verbosity_value = params_yaml["verbosity"].as<int>();
     if (verbosity_value < 0 || verbosity_value > (int)RosClientNode::Verbosity::ALL) {
-      ROS_FATAL("Invalid value %d for param verbosity. "
+      RCLCPP_FATAL(logger, "Invalid value %d for param verbosity. "
                 "Must be positive and not more than %d.",
                 verbosity_value, (int)RosClientNode::Verbosity::ALL);
 
@@ -174,7 +181,7 @@ bool loadYAMLParams(const YAML::Node& root,
     out_params.verbosity = RosClientNode::Verbosity(verbosity_value);
 
   } catch (const YAML::InvalidNode& e) {
-    ROS_FATAL("%s", e.what());
+    RCLCPP_FATAL(logger, "%s", e.what());
     return false;
   }
 
@@ -182,7 +189,7 @@ bool loadYAMLParams(const YAML::Node& root,
 }
 
 void connect_client(WsClient& ws_client,
-                    RosClientNode& ros_node,
+                    std::shared_ptr<RosClientNode> ros_node,
                     MessageScheduler& scheduler) {
   // run scheduler
   QObject::connect(&ws_client,
@@ -198,23 +205,23 @@ void connect_client(WsClient& ws_client,
   // receive
   QObject::connect(&ws_client,
                    &WsClient::message_received,
-                   &ros_node,
+                   ros_node.get(),
                    &RosClientNode::routeMessageToHandlers);
 
   QObject::connect(
       &ws_client,
       &WsClient::connected,
-      &ros_node,
+      ros_node.get(),
       &RosClientNode::sendSubscriptionMsg);
 }
 
 void connect_server(WsServer& ws_server,
-                    RosClientNode& ros_node) {
+                    std::shared_ptr<RosClientNode> ros_node) {
 
   // receive
   QObject::connect(
       &ws_server,
       &WsServer::binary_message_received,
-      &ros_node,
+      ros_node.get(),
       &RosClientNode::routeMessageToHandlers);
 }

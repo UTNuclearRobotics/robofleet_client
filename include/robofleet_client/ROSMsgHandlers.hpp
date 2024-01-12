@@ -1,9 +1,6 @@
 #pragma once
 
-#include <ros/ros.h>
-
-// contains macros used to register plugin classes
-#include <pluginlib/class_list_macros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <robofleet_client/common_conversions.hpp>
 
@@ -27,14 +24,11 @@ namespace robofleet_client
   class RBFSubscribeHandler
   {
     public:
-      virtual void initialize(ros::NodeHandle& nh,
+      virtual void initialize(rclcpp::Node* node,
                               const std::string client_topic,
                               const bool latched) = 0;
       
       virtual void publishROS(const QByteArray& data) = 0;
-        
-    protected:
-      ros::Publisher ros_pub_;
   };
 
 
@@ -42,7 +36,7 @@ namespace robofleet_client
   class RBFPublishHandler
   {
     public:
-      virtual void initialize(ros::NodeHandle& nh,
+      virtual void initialize(rclcpp::Node* node,
                               MessageScheduler& scheduler,
                               const std::string client_topic,
                               const std::string rbf_topic,
@@ -51,15 +45,13 @@ namespace robofleet_client
                               const bool no_drop,
                               const int queue_size);
       
-      virtual void initialize(ros::NodeHandle& nh,
+      virtual void initialize(rclcpp::Node* node,
                               WsServer& server,
                               const std::string client_topic,
                               const std::string rbf_topic);
 
     protected:
       typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
-
-      ros::Subscriber ros_sub_;
       
       // sends raw data to the message scheduler
       std::function<void(const QByteArray&)> schedule_function_;
@@ -68,7 +60,7 @@ namespace robofleet_client
       std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
   };
   
-  typedef boost::shared_ptr<RBFSubscribeHandler> RBFSubscribeHandlerPtr;
-  typedef boost::shared_ptr<RBFPublishHandler> RBFPublishHandlerPtr;
+  typedef std::shared_ptr<RBFSubscribeHandler> RBFSubscribeHandlerPtr;
+  typedef std::shared_ptr<RBFPublishHandler> RBFPublishHandlerPtr;
 
 } // namespace robofleet_client

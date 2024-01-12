@@ -1,26 +1,27 @@
-#include <{msg_package}_robofleet/{msg_name}.h>
+#include <{msg_package}_robofleet/msg/{msg_name}.hpp>
 #include <QByteArray>
+#include <rclcpp/qos.hpp>
 
-{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}* src)
+{msg_package}::msg::{msg_name} FbtoRos(const fb::{msg_package}::msg::{msg_name}* src)
 {{
-  {msg_package}::{msg_name} msg;{msg_decode_assignments}
+  {msg_package}::msg::{msg_name} msg;{msg_decode_assignments}
 
   return msg;
 }}
 
-{msg_package}::{msg_name} FbtoRos(const fb::{msg_package}::{msg_name}& src_ref)
+{msg_package}::msg::{msg_name} FbtoRos(const fb::{msg_package}::msg::{msg_name}& src_ref)
 {{
-  const fb::{msg_package}::{msg_name}* src = &src_ref;
-  {msg_package}::{msg_name} msg;{msg_decode_assignments}
+  const fb::{msg_package}::msg::{msg_name}* src = &src_ref;
+  {msg_package}::msg::{msg_name} msg;{msg_decode_assignments}
 
   return msg;
 }}
 
-std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>* src)
+std::vector<{msg_package}::msg::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}>>* src)
 {{
-  std::vector<{msg_package}::{msg_name}> dst;
+  std::vector<{msg_package}::msg::{msg_name}> dst;
   dst.reserve(src->size());
-  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> fvec;
+  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}>> fvec;
   for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
   {{
     dst.push_back(FbtoRos(*it));
@@ -30,30 +31,35 @@ std::vector<{msg_package}::{msg_name}> FbtoRos(const flatbuffers::Vector<flatbuf
   
 }}
 
-flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::{msg_name}>& src)
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}>>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::vector<{msg_package}::msg::{msg_name}>& src)
 {{
-  std::vector<flatbuffers::Offset<fb::{msg_package}::{msg_name}>> dst(src.size());
+  std::vector<flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}>> dst(src.size());
   std::transform(
-      src.begin(), src.end(), dst.begin(), [&fbb](const {msg_package}::{msg_name}& item) {{
+      src.begin(), src.end(), dst.begin(), [&fbb](const {msg_package}::msg::{msg_name}& item) {{
         return RostoFb(fbb, item);
       }});
   return fbb.CreateVector(dst).o;
 }}
 
-flatbuffers::Offset<fb::{msg_package}::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::{msg_name}& msg)
+flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const {msg_package}::msg::{msg_name}& msg)
 {{
-  return fb::{msg_package}::Create{msg_name}(fbb, 0{msg_encode_assignments}).o;
+  return fb::{msg_package}::msg::Create{msg_name}(fbb, 0{msg_encode_assignments}).o;
 }}
 
 namespace {msg_package}_robofleet {{
     
-  void {msg_name}SubscribeHandler::initialize(ros::NodeHandle& nh,
+  void {msg_name}SubscribeHandler::initialize(rclcpp::Node* node,
                                                  const std::string client_topic,
                                                  const bool latched)
   {{
-    ros_pub_ = nh.advertise<MsgType>(client_topic,
-                                 10,
-                                 latched);
+    rclcpp::QoS qos(rclcpp::KeepLast(10));
+    if (latched)
+    {{
+      qos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+    }}
+
+    ros_pub_ = node->create_publisher<MsgType>(client_topic,
+                                              qos);
   }}
 
   const {msg_name}SubscribeHandler::FbMsgType*
@@ -70,14 +76,12 @@ namespace {msg_package}_robofleet {{
     const FbMsgType* fb = decode(data);
     const MsgType msg = FbtoRos(fb);
     
-    ros_pub_.publish(msg);
+    ros_pub_->publish(msg);
   }}
-
-  PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}SubscribeHandler, robofleet_client::RBFSubscribeHandler)
   
 
 
-  void {msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
+  void {msg_name}PublishHandler::initialize(rclcpp::Node* node,
                                               MessageScheduler& scheduler,
                                               const std::string client_topic,
                                               const std::string rbf_topic,
@@ -86,7 +90,7 @@ namespace {msg_package}_robofleet {{
                                               const bool no_drop,
                                               const int queue_size)
   {{
-    robofleet_client::RBFPublishHandler::initialize(nh,
+    robofleet_client::RBFPublishHandler::initialize(node,
                                                       scheduler,
                                                       client_topic,
                                                       rbf_topic,
@@ -97,29 +101,32 @@ namespace {msg_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, ros::message_traits::DataType<MsgType>().value(), rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, rosidl_generator_traits::data_type<MsgType>(),
+                                           rbf_topic.c_str());
       }};
 
-    ros_sub_ = nh.subscribe(client_topic, queue_size, &{msg_name}PublishHandler::callback, this);
+    ros_sub_ = node->create_subscription<MsgType>(client_topic,
+                 queue_size, std::bind(&{msg_name}PublishHandler::callback, this, std::placeholders::_1));
   }}
 
 
-  void {msg_name}PublishHandler::initialize(ros::NodeHandle& nh,
+  void {msg_name}PublishHandler::initialize(rclcpp::Node* node,
                                               WsServer& server,
                                               const std::string client_topic,
                                               const std::string rbf_topic)
   {{
-    robofleet_client::RBFPublishHandler::initialize(nh,
+    robofleet_client::RBFPublishHandler::initialize(node,
                                                       server,
                                                       client_topic,
                                                       rbf_topic);
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, ros::message_traits::DataType<MsgType>().value(), rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, rosidl_generator_traits::data_type<MsgType>(), rbf_topic.c_str());
       }};
 
-    ros_sub_ = nh.subscribe(client_topic, 10, &{msg_name}PublishHandler::callback, this);
+    ros_sub_ = node->create_subscription<MsgType>(client_topic,
+                 10, std::bind(&{msg_name}PublishHandler::callback, this, std::placeholders::_1));
   }}
 
   
@@ -131,7 +138,7 @@ namespace {msg_package}_robofleet {{
     const MetaDataOffset metadata = encode_metadata_function_(fbb);
 
     const flatbuffers::uoffset_t root_offset =
-          fb::{msg_package}::Create{msg_name}(fbb,
+          fb::{msg_package}::msg::Create{msg_name}(fbb,
                                               metadata{msg_encode_assignments}).o;
 
     // encode the rest of the type
@@ -143,11 +150,13 @@ namespace {msg_package}_robofleet {{
   }}
   
 
-  void {msg_name}PublishHandler::callback(const MsgTypeConstPtr& msg)
+  void {msg_name}PublishHandler::callback(const MsgType& msg)
   {{
-    const QByteArray data = encodeWithMetadata(*msg);
+    const QByteArray data = encodeWithMetadata(msg);
     schedule_function_(data);
   }}
 }} // namespace {msg_package}_robofleet
 
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}SubscribeHandler, robofleet_client::RBFSubscribeHandler)
 PLUGINLIB_EXPORT_CLASS({msg_package}_robofleet::{msg_name}PublishHandler, robofleet_client::RBFPublishHandler)

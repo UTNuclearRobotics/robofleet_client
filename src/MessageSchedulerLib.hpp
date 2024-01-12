@@ -79,8 +79,8 @@ public:
   typedef std::function<void(const T&)> ScheduleCallback;
 
   MessageSchedulerLib(const uint64_t mq, const ScheduleCallback sc) :
-      max_queue_before_waiting_(mq)
-    , sc_(sc)
+    sc_(sc),
+    max_queue_before_waiting_(mq)
   {
   }
 

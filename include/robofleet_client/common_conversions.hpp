@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ros/ros.h>
 #include <robofleet_client/base_schema_generated.h>
 
 /********************************************************************
@@ -16,22 +15,17 @@
  * duration, and strings, so they get dedicated functions.
  *******************************************************************/
 
-// translation between std::strings and the flatbuffers string primitive 
+// translation between std::string and the flatbuffers string primitive 
 std::string FbtoRos(const flatbuffers::String* src);
 
 flatbuffers::Offset<flatbuffers::String> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::string& src);
 
-// time and duration primitives
-ros::Time FbtoRos(const fb::RosTime* fb);
 
-const fb::RosTime* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Time& msg);
+// translation between std::u16string and the flatbuffers ushort-vector
 
-ros::Duration FbtoRos(const fb::RosDuration* fb);
+std::u16string FbtoRos(const flatbuffers::Vector<char16_t>* src);
 
-const fb::RosDuration* RostoFb(flatbuffers::FlatBufferBuilder& fbb, const ros::Duration& msg);
-
-
-
+flatbuffers::Offset<flatbuffers::Vector<char16_t>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::u16string& src);
 
 /********************************************************************
  * Function templates for vectors of primitive types.
@@ -80,21 +74,21 @@ flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<FbType>>> RostoFb(fl
 
 /********************************************************************
  * Function templates for arrays of primitive types.
- * ROS1 uses boost::array to represent these.
+ * ROS2 uses std::array to represent these.
  *******************************************************************/
 
 // for primitive types that don't require encoding/decoding
 template<class PrimType, size_t N>
-boost::array<PrimType, N> FbtoRosPrimitive(const flatbuffers::Vector<PrimType>* src)
+std::array<PrimType, N> FbtoRosPrimitive(const flatbuffers::Vector<PrimType>* src)
 {
-  boost::array<PrimType, N> output;
+  std::array<PrimType, N> output;
   std::copy_n(src->begin(), N, output.begin());
 
   return output;
 }
 
 template<class PrimType, size_t N>
-flatbuffers::Offset<flatbuffers::Vector<PrimType>> RostoFbPrimitive(flatbuffers::FlatBufferBuilder& fbb, const boost::array<PrimType, N>& src)
+flatbuffers::Offset<flatbuffers::Vector<PrimType>> RostoFbPrimitive(flatbuffers::FlatBufferBuilder& fbb, const std::array<PrimType, N>& src)
 {
   std::vector<PrimType> temp;
   temp.resize(N);
@@ -104,7 +98,7 @@ flatbuffers::Offset<flatbuffers::Vector<PrimType>> RostoFbPrimitive(flatbuffers:
 
 // for compound types that do require encoding/decoding
 template<class RosType, class FbType, size_t N>
-boost::array<RosType, N> FbtoRos(const flatbuffers::Vector<FbType>* src)
+std::array<RosType, N> FbtoRos(const flatbuffers::Vector<FbType>* src)
 {
   // protection against writing past the end of thee output array
   typename flatbuffers::Vector<FbType>::const_iterator end_it = src->end();
@@ -113,7 +107,7 @@ boost::array<RosType, N> FbtoRos(const flatbuffers::Vector<FbType>* src)
     end_it = std::advance(src->begin(), N);
   }
 
-  boost::array<RosType, N> output;
+  std::array<RosType, N> output;
   std::transform(
       src->begin(), end_it, output.begin(), [](const RosType& item) {
         return FbtoRos(item);
@@ -123,7 +117,7 @@ boost::array<RosType, N> FbtoRos(const flatbuffers::Vector<FbType>* src)
 }
 
 template<class RosType, class FbType, size_t N>
-flatbuffers::Offset<flatbuffers::Vector<FbType>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const boost::array<RosType, N>& src)
+flatbuffers::Offset<flatbuffers::Vector<FbType>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::array<RosType, N>& src)
 {
   std::vector<flatbuffers::Offset<FbType>> dst(src.size());
   std::transform(
