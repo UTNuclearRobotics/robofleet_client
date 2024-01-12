@@ -129,7 +129,7 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
   try:
     message_names = get_message_interfaces([package.name])
   except LookupError as err:
-    print('ERROR: Package {} not found.').format(err.args[0])
+    print('ERROR: Package {} not found.'.format(err.args[0]))
     print(err)
     return 1
   
