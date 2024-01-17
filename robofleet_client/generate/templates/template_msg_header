@@ -4,7 +4,7 @@
 #include <robofleet_client/ROSMsgHandlers.hpp>
 
 // get the msg type
-#include <{msg_package}/msg/{msg_name_lowercase}.hpp>
+#include <{msg_package}/msg/{msg_file_name}.hpp>
 
 #include <{msg_package}_robofleet/{msg_package}_generated.h>
 
@@ -28,7 +28,7 @@ namespace {msg_package}_robofleet {{
   public:
 
     // advertises the topic
-    virtual void initialize(rclcpp::Node* node,
+    virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                             const std::string client_topic,
                             const bool latched);
     
@@ -52,7 +52,7 @@ namespace {msg_package}_robofleet {{
   {{
   public:
     // sets up subscriber, message scheduler function, and metadata function
-    virtual void initialize(rclcpp::Node* node,
+    virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                             MessageScheduler& scheduler,
                             const std::string client_topic,
                             const std::string rbf_topic,
@@ -61,7 +61,7 @@ namespace {msg_package}_robofleet {{
                             const bool no_drop,
                             const int queue_size);
 
-    virtual void initialize(rclcpp::Node* node,
+    virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                             WsServer& server,
                             const std::string client_topic,
                             const std::string rbf_topic);

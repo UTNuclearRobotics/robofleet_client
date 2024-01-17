@@ -83,7 +83,8 @@ def gen_base_schema(base_ns):
 # direct ROS to Flatbuffers type remappings
 type_mapping = {
     "char":"uint8",
-    "wstring":"[ushort]"
+    "wstring":"[ushort]",
+    "byte":"uint8"           # bytes are signed in FB and unsigned in ROS
 }
 
 def type_remap(ros_type_name):
@@ -178,7 +179,12 @@ def gen_table(msg_type: MessageSpecification,
         if not field.type.is_primitive_type():
             ns = base_ns + '.' + field.type.pkg_name + '.msg.'
 
-        yield "  {}:{}{}{};".format(field.name, ns, type, attrs)
+        # add square brackets to indicate an array
+        full_type = ns + type
+        if field.type.is_array:
+            full_type = f'[{full_type}]'
+
+        yield "  {}:{}{};".format(field.name, full_type, attrs)
     yield "}"
 
 def gen_constants_enums(msg_type, spec) -> str:
@@ -244,7 +250,7 @@ def gen_msg(msg_type: Type,
     if msg_type.is_defined(defined_types):
         raise RuntimeError('Type ' + msg_type.ros_type + ' is already defined.')
     msg_type.mark_defined(defined_types)
-
+    
     # look for a message with this name    
     try:
       msg_spec = get_msg_spec(msg_type.package, msg_type.name)
@@ -257,8 +263,8 @@ def gen_msg(msg_type: Type,
     # look for a service with this name
     try:
       srv_spec = get_srv_spec(msg_type.package, msg_type.name)
-      request_type = Type(msg_type.ros_type_raw + 'Request', base_ns)
-      response_type = Type(msg_type.ros_type_raw + 'Response', base_ns)
+      request_type = Type(msg_type.ros_type_raw + '_Request', base_ns)
+      response_type = Type(msg_type.ros_type_raw + '_Response', base_ns)
       for x in process_type(request_type, srv_spec.request, base_ns, gen_enums, gen_constants):
         yield x
       for x in process_type(response_type, srv_spec.response, base_ns, gen_enums, gen_constants):

@@ -8,14 +8,14 @@
 #include <yaml-cpp/yaml.h>
 
 RosClientNode::RosClientNode(Verbosity verbosity, MessageScheduler& scheduler) :
-  Node("roobofleet_client"),
+  Node("robofleet_client"),
   verbosity_(verbosity),
   scheduler_(&scheduler),
   server_(nullptr)
 {}
 
 RosClientNode::RosClientNode(Verbosity verbosity, WsServer& server) :
-  Node("roobofleet_client"),
+  Node("robofleet_client"),
   verbosity_(verbosity),
   scheduler_(nullptr),
   server_(&server)
@@ -129,7 +129,7 @@ void RosClientNode::routeMessageToHandlers(const QByteArray& data) const
         outgoing_srvs_.find(topic);
     
     if (it != outgoing_srvs_.end()) {
-      it->second->sendRequest(data);
+      it->second->send_request_function(data);
 
       if (verbosity_ >= Verbosity::ALL) {
         RCLCPP_INFO(this->get_logger(), "Publishing service request on topic %s", topic.c_str());
@@ -295,7 +295,7 @@ bool RosClientNode::configureTopics(const YAML::Node& subscribers_list,
     }
     
     if (scheduler_ != nullptr) {
-      handler->initialize(this,
+      handler->initialize(shared_from_this(),
                           *scheduler_,
                           topic_params.client_topic,
                           topic_params.rbf_topic,
@@ -305,7 +305,7 @@ bool RosClientNode::configureTopics(const YAML::Node& subscribers_list,
                           topic_params.queue_size);
     }
     else if (server_ != nullptr) {
-      handler->initialize(this,
+      handler->initialize(shared_from_this(),
                           *server_,
                           topic_params.client_topic,
                           topic_params.rbf_topic);
@@ -340,7 +340,7 @@ bool RosClientNode::configureTopics(const YAML::Node& subscribers_list,
       return false;
     }
 
-    handler->initialize(this, topic_params.client_topic, topic_params.latched);
+    handler->initialize(shared_from_this(), topic_params.client_topic, topic_params.latched);
     subs_[topic_params.rbf_topic] = handler;
 
     if (verbosity_ >= Verbosity::CFG_ONLY) {
@@ -377,14 +377,14 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     }
     
     if (scheduler_ != nullptr) {
-      handler->initialize(this,
+      handler->initialize(shared_from_this(),
                           *scheduler_,
                           topic_params.client_topic,
                           topic_params.rbf_topic+"Responses",
                           topic_params.timeout);
     }
     else if (server_ != nullptr) {
-      handler->initialize(this,
+      handler->initialize(shared_from_this(),
                           *server_,
                           topic_params.client_topic,
                           topic_params.rbf_topic+"Responses",
@@ -421,13 +421,13 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
     }
     
     if (scheduler_ != nullptr) {
-      handler->initialize(this,
+      handler->initialize(shared_from_this(),
                           *scheduler_,
                           topic_params.client_topic,
                           topic_params.rbf_topic+"Requests");
     }
     else if (server_ != nullptr) {
-      handler->initialize(this,
+      handler->initialize(shared_from_this(),
                           *server_,
                           topic_params.client_topic,
                           topic_params.rbf_topic+"Requests");
@@ -545,20 +545,20 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
       return false;
     }
 
-    handlers.feedback->initialize(this,
+    handlers.feedback->initialize(shared_from_this(),
                                   action_params.feedback.client_topic,
                                   action_params.feedback.latched);
 
-    handlers.result->initialize(this,
+    handlers.result->initialize(shared_from_this(),
                                 action_params.result.client_topic,
                                 action_params.result.latched);
     
-    handlers.status->initialize(this,
+    handlers.status->initialize(shared_from_this(),
                                 action_params.status.client_topic,
                                 action_params.status.latched);
     
     if (scheduler_ != nullptr) {    
-      handlers.goal->initialize(this,
+      handlers.goal->initialize(shared_from_this(),
                                 *scheduler_,
                                 action_params.goal.client_topic,
                                 action_params.goal.rbf_topic,
@@ -567,7 +567,7 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                 action_params.goal.no_drop,
                                 action_params.goal.queue_size);
 
-      handlers.cancel->initialize(this,
+      handlers.cancel->initialize(shared_from_this(),
                                   *scheduler_,
                                   action_params.cancel.client_topic,
                                   action_params.cancel.rbf_topic,
@@ -577,12 +577,12 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                   action_params.goal.queue_size);
     }
     else if (server_ != nullptr) {
-      handlers.goal->initialize(this,
+      handlers.goal->initialize(shared_from_this(),
                                 *server_,
                                 action_params.goal.client_topic,
                                 action_params.goal.rbf_topic);
 
-      handlers.cancel->initialize(this,
+      handlers.cancel->initialize(shared_from_this(),
                                   *server_,
                                   action_params.cancel.client_topic,
                                   action_params.cancel.rbf_topic);
@@ -657,16 +657,16 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
       return false;
     }
 
-    handlers.goal->initialize(this,
+    handlers.goal->initialize(shared_from_this(),
                                   action_params.goal.client_topic,
                                   action_params.goal.latched);
 
-    handlers.cancel->initialize(this,
+    handlers.cancel->initialize(shared_from_this(),
                                 action_params.cancel.client_topic,
                                 action_params.cancel.latched);
     
     if (scheduler_ != nullptr) {    
-      handlers.feedback->initialize(this,
+      handlers.feedback->initialize(shared_from_this(),
                                     *scheduler_,
                                     action_params.feedback.client_topic,
                                     action_params.feedback.rbf_topic,
@@ -675,7 +675,7 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                     action_params.feedback.no_drop,
                                     action_params.goal.queue_size);
 
-      handlers.result->initialize(this,
+      handlers.result->initialize(shared_from_this(),
                                   *scheduler_,
                                   action_params.result.client_topic,
                                   action_params.result.rbf_topic,
@@ -684,7 +684,7 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                   action_params.result.no_drop,
                                   action_params.goal.queue_size);
 
-      handlers.status->initialize(this,
+      handlers.status->initialize(shared_from_this(),
                                   *scheduler_,
                                   action_params.status.client_topic,
                                   action_params.status.rbf_topic,
@@ -694,17 +694,17 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
                                   action_params.goal.queue_size);
     }
     else if (server_ != nullptr) {
-      handlers.feedback->initialize(this,
+      handlers.feedback->initialize(shared_from_this(),
                                     *server_,
                                     action_params.feedback.client_topic,
                                     action_params.feedback.rbf_topic);
 
-      handlers.result->initialize(this,
+      handlers.result->initialize(shared_from_this(),
                                   *server_,
                                   action_params.result.client_topic,
                                   action_params.result.rbf_topic);
 
-      handlers.status->initialize(this,
+      handlers.status->initialize(shared_from_this(),
                                   *server_,
                                   action_params.status.client_topic,
                                   action_params.status.rbf_topic);

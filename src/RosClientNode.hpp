@@ -12,6 +12,7 @@ namespace YAML {
   class Node;
 }
 
+class RosClientNode;
 class WsServer;
 
 class RosClientNode : public QObject, public rclcpp::Node {

@@ -24,7 +24,7 @@ namespace robofleet_client
   class RBFSubscribeHandler
   {
     public:
-      virtual void initialize(rclcpp::Node* node,
+      virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                               const std::string client_topic,
                               const bool latched) = 0;
       
@@ -36,7 +36,7 @@ namespace robofleet_client
   class RBFPublishHandler
   {
     public:
-      virtual void initialize(rclcpp::Node* node,
+      virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                               MessageScheduler& scheduler,
                               const std::string client_topic,
                               const std::string rbf_topic,
@@ -45,7 +45,7 @@ namespace robofleet_client
                               const bool no_drop,
                               const int queue_size);
       
-      virtual void initialize(rclcpp::Node* node,
+      virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                               WsServer& server,
                               const std::string client_topic,
                               const std::string rbf_topic);

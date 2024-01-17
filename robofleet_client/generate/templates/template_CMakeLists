@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 project({msg_package}_robofleet)
 
-find_package(rclcpp)
-find_package(robofleet_client)
-find_package({msg_package})
+find_package(rclcpp REQUIRED)
+find_package(robofleet_client REQUIRED)
+find_package({msg_package} REQUIRED)
 {find_dependencies}
 
 set(PLUGIN_SRC
@@ -11,16 +11,22 @@ set(PLUGIN_SRC
 )
 
 set(DEPENDENCIES
-  rclcpp
-  robofleet_client
   {msg_package}
-  {dependencies}
+{dependencies}
 )
 
 add_library({msg_package}_robofleet ${{PLUGIN_SRC}})
-target_include_directories({msg_package}_robofleet PRIVATE
-  include
+target_include_directories({msg_package}_robofleet
+  PUBLIC
+    $<BUILD_INTERFACE:${{CMAKE_CURRENT_SOURCE_DIR}}/include>
+    $<INSTALL_INTERFACE:include>
 )
+target_compile_options({msg_package}_robofleet
+  PRIVATE -fPIC
+)
+
+pluginlib_export_plugin_description_file(robofleet_client plugin_description.xml)
+
 ament_target_dependencies({msg_package}_robofleet
   rclcpp
   robofleet_client
@@ -32,7 +38,17 @@ install(
   DESTINATION include
 )
 
-install(TARGETS
-  {msg_package}_robofleet 
-  DESTINATION lib/${{PROJECT_NAME}}
+install(
+  TARGETS {msg_package}_robofleet 
+  EXPORT export_{msg_package}_robofleet 
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
+
+ament_export_targets(export_{msg_package}_robofleet HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  {dependencies}
+)
+ament_package()

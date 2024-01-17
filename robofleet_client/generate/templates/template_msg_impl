@@ -1,4 +1,4 @@
-#include <{msg_package}_robofleet/msg/{msg_name}.hpp>
+#include <{msg_package}_robofleet/msg/{msg_file_name}.hpp>
 #include <QByteArray>
 #include <rclcpp/qos.hpp>
 
@@ -48,7 +48,7 @@ flatbuffers::Offset<fb::{msg_package}::msg::{msg_name}> RostoFb(flatbuffers::Fla
 
 namespace {msg_package}_robofleet {{
     
-  void {msg_name}SubscribeHandler::initialize(rclcpp::Node* node,
+  void {msg_name}SubscribeHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                                  const std::string client_topic,
                                                  const bool latched)
   {{
@@ -81,7 +81,7 @@ namespace {msg_package}_robofleet {{
   
 
 
-  void {msg_name}PublishHandler::initialize(rclcpp::Node* node,
+  void {msg_name}PublishHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                               MessageScheduler& scheduler,
                                               const std::string client_topic,
                                               const std::string rbf_topic,
@@ -110,7 +110,7 @@ namespace {msg_package}_robofleet {{
   }}
 
 
-  void {msg_name}PublishHandler::initialize(rclcpp::Node* node,
+  void {msg_name}PublishHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                               WsServer& server,
                                               const std::string client_topic,
                                               const std::string rbf_topic)

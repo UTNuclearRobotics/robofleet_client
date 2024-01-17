@@ -1,18 +1,18 @@
-#include <{srv_package}_robofleet/{srv_type}.h>
+#include <{srv_package}_robofleet/srv/{srv_filename}.hpp>
 #include <QByteArray>
 
-{srv_package}::{response_type} FbtoRos(const fb::{srv_package}::{response_type}* src)
+{srv_package}::srv::{response_type} FbtoRos(const fb::{srv_package}::msg::{response_type}* src)
 {{
-  {srv_package}::{response_type} msg;{response_decode_assignments}
+  {srv_package}::srv::{response_type} msg;{response_decode_assignments}
 
   return msg;
 }}
 
-std::vector<{srv_package}::{response_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{response_type}>>* src)
+std::vector<{srv_package}::srv::{response_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::msg::{response_type}>>* src)
 {{
-  std::vector<{srv_package}::{response_type}> dst;
+  std::vector<{srv_package}::srv::{response_type}> dst;
   dst.reserve(src->size());
-  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{response_type}>> fvec;
+  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::msg::{response_type}>> fvec;
   for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
   {{
     dst.push_back(FbtoRos(*it));
@@ -21,18 +21,18 @@ std::vector<{srv_package}::{response_type}> FbtoRos(const flatbuffers::Vector<fl
   return dst;
 }}
 
-{srv_package}::{request_type} FbtoRos(const fb::{srv_package}::{request_type}* src)
+{srv_package}::srv::{request_type} FbtoRos(const fb::{srv_package}::msg::{request_type}* src)
 {{
-  {srv_package}::{request_type} msg;{request_decode_assignments}
+  {srv_package}::srv::{request_type} msg;{request_decode_assignments}
 
   return msg;
 }}
 
-std::vector<{srv_package}::{request_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{request_type}>>* src)
+std::vector<{srv_package}::srv::{request_type}> FbtoRos(const flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::msg::{request_type}>>* src)
 {{
-  std::vector<{srv_package}::{request_type}> dst;
+  std::vector<{srv_package}::srv::{request_type}> dst;
   dst.reserve(src->size());
-  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::{request_type}>> fvec;
+  typedef flatbuffers::Vector<flatbuffers::Offset<fb::{srv_package}::msg::{request_type}>> fvec;
   for (fvec::const_iterator it = src->begin(); it != src->end(); ++it)
   {{
     dst.push_back(FbtoRos(*it));
@@ -43,13 +43,13 @@ std::vector<{srv_package}::{request_type}> FbtoRos(const flatbuffers::Vector<fla
 
 namespace {srv_package}_robofleet {{
 
-  void {srv_type}SrvInHandler::initialize(rclcpp::Node* node,
+  void {srv_type}SrvInHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                           MessageScheduler& scheduler,
                                           const std::string client_service,
                                           const std::string rbf_topic,
                                           const rclcpp::Duration timeout)
   {{
-    robofleet_client::ROSSrvInHandler::initialize(nh,
+    robofleet_client::ROSSrvInHandler::initialize(node,
                                                   scheduler,
                                                   client_service,
                                                   rbf_topic,
@@ -60,16 +60,18 @@ namespace {srv_package}_robofleet {{
         return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
       }};
 
-    server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    server_ = node->create_service<SrvType>(client_service, std::bind(&{srv_type}SrvInHandler::callback, this, _1, _2));
   }}
 
-  void {srv_type}SrvInHandler::initialize(rclcpp::Node* node,
+  void {srv_type}SrvInHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                           WsServer& server,
                                           const std::string client_service,
                                           const std::string rbf_topic,
                                           const rclcpp::Duration timeout)
   {{
-    robofleet_client::ROSSrvInHandler::initialize(nh,
+    robofleet_client::ROSSrvInHandler::initialize(node,
                                                   server,
                                                   client_service,
                                                   rbf_topic,
@@ -80,11 +82,13 @@ namespace {srv_package}_robofleet {{
         return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
       }};
 
-    server_ = nh.advertiseService(client_service, &{srv_type}SrvInHandler::callback, this);
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    server_ = node->create_service<SrvType>(client_service, std::bind(&{srv_type}SrvInHandler::callback, this, _1, _2));
   }}
 
   
-  QByteArray {srv_type}SrvInHandler::encodeRequestWithMetadata(const RequestType& msg)
+  QByteArray {srv_type}SrvInHandler::encodeRequestWithMetadata(const std::shared_ptr<RequestType> msg)
   {{
     flatbuffers::FlatBufferBuilder fbb;
 
@@ -93,7 +97,7 @@ namespace {srv_package}_robofleet {{
 
     // encode the rest of the type
     const flatbuffers::uoffset_t root_offset =
-          fb::{srv_package}::Create{request_type}(fbb,
+          fb::{srv_package}::msg::Create{request_type}(fbb,
                                               metadata{request_encode_assignments}).o;
 
     fbb.Finish(flatbuffers::Offset<void>(root_offset));
@@ -103,7 +107,7 @@ namespace {srv_package}_robofleet {{
     return data;
   }}
   
-  QByteArray {srv_type}SrvInHandler::encodeRequest(const RequestType& msg)
+  QByteArray {srv_type}SrvInHandler::encodeRequest(const std::shared_ptr<RequestType> msg)
   {{
     flatbuffers::FlatBufferBuilder fbb;
 
@@ -111,7 +115,7 @@ namespace {srv_package}_robofleet {{
     const MetaDataOffset metadata = 0;
 
     const flatbuffers::uoffset_t root_offset =
-          fb::{srv_package}::Create{request_type}(fbb,
+          fb::{srv_package}::msg::Create{request_type}(fbb,
                                                   metadata{request_encode_assignments}).o;
 
     fbb.Finish(flatbuffers::Offset<void>(root_offset));
@@ -121,7 +125,8 @@ namespace {srv_package}_robofleet {{
     return data;
   }}
 
-  bool {srv_type}SrvInHandler::callback(RequestType& req, ResponseType& res)
+  bool {srv_type}SrvInHandler::callback(const std::shared_ptr<RequestType> req,
+                                        std::shared_ptr<ResponseType> res)
   {{
     // encode request and schedule for transmission
     const QByteArray data = encodeRequestWithMetadata(req);
@@ -136,19 +141,19 @@ namespace {srv_package}_robofleet {{
 
     // decode response
     const FbResponseType* fb = decodeResponse(response_data_);
-    res = FbtoRos(fb);
+    *res = FbtoRos(fb);
 
     return true;
   }}
 
 
 
-  void {srv_type}SrvOutHandler::initialize(rclcpp::Node* node,
+  void {srv_type}SrvOutHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                            MessageScheduler& scheduler,
                                            const std::string client_service,
                                            const std::string rbf_topic)
   {{
-    robofleet_client::ROSSrvOutHandler::initialize(nh,
+    robofleet_client::ROSSrvOutHandler::initialize(node,
                                                    scheduler,
                                                    client_service,
                                                    rbf_topic);
@@ -160,15 +165,16 @@ namespace {srv_package}_robofleet {{
                                            rbf_topic.c_str());
       }};
 
-    client_ = nh.serviceClient<SrvType>(client_service);
+    rclcpp::Client<SrvType>::SharedPtr client =
+      node->create_client<SrvType>(client_service);
   }}
 
-  void {srv_type}SrvOutHandler::initialize(rclcpp::Node* node,
+  void {srv_type}SrvOutHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                            WsServer& server,
                                            const std::string client_service,
                                            const std::string rbf_topic)
   {{
-    robofleet_client::ROSSrvOutHandler::initialize(nh,
+    robofleet_client::ROSSrvOutHandler::initialize(node,
                                                    server,
                                                    client_service,
                                                    rbf_topic);
@@ -178,7 +184,7 @@ namespace {srv_package}_robofleet {{
         return fb::CreateMsgMetadataDirect(fbb, rosidl_generator_traits::data_type<SrvType>(), rbf_topic.c_str());
       }};
 
-    client_ = nh.serviceClient<SrvType>(client_service);
+    client_ = node->create_client<SrvType>(client_service);
   }}
 
   const {srv_type}SrvOutHandler::FbRequestType*
@@ -190,7 +196,7 @@ namespace {srv_package}_robofleet {{
     return root;
   }}
 
-  QByteArray {srv_type}SrvOutHandler::encodeResponseWithMetadata(const ResponseType& msg)
+  QByteArray {srv_type}SrvOutHandler::encodeResponseWithMetadata(const std::shared_ptr<ResponseType> msg)
   {{
     flatbuffers::FlatBufferBuilder fbb;
 
@@ -199,7 +205,7 @@ namespace {srv_package}_robofleet {{
 
     // encode the rest of the type
     const flatbuffers::uoffset_t root_offset =
-          fb::{srv_package}::Create{response_type}(fbb,
+          fb::{srv_package}::msg::Create{response_type}(fbb,
                                               metadata{response_encode_assignments}).o;
 
     fbb.Finish(flatbuffers::Offset<void>(root_offset));
@@ -209,23 +215,29 @@ namespace {srv_package}_robofleet {{
     return data;
   }}
   
-  void {srv_type}SrvOutHandler::sendRequest(const QByteArray& data)
+  void {srv_type}SrvOutHandler::sendRequest(const QByteArray& data,
+                                            const std::shared_ptr<rclcpp::Node> node,
+                                            const std::string client_service)
   {{
     // decode the request
     const FbRequestType* fb = decodeRequest(data);
-    SrvType srv;
-    srv.request = FbtoRos(fb);
 
-    ros::AsyncSpinner spinner(1);
-    spinner.start();
+    auto request = std::make_shared<SrvType::Request>();
+    *request = FbtoRos(fb);
     
     // send on to the final recipient
-    client_.call(srv);
+    auto result = client_->async_send_request(request);
 
-    spinner.stop();
+    // Wait for the result
+    if (rclcpp::spin_until_future_complete(node->get_node_base_interface(), result) !=
+      rclcpp::FutureReturnCode::SUCCESS)
+    {{
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Request failed on service %s.", client_service.c_str());
+      return;
+    }}
 
     // encode the response
-    const QByteArray response_data = encodeResponseWithMetadata(srv.response);
+    const QByteArray response_data = encodeResponseWithMetadata(result.get());
 
     // send the response back
     schedule_function_(response_data);

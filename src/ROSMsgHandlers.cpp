@@ -4,7 +4,7 @@
 
 namespace robofleet_client
 {
-  void RBFPublishHandler::initialize(rclcpp::Node* node,
+  void RBFPublishHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                      MessageScheduler& scheduler,
                                      const std::string client_topic,
                                      const std::string rbf_topic,
@@ -21,7 +21,7 @@ namespace robofleet_client
       };
   }
 
-  void RBFPublishHandler::initialize(rclcpp::Node* node,
+  void RBFPublishHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                      WsServer& server,
                                      const std::string client_topic,
                                      const std::string rbf_topic)

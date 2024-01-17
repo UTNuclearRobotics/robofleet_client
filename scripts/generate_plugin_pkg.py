@@ -7,7 +7,7 @@
 ######################################################################
 
 import argparse
-import glob
+import inflection
 import robofleet_client.generate.msg2fbs.msg2fbs as msg2fbs
 import robofleet_client.generate.msg2fbs.msg_util as msg_util
 import pathlib
@@ -30,10 +30,10 @@ class MsgSpecHashable(MessageSpecification):
 
 class SrvSpecHashable(ServiceSpecification):
   def __init__(self, spec):
-    super().__init__(spec.pkg_name, spec.service_name, spec.request, spec.response)
+    super().__init__(spec.pkg_name, spec.srv_name, spec.request, spec.response)
   
   def __hash__(self):
-    return hash(self.pkg_name + '/' + self.service_name)    
+    return hash(self.pkg_name + '/' + self.srv_name)    
 
 class PackageData:
   """
@@ -67,11 +67,11 @@ class PackageData:
     if self.messages:
       output += '\n\tMessages'
       for msg in self.messages:
-        output += '\n\t\t' + str(msg.base_type)
+        output += '\n\t\t' + str(msg.msg_name)
     if self.services:
       output += '\n\tServices'
       for srv in self.services:
-        output += '\n\t\t' + str(srv.base_type)
+        output += '\n\t\t' + str(srv.srv_name)
 
     return output
 
@@ -153,7 +153,7 @@ def get_msg_and_srv_data(package, msg_depends_graph, package_depends_graph):
   if package.name in service_names.keys():
     package.services = set(SrvSpecHashable(msg_util.get_srv_spec(package.name, service_name))
                           for service_name in service_names[package.name])
-
+  
   # service consists of a Request message and a Response message
   # combine all the regular messages and service messages together
   package.all_messages = package.messages.union(set(MsgSpecHashable(x.request) for x in package.services),
@@ -229,13 +229,13 @@ def generate_cmakelists(package, depends, output_path, templates_path):
     return False
 
   # Build find_package({dependencies})
-  find_dependencies_str = '\n'.join(['find_package({}_robofleet)'.format(x.name) for x in depends])
+  find_dependencies_str = '\n'.join(['find_package({}_robofleet REQUIRED)'.format(x.name) for x in depends])
   dependencies_str = '\n'.join(['\t{}_robofleet'.format(x.name) for x in depends])
 
   # Source files for the library target
-  source_files_list = '\n'.join(['\tsrc/msg/{}.cpp'.format(message.msg_name)
+  source_files_list = '\n'.join(['\tsrc/msg/{}.cpp'.format(inflection.underscore(message.msg_name))
                        for message in package.messages] +
-                       ['\tsrc/srv/{}.cpp'.format(service.srv_name)
+                       ['\tsrc/srv/{}.cpp'.format(inflection.underscore(service.srv_name))
                        for service in  package.services])
 
   # replace the target strings
@@ -301,7 +301,7 @@ def generate_msg_headers(message, msg_depends_graph, output_path, templates_path
                                  'include',
                                  message.base_type.pkg_name + '_robofleet',
                                  'msg',
-                                 message.msg_name + '.hpp')
+                                 inflection.underscore(message.msg_name) + '.hpp')
 
   # read in the template
   try:
@@ -312,12 +312,12 @@ def generate_msg_headers(message, msg_depends_graph, output_path, templates_path
     return False
 
   # includes for the message types used in this message's fields
-  dependencies = '\n'.join(['#include <{}_robofleet/{}.hpp>'.format(depend.pkg_name, depend.type)\
+  dependencies = '\n'.join(['#include <{}_robofleet/msg/{}.hpp>'.format(depend.pkg_name, inflection.underscore(depend.type))\
                            for depend in msg_depends_graph[message.base_type]])
   
   # replace the target strings
   filedata = filedata.format(msg_package=message.base_type.pkg_name,
-                             msg_name_lowercase=message.msg_name.lower(),
+                             msg_file_name=inflection.underscore(message.msg_name),
                              msg_name=message.msg_name,
                              dependencies=dependencies)
 
@@ -341,7 +341,7 @@ def generate_msg_impl(message, output_path, templates_path):
   impl_out_path = pathlib.Path(output_path,
                                message.base_type.pkg_name + '_robofleet',
                                'src/msg',
-                               message.msg_name + '.cpp')
+                               inflection.underscore(message.msg_name) + '.cpp')
 
   # read in the template
   try:
@@ -364,14 +364,13 @@ def generate_msg_impl(message, output_path, templates_path):
     # handle variables that themselves require a call to a conversion function
     # RosTime and RosDuration require special handling
     # also have to handle arrays and primitives
-    if not field.type.is_primitive_type() or field.type.type in ['string']\
-          or (not field.type.is_primitive_type() and field.is_array):
+    if not field.type.is_primitive_type() or field.type.type == 'string'\
+          or (field.type.is_primitive_type() and field.type.is_array):
 
       # a modifier string to add to the end of the conversion function name
       p = ''
 
       # construct function template parameters to help the compiler find the right overloads.
-      # TODO: remove line - type_with_c_ns = field.type.replace('/','::')
       if field.type.type == 'string' and field.type.is_array:
         p = '<std::string,flatbuffers::String>'
       
@@ -394,14 +393,14 @@ def generate_msg_impl(message, output_path, templates_path):
                         'float64': 'double',
                         'int8': 'int8_t',
                         'uint8': 'uint8_t'}
-        t = field.base_type
-        if field.base_type in replacements:
-          t = replacements[field.base_type]
+        t = field.type.type
+        if field.type.type in replacements:
+          t = replacements[field.type.type]
 
         # here we add text for the explicit template specification for arrays.
         # the C++ compiler needs this to distinguish them.
         field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
-                                                           field.array_len,
+                                                           field.type.array_size,
                                                            field_name_decode)
 
     # text to assign fields from fb objects to ROS messages
@@ -412,6 +411,7 @@ def generate_msg_impl(message, output_path, templates_path):
 
   filedata = filedata.format(msg_package=message.base_type.pkg_name,
                              msg_name=message.msg_name,
+                             msg_file_name=inflection.underscore(message.msg_name),
                              msg_decode_assignments=msg_decode_assignments,
                              msg_encode_assignments=msg_encode_assignments)
 
@@ -431,13 +431,13 @@ def generate_srv_headers(service, msg_depends_graph, output_path, templates_path
   """
   Generates the header file for a service's handler classes
   """
-  header_template_path = os.path.join(templates_path, 'template_srv_header')
-  header_out_path = os.path.join(output_path,
-                                 service.package + '_robofleet',
+  header_template_path = pathlib.Path(templates_path, 'template_srv_header')
+  header_out_path = pathlib.Path(output_path,
+                                 service.pkg_name + '_robofleet',
                                  'include',
-                                 service.package + '_robofleet',
+                                 service.pkg_name + '_robofleet',
                                  'srv',
-                                 service.short_name + '.hpp')
+                                 inflection.underscore(service.srv_name) + '.hpp')
 
   request = service.request
   response = service.response
@@ -451,13 +451,13 @@ def generate_srv_headers(service, msg_depends_graph, output_path, templates_path
     return False
 
   # includes for the service types used in this service's fields
-  dependencies = '\n'.join(['#include <{}_robofleet/{}.hpp>'.format(*depend.split('/'))\
-                           for depend in msg_depends_graph[request.base_type.type] | msg_depends_graph[response.base_type.type]])
+  dependencies = '\n'.join(['#include <{}_robofleet/msg/{}.hpp>'.format(depend.pkg_name, inflection.underscore(depend.type))\
+                           for depend in msg_depends_graph[request.base_type] | msg_depends_graph[response.base_type]])
 
   # replace the target strings
-  filedata = filedata.format(srv_package=request.package,
+  filedata = filedata.format(srv_package=service.pkg_name,
                              srv_type=service.srv_name,
-                             srv_type_lowercase=service.msg_name.lower(),
+                             srv_filename=inflection.underscore(service.srv_name),
                              request_type=service.request.msg_name,
                              response_type=service.response.msg_name,
                              dependencies=dependencies)
@@ -478,11 +478,11 @@ def generate_srv_impl(service, output_path, templates_path):
   """
   Generates the implementation (.cpp) file for a service's handler classes
   """
-  impl_template_path = os.path.join(templates_path, 'template_srv_impl')
-  impl_out_path = os.path.join(output_path,
-                               service.package + '_robofleet',
+  impl_template_path = pathlib.Path(templates_path, 'template_srv_impl')
+  impl_out_path = pathlib.Path(output_path,
+                               service.pkg_name + '_robofleet',
                                'src/srv',
-                               service.short_name + '.cpp')
+                               inflection.underscore(service.srv_name) + '.cpp')
 
   request = service.request
   response = service.response
@@ -501,39 +501,34 @@ def generate_srv_impl(service, output_path, templates_path):
   # code for assignments from ROS fields to flatbuffer fields
   request_encode_assignments = ''
 
-  for field in request.parsed_fields():
+  for field in request.fields:
 
     # We need the call to lower() because some ROS services don't follow the
     # convention of all lower case.
     field_name_decode = 'src->' + field.name.lower() + '()'
-    field_name_encode = 'msg.' + field.name
+    field_name_encode = 'msg->' + field.name
 
     # handle variables that themselves require a call to a conversion function
     # RosTime and RosDuration require special handling
     # also have to handle arrays and primitives
-    if not field.is_builtin or field.base_type in ['string', 'time', 'duration']\
-          or (field.is_builtin and field.is_array):
+    if not field.type.is_primitive_type() or field.type.type in ['string']\
+          or (field.type.is_primitive_type() and field.type.is_array):
 
       # a modifier string to add to the end of the conversion function name
       p = ''
 
       # construct function template parameters to help the compiler find the right overloads.
-      type_with_c_ns = field.base_type.replace('/','::')
-      if field.base_type == 'string' and field.is_array:
+      if field.type.type == 'string' and field.type.is_array:
         p = '<std::string,flatbuffers::String>'
-      elif field.base_type == 'time' and field.is_array:
-        p = '<ros::Time,fb::RosTime'
-      elif field.base_type == 'duration' and field.is_array:
-        p = '<rclcpp::Duration,fb::RosDuration'
       
       # decide if we should be calling the primitive set of conversion templates,
       # or the set for compound types. Only compound types require the
       # template parameters constructed above
-      if field.is_builtin and field.is_array and field.base_type != 'string':
+      if field.type.is_primitive_type() and field.type.is_array and field.type.base_type != 'string':
         p = 'Primitive'
       field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
-      if field.array_len is None:
+      if field.type.array_size is None:
         field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
       else:
         # ROS uses boost::array to represent fixed-length vector fields
@@ -545,14 +540,14 @@ def generate_srv_impl(service, output_path, templates_path):
                         'float64': 'double',
                         'int8': 'int8_t',
                         'uint8': 'uint8_t'}
-        t = field.base_type
-        if field.base_type in replacements:
-          t = replacements[field.base_type]
+        t = field.type.type
+        if field.type.type in replacements:
+          t = replacements[field.type.type]
 
         # here we add text for the explicit template specification for arrays.
         # the C++ compiler needs this to distinguish them.
         field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
-                                                           field.array_len,
+                                                           field.type.array_size,
                                                            field_name_decode)
 
     # text to assign fields from fb objects to ROS services
@@ -568,35 +563,34 @@ def generate_srv_impl(service, output_path, templates_path):
   # code for assignments from ROS fields to flatbuffer fields
   response_encode_assignments = ''
   
-  for field in response.parsed_fields():
+  for field in response.fields:
 
     # We need the call to lower() because some ROS services don't follow the
     # convention of all lower case.
     field_name_decode = 'src->' + field.name.lower() + '()'
-    field_name_encode = 'msg.' + field.name
+    field_name_encode = 'msg->' + field.name
 
     # handle variables that themselves require a call to a conversion function
     # RosTime and RosDuration require special handling
     # also have to handle arrays and primitives
-    if not field.is_builtin or field.base_type in ['string', 'time', 'duration']\
-          or (field.is_builtin and field.is_array):
+    if not field.type.is_primitive_type() or field.type.type in ['string']\
+          or (field.type.is_primitive_type() and field.type.is_array):
 
       # a modifier string to add to the end of the conversion function name
       p = ''
 
       # construct function template parameters to help the compiler find the right overloads.
-      type_with_c_ns = field.base_type.replace('/','::')
       if field.type.type == 'string' and field.type.is_array:
         p = '<std::string,flatbuffers::String>'
       
       # decide if we should be calling the primitive set of conversion templates,
       # or the set for compound types. Only compound types require the
       # template parameters constructed above
-      if field.is_builtin and field.type.is_array and field.type.type != 'string':
+      if field.type.is_primitive_type() and field.type.is_array and field.type.type != 'string':
         p = 'Primitive'
       field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
-      if field.array_size is None:
+      if field.type.array_size is None:
         field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
       else:
         # ROS uses boost::array to represent fixed-length vector fields
@@ -608,14 +602,14 @@ def generate_srv_impl(service, output_path, templates_path):
                         'float64': 'double',
                         'int8': 'int8_t',
                         'uint8': 'uint8_t'}
-        t = field.base_type
-        if field.base_type in replacements:
-          t = replacements[field.base_type]
+        t = field.type
+        if field.type in replacements:
+          t = replacements[field.type]
 
         # here we add text for the explicit template specification for arrays.
         # the C++ compiler needs this to distinguish them.
         field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
-                                                           field.array_len,
+                                                           field.type.array_size,
                                                            field_name_decode)
 
     # text to assign fields from fb objects to ROS services
@@ -623,8 +617,9 @@ def generate_srv_impl(service, output_path, templates_path):
     # text to assign fields from ROS services to fb objects
     response_encode_assignments += (',\n\t\t\t\t' + field_name_encode)
 
-  filedata = filedata.format(srv_package=service.package,
+  filedata = filedata.format(srv_package=service.pkg_name,
                              srv_type=service.srv_name,
+                             srv_filename=inflection.underscore(service.srv_name),
                              request_type=service.request.msg_name,
                              response_type=service.response.msg_name,
                              response_decode_assignments=response_decode_assignments,
@@ -675,12 +670,12 @@ def generate_plugin_manifest(package, output_path, templates_path):
   output = '<library path="lib/lib{msg_package}_robofleet">\n'
   for message in package.messages:
     output += msgdata.format(msg_package=package.name,
-                              msg_name=message.base_type.type,
+                              msg_name=message.msg_name,
                               msg_full_name=message.msg_name)
   for service in package.services:
     output += srvdata.format(msg_package=package.name,
-                              srv_name=service.base_type.type,
-                              srv_full_name=service.msg_name)
+                              srv_name=service.srv_name,
+                              srv_full_name=service.srv_name)
   output += '</library>'
   output = output.format(msg_package=package.name)
 
@@ -767,7 +762,8 @@ def generate_flatbuffer_schema(package,
     return True
     
   generated_packages.add(package)
-  schema_data = msg2fbs.generate_schema([str(message.base_type) for message in package.messages | package.services],
+  schema_data = msg2fbs.generate_schema([str(message.base_type) for message in package.messages] + 
+                                        [service.pkg_name + '/' + service.srv_name for service in package.services],
                                         depended_packages=dependency_graph[package],
                                         base_ns='fb',
                                         gen_enums=False,

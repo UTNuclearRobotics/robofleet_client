@@ -27,17 +27,17 @@ namespace robofleet_client
   class ROSSrvOutHandler
   {
     public:
-      virtual void initialize(rclcpp::Node* node,
+      virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                               MessageScheduler& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic);
 
-      virtual void initialize(rclcpp::Node* node,
+      virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                               WsServer& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic);
-      
-      virtual void sendRequest(const QByteArray& data) = 0;
+
+      std::function<void (const QByteArray&)> send_request_function;
 
     protected:
       typedef flatbuffers::Offset<fb::MsgMetadata> MetaDataOffset;
@@ -47,6 +47,10 @@ namespace robofleet_client
 
       // loads metadata into the flatbuffer builder
       std::function<MetaDataOffset(flatbuffers::FlatBufferBuilder&)> encode_metadata_function_;
+
+      virtual void sendRequest(const QByteArray& data,
+                               const std::shared_ptr<rclcpp::Node> node,
+                               const std::string client_service) = 0;
   };
 
 
@@ -54,13 +58,13 @@ namespace robofleet_client
   class ROSSrvInHandler
   {
     public:
-      virtual void initialize(rclcpp::Node* node,
+      virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                               MessageScheduler& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic,
                               const rclcpp::Duration timeout);
 
-      virtual void initialize(rclcpp::Node* node,
+      virtual void initialize(std::shared_ptr<rclcpp::Node> node,
                               WsServer& scheduler,
                               const std::string client_service,
                               const std::string rbf_topic,
@@ -75,7 +79,7 @@ namespace robofleet_client
 
       bool has_received_response_;
 
-      rclcpp::Duration timeout_;
+      rclcpp::Duration timeout_ = rclcpp::Duration(0,0);
 
       std::mutex response_mutex_;
 

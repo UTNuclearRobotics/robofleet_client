@@ -4,7 +4,7 @@
 
 namespace robofleet_client
 {
-  void ROSSrvOutHandler::initialize(rclcpp::Node* node,
+  void ROSSrvOutHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                     MessageScheduler& scheduler,
                                     const std::string client_service,
                                     const std::string rbf_topic)
@@ -20,9 +20,14 @@ namespace robofleet_client
                           true,
                           1);
       };
+
+    send_request_function = std::bind(&ROSSrvOutHandler::sendRequest, this,
+                                      std::placeholders::_1,
+                                      node,
+                                      client_service);
   }
 
-  void ROSSrvOutHandler::initialize(rclcpp::Node* node,
+  void ROSSrvOutHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                     WsServer& server,
                                     const std::string client_service,
                                     const std::string rbf_topic)
@@ -35,10 +40,14 @@ namespace robofleet_client
         server.broadcast_message(data, nullptr);
       };
     
+    send_request_function = std::bind(&ROSSrvOutHandler::sendRequest, this,
+                                      std::placeholders::_1,
+                                      node,
+                                      client_service);
   }
 
 
-  void ROSSrvInHandler::initialize(rclcpp::Node* node,
+  void ROSSrvInHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                    MessageScheduler& scheduler,
                                    const std::string client_service,
                                    const std::string rbf_topic,
@@ -59,7 +68,7 @@ namespace robofleet_client
     timeout_ = timeout;
   }
 
-  void ROSSrvInHandler::initialize(rclcpp::Node* node,
+  void ROSSrvInHandler::initialize(std::shared_ptr<rclcpp::Node> node,
                                    WsServer& server,
                                    const std::string client_service,
                                    const std::string rbf_topic,

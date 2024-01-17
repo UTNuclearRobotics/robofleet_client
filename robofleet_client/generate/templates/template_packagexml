@@ -19,6 +19,5 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <robofleet_client plugin="${{prefix}}/plugin_description.xml"/>
   </export>
 </package>
