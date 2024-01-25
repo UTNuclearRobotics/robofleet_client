@@ -28,7 +28,6 @@
   <depend>rclpy</depend>
   <depend>pluginlib</depend>
   <depend>yaml-cpp</depend>
-  <depend>Flatbuffers</depend>
   <depend>qtbase5-dev</depend>
   <depend>libqt5-websockets-dev</depend>
   <depend>robofleet_client_msgs</depend>

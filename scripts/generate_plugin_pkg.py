@@ -719,12 +719,13 @@ def generate_base_schema_file(msg2fbs_dir, includes_destination):
   # we actually call a make file which calls flatc
   print('Compiling flatbuffer schema for base definitions')
   try:
-    make_file_path = pathlib.Path(msg2fbs_dir, schema_filename)
-    # TODO: Add a timeout in Python3
-    compile_prcs = subprocess.check_call(['make', 'all', 'SCHEMA_FILE=base_schema', '--directory='+str(msg2fbs_dir)],
-                                         stdout=subprocess.PIPE)
+    compile_prcs = subprocess.check_call(['make', 'base_schema.h', 'SCHEMA_FILE=base_schema', '--directory='+str(msg2fbs_dir)],
+                                         stdout=subprocess.PIPE, timeout=60.0)
   except subprocess.CalledProcessError:
     print('ERROR: Failed to compile the flatbuffer schema for base definitions')
+    return False
+  except subprocess.TimeoutError:
+    print('ERROR: Compillation of flatbuffer schema timed out for base definitions')
     return False
   
   # copy the compiled file to robofleet_client's public includes location
@@ -796,15 +797,13 @@ def compile_flatbuffer_schema(package, msg2fbs_dir):
 
   # compile the schema by calling the flatc compiler
   print('Compiling flatbuffer schema for ' + package.plugin_pkg_name)
-  try:
-    make_file_path = pathlib.Path(msg2fbs_dir, schema_filename)
-    
-    compile_prcs = subprocess.check_call(['make', 'all', 'SCHEMA_FILE='+package.name, '--directory='+str(msg2fbs_dir)],
+  try:    
+    compile_prcs = subprocess.check_call(['make', package.name + '.h', 'SCHEMA_FILE='+package.name, '--directory='+str(msg2fbs_dir)],
                                          stdout=subprocess.PIPE, timeout=60.0)
   except subprocess.CalledProcessError:
     print('ERROR: Failed to compile the flatbuffer schema for ' + package.name)
-    return TimeoutError
-  except subprocess.CalledProcessError:
+    return False
+  except subprocess.TimeoutError:
     print('ERROR: Compillation of flatbuffer schema timed out for ' + package.name)
     return False
 

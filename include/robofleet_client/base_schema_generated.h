@@ -6,6 +6,13 @@
 
 #include "flatbuffers/flatbuffers.h"
 
+// Ensure the included flatbuffers.h is the same version as when this file was
+// generated, otherwise it may not be compatible.
+static_assert(FLATBUFFERS_VERSION_MAJOR == 23 &&
+              FLATBUFFERS_VERSION_MINOR == 5 &&
+              FLATBUFFERS_VERSION_REVISION == 26,
+             "Non-compatible flatbuffers version included");
+
 namespace fb {
 
 struct MsgMetadata;
@@ -20,28 +27,26 @@ struct RobofleetSubscription;
 struct RobofleetSubscriptionBuilder;
 struct RobofleetSubscriptionT;
 
-struct MsgMetadataT : public flatbuffers::NativeTable {
+struct MsgMetadataT : public ::flatbuffers::NativeTable {
   typedef MsgMetadata TableType;
-  std::string type;
-  std::string topic;
-  MsgMetadataT() {
-  }
+  std::string type{};
+  std::string topic{};
 };
 
-struct MsgMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+struct MsgMetadata FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef MsgMetadataT NativeTableType;
   typedef MsgMetadataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TYPE = 4,
     VT_TOPIC = 6
   };
-  const flatbuffers::String *type() const {
-    return GetPointer<const flatbuffers::String *>(VT_TYPE);
+  const ::flatbuffers::String *type() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_TYPE);
   }
-  const flatbuffers::String *topic() const {
-    return GetPointer<const flatbuffers::String *>(VT_TOPIC);
+  const ::flatbuffers::String *topic() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_TOPIC);
   }
-  bool Verify(flatbuffers::Verifier &verifier) const {
+  bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_TYPE) &&
            verifier.VerifyString(type()) &&
@@ -49,44 +54,44 @@ struct MsgMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(topic()) &&
            verifier.EndTable();
   }
-  MsgMetadataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(MsgMetadataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<MsgMetadata> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  MsgMetadataT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(MsgMetadataT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<MsgMetadata> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct MsgMetadataBuilder {
   typedef MsgMetadata Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_type(flatbuffers::Offset<flatbuffers::String> type) {
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_type(::flatbuffers::Offset<::flatbuffers::String> type) {
     fbb_.AddOffset(MsgMetadata::VT_TYPE, type);
   }
-  void add_topic(flatbuffers::Offset<flatbuffers::String> topic) {
+  void add_topic(::flatbuffers::Offset<::flatbuffers::String> topic) {
     fbb_.AddOffset(MsgMetadata::VT_TOPIC, topic);
   }
-  explicit MsgMetadataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit MsgMetadataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<MsgMetadata> Finish() {
+  ::flatbuffers::Offset<MsgMetadata> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<MsgMetadata>(end);
+    auto o = ::flatbuffers::Offset<MsgMetadata>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> type = 0,
-    flatbuffers::Offset<flatbuffers::String> topic = 0) {
+inline ::flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> type = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> topic = 0) {
   MsgMetadataBuilder builder_(_fbb);
   builder_.add_topic(topic);
   builder_.add_type(type);
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<MsgMetadata> CreateMsgMetadataDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
+inline ::flatbuffers::Offset<MsgMetadata> CreateMsgMetadataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *type = nullptr,
     const char *topic = nullptr) {
   auto type__ = type ? _fbb.CreateString(type) : 0;
@@ -97,16 +102,18 @@ inline flatbuffers::Offset<MsgMetadata> CreateMsgMetadataDirect(
       topic__);
 }
 
-flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+::flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(::flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct MsgWithMetadataT : public flatbuffers::NativeTable {
+struct MsgWithMetadataT : public ::flatbuffers::NativeTable {
   typedef MsgWithMetadata TableType;
-  std::unique_ptr<fb::MsgMetadataT> __metadata;
-  MsgWithMetadataT() {
-  }
+  std::unique_ptr<fb::MsgMetadataT> __metadata{};
+  MsgWithMetadataT() = default;
+  MsgWithMetadataT(const MsgWithMetadataT &o);
+  MsgWithMetadataT(MsgWithMetadataT&&) FLATBUFFERS_NOEXCEPT = default;
+  MsgWithMetadataT &operator=(MsgWithMetadataT o) FLATBUFFERS_NOEXCEPT;
 };
 
-struct MsgWithMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+struct MsgWithMetadata FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef MsgWithMetadataT NativeTableType;
   typedef MsgWithMetadataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -115,56 +122,57 @@ struct MsgWithMetadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const fb::MsgMetadata *__metadata() const {
     return GetPointer<const fb::MsgMetadata *>(VT___METADATA);
   }
-  bool Verify(flatbuffers::Verifier &verifier) const {
+  bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT___METADATA) &&
            verifier.VerifyTable(__metadata()) &&
            verifier.EndTable();
   }
-  MsgWithMetadataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(MsgWithMetadataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<MsgWithMetadata> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  MsgWithMetadataT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(MsgWithMetadataT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<MsgWithMetadata> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct MsgWithMetadataBuilder {
   typedef MsgWithMetadata Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add___metadata(flatbuffers::Offset<fb::MsgMetadata> __metadata) {
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add___metadata(::flatbuffers::Offset<fb::MsgMetadata> __metadata) {
     fbb_.AddOffset(MsgWithMetadata::VT___METADATA, __metadata);
   }
-  explicit MsgWithMetadataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit MsgWithMetadataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<MsgWithMetadata> Finish() {
+  ::flatbuffers::Offset<MsgWithMetadata> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<MsgWithMetadata>(end);
+    auto o = ::flatbuffers::Offset<MsgWithMetadata>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<fb::MsgMetadata> __metadata = 0) {
+inline ::flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<fb::MsgMetadata> __metadata = 0) {
   MsgWithMetadataBuilder builder_(_fbb);
   builder_.add___metadata(__metadata);
   return builder_.Finish();
 }
 
-flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+::flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(::flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-struct RobofleetSubscriptionT : public flatbuffers::NativeTable {
+struct RobofleetSubscriptionT : public ::flatbuffers::NativeTable {
   typedef RobofleetSubscription TableType;
-  std::unique_ptr<fb::MsgMetadataT> __metadata;
-  std::string topic_regex;
-  uint8_t action;
-  RobofleetSubscriptionT()
-      : action(0) {
-  }
+  std::unique_ptr<fb::MsgMetadataT> __metadata{};
+  std::string topic_regex{};
+  uint8_t action = 0;
+  RobofleetSubscriptionT() = default;
+  RobofleetSubscriptionT(const RobofleetSubscriptionT &o);
+  RobofleetSubscriptionT(RobofleetSubscriptionT&&) FLATBUFFERS_NOEXCEPT = default;
+  RobofleetSubscriptionT &operator=(RobofleetSubscriptionT o) FLATBUFFERS_NOEXCEPT;
 };
 
-struct RobofleetSubscription FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+struct RobofleetSubscription FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef RobofleetSubscriptionT NativeTableType;
   typedef RobofleetSubscriptionBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -175,54 +183,54 @@ struct RobofleetSubscription FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tabl
   const fb::MsgMetadata *__metadata() const {
     return GetPointer<const fb::MsgMetadata *>(VT___METADATA);
   }
-  const flatbuffers::String *topic_regex() const {
-    return GetPointer<const flatbuffers::String *>(VT_TOPIC_REGEX);
+  const ::flatbuffers::String *topic_regex() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_TOPIC_REGEX);
   }
   uint8_t action() const {
     return GetField<uint8_t>(VT_ACTION, 0);
   }
-  bool Verify(flatbuffers::Verifier &verifier) const {
+  bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT___METADATA) &&
            verifier.VerifyTable(__metadata()) &&
            VerifyOffset(verifier, VT_TOPIC_REGEX) &&
            verifier.VerifyString(topic_regex()) &&
-           VerifyField<uint8_t>(verifier, VT_ACTION) &&
+           VerifyField<uint8_t>(verifier, VT_ACTION, 1) &&
            verifier.EndTable();
   }
-  RobofleetSubscriptionT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(RobofleetSubscriptionT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<RobofleetSubscription> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+  RobofleetSubscriptionT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(RobofleetSubscriptionT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<RobofleetSubscription> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct RobofleetSubscriptionBuilder {
   typedef RobofleetSubscription Table;
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add___metadata(flatbuffers::Offset<fb::MsgMetadata> __metadata) {
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add___metadata(::flatbuffers::Offset<fb::MsgMetadata> __metadata) {
     fbb_.AddOffset(RobofleetSubscription::VT___METADATA, __metadata);
   }
-  void add_topic_regex(flatbuffers::Offset<flatbuffers::String> topic_regex) {
+  void add_topic_regex(::flatbuffers::Offset<::flatbuffers::String> topic_regex) {
     fbb_.AddOffset(RobofleetSubscription::VT_TOPIC_REGEX, topic_regex);
   }
   void add_action(uint8_t action) {
     fbb_.AddElement<uint8_t>(RobofleetSubscription::VT_ACTION, action, 0);
   }
-  explicit RobofleetSubscriptionBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+  explicit RobofleetSubscriptionBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  flatbuffers::Offset<RobofleetSubscription> Finish() {
+  ::flatbuffers::Offset<RobofleetSubscription> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<RobofleetSubscription>(end);
+    auto o = ::flatbuffers::Offset<RobofleetSubscription>(end);
     return o;
   }
 };
 
-inline flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<fb::MsgMetadata> __metadata = 0,
-    flatbuffers::Offset<flatbuffers::String> topic_regex = 0,
+inline ::flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<fb::MsgMetadata> __metadata = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> topic_regex = 0,
     uint8_t action = 0) {
   RobofleetSubscriptionBuilder builder_(_fbb);
   builder_.add_topic_regex(topic_regex);
@@ -231,9 +239,9 @@ inline flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(
   return builder_.Finish();
 }
 
-inline flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscriptionDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<fb::MsgMetadata> __metadata = 0,
+inline ::flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscriptionDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<fb::MsgMetadata> __metadata = 0,
     const char *topic_regex = nullptr,
     uint8_t action = 0) {
   auto topic_regex__ = topic_regex ? _fbb.CreateString(topic_regex) : 0;
@@ -244,29 +252,29 @@ inline flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscriptionDir
       action);
 }
 
-flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+::flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(::flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
-inline MsgMetadataT *MsgMetadata::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<fb::MsgMetadataT> _o = std::unique_ptr<fb::MsgMetadataT>(new MsgMetadataT());
+inline MsgMetadataT *MsgMetadata::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<MsgMetadataT>(new MsgMetadataT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void MsgMetadata::UnPackTo(MsgMetadataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void MsgMetadata::UnPackTo(MsgMetadataT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
   { auto _e = type(); if (_e) _o->type = _e->str(); }
   { auto _e = topic(); if (_e) _o->topic = _e->str(); }
 }
 
-inline flatbuffers::Offset<MsgMetadata> MsgMetadata::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<MsgMetadata> MsgMetadata::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   return CreateMsgMetadata(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(::flatbuffers::FlatBufferBuilder &_fbb, const MsgMetadataT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MsgMetadataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const MsgMetadataT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _type = _o->type.empty() ? 0 : _fbb.CreateString(_o->type);
   auto _topic = _o->topic.empty() ? 0 : _fbb.CreateString(_o->topic);
   return fb::CreateMsgMetadata(
@@ -275,54 +283,76 @@ inline flatbuffers::Offset<MsgMetadata> CreateMsgMetadata(flatbuffers::FlatBuffe
       _topic);
 }
 
-inline MsgWithMetadataT *MsgWithMetadata::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<fb::MsgWithMetadataT> _o = std::unique_ptr<fb::MsgWithMetadataT>(new MsgWithMetadataT());
+inline MsgWithMetadataT::MsgWithMetadataT(const MsgWithMetadataT &o)
+      : __metadata((o.__metadata) ? new fb::MsgMetadataT(*o.__metadata) : nullptr) {
+}
+
+inline MsgWithMetadataT &MsgWithMetadataT::operator=(MsgWithMetadataT o) FLATBUFFERS_NOEXCEPT {
+  std::swap(__metadata, o.__metadata);
+  return *this;
+}
+
+inline MsgWithMetadataT *MsgWithMetadata::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<MsgWithMetadataT>(new MsgWithMetadataT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void MsgWithMetadata::UnPackTo(MsgWithMetadataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void MsgWithMetadata::UnPackTo(MsgWithMetadataT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = __metadata(); if (_e) _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); }
+  { auto _e = __metadata(); if (_e) { if(_o->__metadata) { _e->UnPackTo(_o->__metadata.get(), _resolver); } else { _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); } } else if (_o->__metadata) { _o->__metadata.reset(); } }
 }
 
-inline flatbuffers::Offset<MsgWithMetadata> MsgWithMetadata::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<MsgWithMetadata> MsgWithMetadata::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   return CreateMsgWithMetadata(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<MsgWithMetadata> CreateMsgWithMetadata(::flatbuffers::FlatBufferBuilder &_fbb, const MsgWithMetadataT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MsgWithMetadataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const MsgWithMetadataT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto ___metadata = _o->__metadata ? CreateMsgMetadata(_fbb, _o->__metadata.get(), _rehasher) : 0;
   return fb::CreateMsgWithMetadata(
       _fbb,
       ___metadata);
 }
 
-inline RobofleetSubscriptionT *RobofleetSubscription::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  std::unique_ptr<fb::RobofleetSubscriptionT> _o = std::unique_ptr<fb::RobofleetSubscriptionT>(new RobofleetSubscriptionT());
+inline RobofleetSubscriptionT::RobofleetSubscriptionT(const RobofleetSubscriptionT &o)
+      : __metadata((o.__metadata) ? new fb::MsgMetadataT(*o.__metadata) : nullptr),
+        topic_regex(o.topic_regex),
+        action(o.action) {
+}
+
+inline RobofleetSubscriptionT &RobofleetSubscriptionT::operator=(RobofleetSubscriptionT o) FLATBUFFERS_NOEXCEPT {
+  std::swap(__metadata, o.__metadata);
+  std::swap(topic_regex, o.topic_regex);
+  std::swap(action, o.action);
+  return *this;
+}
+
+inline RobofleetSubscriptionT *RobofleetSubscription::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<RobofleetSubscriptionT>(new RobofleetSubscriptionT());
   UnPackTo(_o.get(), _resolver);
   return _o.release();
 }
 
-inline void RobofleetSubscription::UnPackTo(RobofleetSubscriptionT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+inline void RobofleetSubscription::UnPackTo(RobofleetSubscriptionT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = __metadata(); if (_e) _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); }
+  { auto _e = __metadata(); if (_e) { if(_o->__metadata) { _e->UnPackTo(_o->__metadata.get(), _resolver); } else { _o->__metadata = std::unique_ptr<fb::MsgMetadataT>(_e->UnPack(_resolver)); } } else if (_o->__metadata) { _o->__metadata.reset(); } }
   { auto _e = topic_regex(); if (_e) _o->topic_regex = _e->str(); }
   { auto _e = action(); _o->action = _e; }
 }
 
-inline flatbuffers::Offset<RobofleetSubscription> RobofleetSubscription::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<RobofleetSubscription> RobofleetSubscription::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   return CreateRobofleetSubscription(_fbb, _o, _rehasher);
 }
 
-inline flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<RobofleetSubscription> CreateRobofleetSubscription(::flatbuffers::FlatBufferBuilder &_fbb, const RobofleetSubscriptionT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RobofleetSubscriptionT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const RobofleetSubscriptionT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto ___metadata = _o->__metadata ? CreateMsgMetadata(_fbb, _o->__metadata.get(), _rehasher) : 0;
   auto _topic_regex = _o->topic_regex.empty() ? 0 : _fbb.CreateString(_o->topic_regex);
   auto _action = _o->action;

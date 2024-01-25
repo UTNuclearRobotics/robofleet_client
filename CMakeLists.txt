@@ -15,7 +15,6 @@ find_package(pluginlib REQUIRED)
 find_package(robofleet_client_msgs REQUIRED)
 find_package(rosidl_adapter REQUIRED)
 
-find_package(Flatbuffers REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 # Qt setup
@@ -36,18 +35,29 @@ set(Qt5_INCLUDE_DIRS
 
 set(Qt5_LIBRARIES Qt5Core Qt5Network Qt5WebSockets)
 
-set(PLUGINS_LIBRARY ${PROJECT_NAME}_plugins)
+set(PLUGINS_LIBRARY RobofleetPlugins)
+
+set(FLATBUFFERS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/robofleet_client/generate/msg2fbs/flatbuffers)
+set(FLATBUFFERS_INCLUDE_DIRS ${FLATBUFFERS_SRC_DIR}/include)
+
+add_subdirectory(${FLATBUFFERS_SRC_DIR}
+                 flatbuffers-build)
 
 add_library(${PLUGINS_LIBRARY})
 ament_target_dependencies(${PLUGINS_LIBRARY}
-  rclcpp
-  pluginlib
-  Qt5
-  Flatbuffers
+  PUBLIC
+    rclcpp
+    pluginlib
+    Qt5
 )
+target_link_libraries(${PLUGINS_LIBRARY}
+  PUBLIC
+    flatbuffers
+)
+
 target_include_directories(${PLUGINS_LIBRARY}
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include;${FLATBUFFERS_INCLUDE_DIRS}>"
     $<INSTALL_INTERFACE:include>
 )
 target_compile_options(${PLUGINS_LIBRARY}
@@ -59,7 +69,6 @@ target_sources(${PLUGINS_LIBRARY}
     src/ROSMsgHandlers.cpp
     src/ROSSrvHandlers.cpp
     src/common_conversions.cpp
-  #PUBLIC
     src/MessageScheduler.cpp
     src/MessageSchedulerLib.hpp
 )
@@ -70,10 +79,9 @@ ament_target_dependencies(client
   robofleet_client_msgs
   pluginlib
   Qt5
-  Flatbuffers
 )
 target_include_directories(client
-  PUBLIC
+  PRIVATE
     include
 )
 target_link_libraries(client
@@ -110,15 +118,13 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_export_targets(export_${PLUGINS_LIBRARY} HAS_LIBRARY_TARGET)
-ament_export_dependencies(pluginlib Qt5Core)
+ament_export_include_directories(include)
+ament_export_dependencies(rclcpp pluginlib Qt5Core)
 
 install(
   TARGETS ${PLUGINS_LIBRARY}
-  EXPORT export_${PLUGINS_LIBRARY}
+  EXPORT RobofleetPluginsTargets
   LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
   INCLUDES DESTINATION include
 )
 
@@ -131,6 +137,12 @@ install(
   DIRECTORY ${PROJECT_NAME}/generate/templates
             ${PROJECT_NAME}/generate/msg2fbs
   DESTINATION share/${PROJECT_NAME}/generate
+)
+
+install(
+  EXPORT RobofleetPluginsTargets
+  FILE RobofleetPluginsTargets.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RobofleetPlugins
 )
 
 ament_package()

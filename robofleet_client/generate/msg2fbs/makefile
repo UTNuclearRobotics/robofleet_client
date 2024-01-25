@@ -1,12 +1,18 @@
-PYTHON?=/usr/bin/python3
+PYTHON?=/usr/bin/python
 
 # if you have flatbuffers installed, you can change this path
 FLATC?=build/flatbuffers/flatc
 
 .SUFFIXES: # disable default rules
 
+.PHONY: ros-all
+ros-all:
+	build/flatbuffers/Makefile
+	build/flatbuffers/flatc
+	
+
 .PHONY: all
-all: schema_generated# build/flatbuffers/flatc build/flatbuffers/Makefile
+all: build/flatbuffers/flatc build/flatbuffers/Makefile
 
 .PHONY: clean
 clean:
@@ -14,12 +20,12 @@ clean:
 	-rm -f schema.fbs
 	-rm -rf build
 
-schema_generated: $(SCHEMA_FILE).fbs
-	flatc --gen-object-api -c $(SCHEMA_FILE).fbs
+$(SCHEMA_FILE).h: $(SCHEMA_FILE).fbs $(FLATC)
+	$(FLATC) --gen-object-api -c $(SCHEMA_FILE).fbs
 
-# build/flatbuffers/flatc: build/flatbuffers/Makefile
-# 	(cd build/flatbuffers; make -j flatc)
+build/flatbuffers/flatc: build/flatbuffers/Makefile
+	(cd build/flatbuffers; make -j flatc)
 
-# build/flatbuffers/Makefile: flatbuffers/CMakeLists.txt
-# 	mkdir -p build/flatbuffers
-# 	(cd build/flatbuffers; cmake ../../flatbuffers)
+build/flatbuffers/Makefile: flatbuffers/CMakeLists.txt
+	mkdir -p build/flatbuffers
+	(cd build/flatbuffers; cmake ../../flatbuffers)
