@@ -4,15 +4,31 @@
 
 This client serves as the interface between a ROS system and the Robofleet server. It advertises and/or subscribes to ROS topics, services, and actions as specified in a YAML configuration file.
 
-## Building
-
-Unlike earlier versions of `robofleet_client`, this release is to be built using `catkin` as normal for a ROS package.
-
 ## Dependencies
 
-* ROS Melodic
-* Qt5 >= 5.5
-* libqt5websockets5-dev
+* ROS 2 Humble/Iron
+* Qt5WebSockets
+* robofleet_client_msgs
+
+## Building
+
+Unlike earlier versions of `robofleet_client`, this release is to be built using `colcon` as normal for a ROS 2 packages.
+
+Create workspace.
+```bash
+mkdir -p robofleet_client_ws/src && cd robofleet_client_ws/src/
+```
+Clone packages into `src`.
+```bash
+git clone --recurse-submodules -j8 git@github.com:UTNuclearRobotics/robofleet_client.git
+git clone git@github.com:UTNuclearRobotics/robofleet_client.git
+```
+Install missing dependencies and build in `robofleet_client_ws` directory.
+```bash
+cd ..
+rosdep install --from-paths src -y --ignore-src
+colcon build
+```
 
 ## Creating your message plugins
 
@@ -25,7 +41,7 @@ For example, to use ROS messages from the `geometry_msgs` package, you need a co
 
 `robofleet_client` provides a script which generates your plugin packages for you. It can be run like so:
 ___
-    usage: rosrun robofleet_client generate_plugin_pkg.py [-h] [-o OUT] [-w] [-i] packages [packages ...]
+    usage: ros2 run robofleet_client generate_plugin_pkg.py [-h] [-o OUT] [-w] [-i] packages [packages ...]
 
     positional arguments:
       packages            The msg or srv packages that we want to generate plugins
@@ -42,14 +58,14 @@ ___
                           during cleanup.
 ___
 
-**Example:** rosrun robofleet_client generate_plugin_pkg.py geometry_msgs std_srvs
+**Example:** ros2 run robofleet_client generate_plugin_pkg.py geometry_msgs std_srvs
 
-After generating the plugin packages you need, place them in your ROS workspace and build them using `catkin`.
+After generating the plugin packages you need, place them in your ROS workspace and build them using `colcon`.
 
 ## Running the client node
 
 ___
-    usage: rosrun robofleet_client client config_file
+    usage: ros2 run robofleet_client client config_file
 
     positional arguments:
       config_file    Path to a YAML configuration file which specifies the input and output topics of the client.
