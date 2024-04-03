@@ -667,7 +667,7 @@ def generate_plugin_manifest(package, output_path, templates_path):
     return False
 
   # build the contents from template
-  output = '<library path="lib/lib{msg_package}_robofleet">\n'
+  output = '<library path="{msg_package}_robofleet">\n'
   for message in package.messages:
     output += msgdata.format(msg_package=package.name,
                               msg_name=message.msg_name,
