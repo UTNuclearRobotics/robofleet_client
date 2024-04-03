@@ -15,7 +15,7 @@ set(DEPENDENCIES
 {dependencies}
 )
 
-add_library({msg_package}_robofleet ${{PLUGIN_SRC}})
+add_library({msg_package}_robofleet SHARED ${{PLUGIN_SRC}})
 target_include_directories({msg_package}_robofleet
   PUBLIC
     $<BUILD_INTERFACE:${{CMAKE_CURRENT_SOURCE_DIR}}/include>
