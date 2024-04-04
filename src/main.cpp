@@ -40,11 +40,9 @@ void connect_client(WsClient& ws_client,
 int main(int argc, char** argv) {
   QCoreApplication qapp(argc, argv);
 
-  rclcpp::InitOptions opts;
-  opts.shutdown_on_signal = false;
-  rclcpp::init(argc, argv, opts);
+  rclcpp::init(argc, argv);
 
-  rclcpp::Logger logger = rclcpp::get_logger("my_logger");
+  rclcpp::Logger logger = rclcpp::get_logger("robofleet_client_main_logger");
 
   // check args
   if (argc != 2) {
@@ -94,7 +92,10 @@ int main(int argc, char** argv) {
       return 3;
     }
 
-    executor.add_node(ros_node);
+    std::thread qt_thread([&ros_node] {
+      rclcpp::spin(ros_node);
+      rclcpp::shutdown(); 
+    });
     
     return qapp.exec();
   } else {
@@ -112,10 +113,15 @@ int main(int argc, char** argv) {
       return 3;
     }
 
-    executor.add_node(ros_node);
+    std::thread qt_thread([&ros_node] {
+      rclcpp::spin(ros_node);
+      rclcpp::shutdown(); 
+    });
 
     return qapp.exec();
   }
+
+  return 0;
 }
 
 bool loadYAMLParams(const YAML::Node& root,
