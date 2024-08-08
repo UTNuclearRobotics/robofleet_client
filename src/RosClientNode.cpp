@@ -252,14 +252,14 @@ bool RosClientNode::getPublishHandler(
   const TopicParams& params,
   robofleet_client::RBFPublishHandlerPtr& out_handler)
 {
-  return getHandler(params, "PublishHandler", out_handler);
+  return getHandler(params, "PublishHandler", out_handler,"RBF");
 }
 
 bool RosClientNode::getSubscribeHandler(
   const TopicParams& params,
   robofleet_client::RBFSubscribeHandlerPtr& out_handler)
 {
-  return getHandler(params, "SubscribeHandler", out_handler);
+  return getHandler(params, "SubscribeHandler", out_handler,"RBF");
 }
 
 
@@ -267,14 +267,14 @@ bool RosClientNode::getSrvInHandler(
   const TopicParams& params,
   robofleet_client::ROSSrvInHandlerPtr& out_handler)
 {
-  return getHandler(params, "SrvInHandler", out_handler);
+  return getHandler(params, "SrvInHandler", out_handler,"ROS");
 }
 
 bool RosClientNode::getSrvOutHandler(
   const TopicParams& params,
   robofleet_client::ROSSrvOutHandlerPtr& out_handler)
 {
-  return getHandler(params, "SrvOutHandler", out_handler);
+  return getHandler(params, "SrvOutHandler", out_handler,"ROS");
 }
 
 bool RosClientNode::configureTopics(const YAML::Node& subscribers_list,

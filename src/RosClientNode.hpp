@@ -99,7 +99,8 @@ private:
   template<class Handler>
   bool getHandler(const TopicParams& params,
                   const std::string handler_type,
-                  std::shared_ptr<Handler>& out_handler);
+                  std::shared_ptr<Handler>& out_handler,
+                  const std::string ns);
 
   bool getPublishHandler(const TopicParams& params,
                            robofleet_client::RBFPublishHandlerPtr& out_handler);

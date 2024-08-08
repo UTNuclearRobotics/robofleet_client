@@ -1,12 +1,13 @@
 template<class Handler>
 bool RosClientNode::getHandler(const TopicParams& params,
                                const std::string handler_type,
-                               std::shared_ptr<Handler>& out_handler)
+                               std::shared_ptr<Handler>& out_handler,
+                               const std::string ns)
 {
   typedef std::shared_ptr<Handler> HandlerPtr;
   HandlerPtr msg_handler(nullptr);
   try {
-    const std::string base_class = "robofleet_client::RBF" + handler_type;
+    const std::string base_class = "robofleet_client::" + ns + handler_type;
 
     typedef pluginlib::ClassLoader<Handler> ClassLoader;
     ClassLoader loader("robofleet_client",
