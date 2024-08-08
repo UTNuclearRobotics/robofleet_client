@@ -145,4 +145,5 @@ install(
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RobofleetPlugins
 )
 
+ament_export_libraries(${PLUGINS_LIBRARY})
 ament_package()
