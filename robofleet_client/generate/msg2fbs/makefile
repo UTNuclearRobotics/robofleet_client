@@ -12,7 +12,7 @@ ros-all:
 	
 
 .PHONY: all
-all: build/flatbuffers/flatc build/flatbuffers/Makefile
+all: $(SCHEMA_FILE).h build/flatbuffers/flatc build/flatbuffers/Makefile
 
 .PHONY: clean
 clean:
@@ -21,7 +21,7 @@ clean:
 	-rm -rf build
 
 $(SCHEMA_FILE).h: $(SCHEMA_FILE).fbs $(FLATC)
-	$(FLATC) --gen-object-api -c $(SCHEMA_FILE).fbs
+	$(FLATC) --gen-object-api -c -n $(SCHEMA_FILE).fbs
 
 build/flatbuffers/flatc: build/flatbuffers/Makefile
 	(cd build/flatbuffers; make -j flatc)
