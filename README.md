@@ -8,7 +8,7 @@ This client serves as the interface between a ROS system and the Robofleet serve
 
 * ROS 2 Humble/Iron
 * Qt5WebSockets
-* robofleet_client_msgs
+* [robofleet_client_msgs](https://github.com/UTNuclearRoboticsPublic/robofleet_client_msgs)
 
 ## Building
 
