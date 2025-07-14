@@ -16,6 +16,7 @@ import re
 from ament_index_python.packages import get_package_prefix, get_package_share_path
 from rosidl_runtime_py import get_message_interfaces, get_service_interfaces
 from rosidl_adapter.parser import MessageSpecification, ServiceSpecification
+from rosidl_parser.definition import Array, BasicType, UnboundedSequence, BoundedSequence
 import shutil
 import subprocess
 import sys
@@ -377,7 +378,7 @@ def generate_msg_impl(message, output_path, templates_path):
       # decide if we should be calling the primitive set of conversion templates,
       # or the set for compound types. Only compound types require the
       # template parameters constructed above
-      if field.type.pkg_name is None and field.type.is_array and field.type.type != 'string':
+      if field.type.pkg_name is None and field.type.is_array and field.type.type != 'string' and field.type.type != 'bool':
         p = 'Primitive'
       field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
@@ -392,7 +393,15 @@ def generate_msg_impl(message, output_path, templates_path):
         replacements = {'float32': 'float',
                         'float64': 'double',
                         'int8': 'int8_t',
-                        'uint8': 'uint8_t'}
+                        'uint8': 'uint8_t',
+                        'int16': 'int16_t',
+                        'uint16': 'uint16_t',
+                        'int32': 'int32_t',
+                        'uint32': 'uint32_t',
+                        'int64': 'int64_t',
+                        'uint64': 'uint64_t',
+                    }
+
         t = field.type.type
         if field.type.type in replacements:
           t = replacements[field.type.type]
@@ -402,6 +411,11 @@ def generate_msg_impl(message, output_path, templates_path):
         field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
                                                            field.type.array_size,
                                                            field_name_decode)
+
+      # special function for bool[]
+      if field.type.type == 'bool' and field.type.is_array:
+        field_name_encode = '::RostoFbBoolArray(fbb, {})'.format('msg.' + field.name)
+        field_name_decode = '::FbtoRosBoolArray({})'.format('src->' + field.name.lower() + '()')
 
     # text to assign fields from fb objects to ROS messages
     msg_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
@@ -524,7 +538,7 @@ def generate_srv_impl(service, output_path, templates_path):
       # decide if we should be calling the primitive set of conversion templates,
       # or the set for compound types. Only compound types require the
       # template parameters constructed above
-      if field.type.is_primitive_type() and field.type.is_array and field.type.base_type != 'string':
+      if field.type.is_primitive_type() and field.type.is_array and field.type.type != 'string':
         p = 'Primitive'
       field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
@@ -539,7 +553,15 @@ def generate_srv_impl(service, output_path, templates_path):
         replacements = {'float32': 'float',
                         'float64': 'double',
                         'int8': 'int8_t',
-                        'uint8': 'uint8_t'}
+                        'uint8': 'uint8_t',
+                        'int16': 'int16_t',
+                        'uint16': 'uint16_t',
+                        'int32': 'int32_t',
+                        'uint32': 'uint32_t',
+                        'int64': 'int64_t',
+                        'uint64': 'uint64_t',
+                    }
+
         t = field.type.type
         if field.type.type in replacements:
           t = replacements[field.type.type]
@@ -549,6 +571,11 @@ def generate_srv_impl(service, output_path, templates_path):
         field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
                                                            field.type.array_size,
                                                            field_name_decode)
+
+      # special function for bool[]
+      if field.type.type == 'bool' and field.type.is_array:
+        field_name_encode = '::RostoFbBoolArray(fbb, {})'.format('msg.' + field.name)
+        field_name_decode = '::FbtoRosBoolArray({})'.format('src->' + field.name.lower() + '()')
 
     # text to assign fields from fb objects to ROS services
     request_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))
@@ -601,7 +628,15 @@ def generate_srv_impl(service, output_path, templates_path):
         replacements = {'float32': 'float',
                         'float64': 'double',
                         'int8': 'int8_t',
-                        'uint8': 'uint8_t'}
+                        'uint8': 'uint8_t',
+                        'int16': 'int16_t',
+                        'uint16': 'uint16_t',
+                        'int32': 'int32_t',
+                        'uint32': 'uint32_t',
+                        'int64': 'int64_t',
+                        'uint64': 'uint64_t',
+                    }
+
         t = field.type
         if field.type in replacements:
           t = replacements[field.type]
@@ -611,6 +646,10 @@ def generate_srv_impl(service, output_path, templates_path):
         field_name_decode = '::FbtoRos{}<{}, {}>({})'.format(p, t,
                                                            field.type.array_size,
                                                            field_name_decode)
+
+      if field.type.type == 'bool' and field.type.is_array:
+        field_name_encode = '::RostoFbBoolArray(fbb, {})'.format('msg.' + field.name)
+        field_name_decode = '::FbtoRosBoolArray({})'.format('src->' + field.name.lower() + '()')
 
     # text to assign fields from fb objects to ROS services
     response_decode_assignments += ('\n\t\tmsg.{}={};'.format(field.name, field_name_decode))

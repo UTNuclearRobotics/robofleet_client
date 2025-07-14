@@ -126,3 +126,53 @@ flatbuffers::Offset<flatbuffers::Vector<FbType>> RostoFb(flatbuffers::FlatBuffer
       });
   return fbb.CreateVector(dst).o;
 }
+
+// To support vector of strings
+template<>
+inline std::vector<std::string> FbtoRos<std::string, flatbuffers::String>(
+    const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>* src)
+{
+  std::vector<std::string> dst;
+  if (src) {
+    dst.reserve(src->size());
+    for (auto it = src->begin(); it != src->end(); ++it) {
+      dst.push_back(it->str());  // Convert from flatbuffers::String to std::string
+    }
+  }
+  return dst;
+}
+
+// Special case for std::vector<std::string> → FlatBuffers vector of strings
+template<>
+inline flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>>
+RostoFb<std::string, flatbuffers::String>(flatbuffers::FlatBufferBuilder& fbb, const std::vector<std::string>& src)
+{
+  std::vector<flatbuffers::Offset<flatbuffers::String>> dst;
+  dst.reserve(src.size());
+  for (const auto& s : src) {
+    dst.push_back(RostoFb(fbb, s));
+  }
+  return fbb.CreateVector(dst);
+}
+
+// In flatBuffers, there's no native bool[] type
+// then we need funtions to support bool arrays.
+inline std::vector<bool> FbtoRosBoolArray(const flatbuffers::Vector<uint8_t>* src)
+{
+  std::vector<bool> output;
+  output.reserve(src->size());
+  for (auto v : *src) {
+    output.push_back(static_cast<bool>(v));
+  }
+  return output;
+}
+
+inline flatbuffers::Offset<flatbuffers::Vector<uint8_t>> RostoFbBoolArray(flatbuffers::FlatBufferBuilder& fbb, const std::vector<bool>& src)
+{
+  std::vector<uint8_t> temp;
+  temp.reserve(src.size());
+  for (bool b : src) {
+    temp.push_back(static_cast<uint8_t>(b));
+  }
+  return fbb.CreateVector(temp);
+}
