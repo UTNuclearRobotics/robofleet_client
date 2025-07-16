@@ -94,5 +94,8 @@ namespace {srv_package}_robofleet {{
     QByteArray encodeResponseWithMetadata(const std::shared_ptr<ResponseType> msg);
 
     rclcpp::Client<SrvType>::SharedPtr client_;
+
+    rclcpp::CallbackGroup::SharedPtr callback_group_;
+
   }};
 }}

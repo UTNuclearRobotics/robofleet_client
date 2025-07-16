@@ -125,6 +125,15 @@ namespace {srv_package}_robofleet {{
     return data;
   }}
 
+  const {srv_type}SrvInHandler::FbResponseType*
+  {srv_type}SrvInHandler::decodeResponse(const QByteArray& data)
+  {{
+    const FbResponseType* root = 
+      flatbuffers::GetRoot<FbResponseType>(data.data());
+
+    return root;
+  }}
+
   bool {srv_type}SrvInHandler::callback(const std::shared_ptr<RequestType> req,
                                         std::shared_ptr<ResponseType> res)
   {{
@@ -165,8 +174,8 @@ namespace {srv_package}_robofleet {{
                                            rbf_topic.c_str());
       }};
 
-    rclcpp::Client<SrvType>::SharedPtr client =
-      node->create_client<SrvType>(client_service);
+    callback_group_ = node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    client_ = node->create_client<SrvType>(client_service, rmw_qos_profile_services_default, callback_group_);
   }}
 
   void {srv_type}SrvOutHandler::initialize(std::shared_ptr<rclcpp::Node> node,
@@ -229,13 +238,8 @@ namespace {srv_package}_robofleet {{
     auto result = client_->async_send_request(request);
 
     // Wait for the result
-    if (rclcpp::spin_until_future_complete(node->get_node_base_interface(), result) !=
-      rclcpp::FutureReturnCode::SUCCESS)
-    {{
-      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Request failed on service %s.", client_service.c_str());
-      return;
-    }}
-
+    std::future_status status = result.wait_for(std::chrono::seconds(10));
+    
     // encode the response
     const QByteArray response_data = encodeResponseWithMetadata(result.get());
 

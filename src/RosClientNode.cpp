@@ -380,14 +380,14 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       handler->initialize(shared_from_this(),
                           *scheduler_,
                           topic_params.client_topic,
-                          topic_params.rbf_topic+"Responses",
+                          topic_params.rbf_topic+"Requests",
                           topic_params.timeout);
     }
     else if (server_ != nullptr) {
       handler->initialize(shared_from_this(),
                           *server_,
                           topic_params.client_topic,
-                          topic_params.rbf_topic+"Responses",
+                          topic_params.rbf_topic+"Requests",
                           topic_params.timeout);
     }
     else {
@@ -424,13 +424,13 @@ bool RosClientNode::configureServices(const YAML::Node& incoming_list,
       handler->initialize(shared_from_this(),
                           *scheduler_,
                           topic_params.client_topic,
-                          topic_params.rbf_topic+"Requests");
+                          topic_params.rbf_topic+"Responses");
     }
     else if (server_ != nullptr) {
       handler->initialize(shared_from_this(),
                           *server_,
                           topic_params.client_topic,
-                          topic_params.rbf_topic+"Requests");
+                          topic_params.rbf_topic+"Responses");
     }
     else {
       RCLCPP_ERROR(this->get_logger(), "Neither a message scheduler nor a websocket server "
@@ -735,6 +735,64 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
 void RosClientNode::sendSubscriptionMsg()
 {
   for (const HandlerMap<robofleet_client::RBFSubscribeHandlerPtr>::value_type& pair : subs_) {
+    flatbuffers::FlatBufferBuilder fbb;
+
+    const flatbuffers::Offset<fb::MsgMetadata> metadata =
+      fb::CreateMsgMetadataDirect(fbb, "amrl_msgs/RobofleetSubscription", "/subscriptions");
+
+    const flatbuffers::uoffset_t root_offset = fb::CreateRobofleetSubscriptionDirect(
+      fbb,
+      metadata,
+      pair.first.c_str(),
+      robofleet_client_msgs::msg::RobofleetSubscription::ACTION_SUBSCRIBE).o;
+
+    fbb.Finish(flatbuffers::Offset<void>(root_offset));
+    const QByteArray data{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                          static_cast<int>(fbb.GetSize())};
+
+    if (scheduler_ != nullptr) {
+      scheduler_->enqueue(QString("/subscriptions"),
+                          data,
+                          0.0,
+                          std::numeric_limits<double>::max(),
+                          true,
+                          subs_.size());
+    }
+    else {
+      server_->broadcast_message(data, nullptr);
+    }
+  }
+
+  for (const HandlerMap<robofleet_client::ROSSrvInHandlerPtr>::value_type& pair : incoming_srvs_) {
+    flatbuffers::FlatBufferBuilder fbb;
+
+    const flatbuffers::Offset<fb::MsgMetadata> metadata =
+      fb::CreateMsgMetadataDirect(fbb, "amrl_msgs/RobofleetSubscription", "/subscriptions");
+
+    const flatbuffers::uoffset_t root_offset = fb::CreateRobofleetSubscriptionDirect(
+      fbb,
+      metadata,
+      pair.first.c_str(),
+      robofleet_client_msgs::msg::RobofleetSubscription::ACTION_SUBSCRIBE).o;
+
+    fbb.Finish(flatbuffers::Offset<void>(root_offset));
+    const QByteArray data{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                          static_cast<int>(fbb.GetSize())};
+
+    if (scheduler_ != nullptr) {
+      scheduler_->enqueue(QString("/subscriptions"),
+                          data,
+                          0.0,
+                          std::numeric_limits<double>::max(),
+                          true,
+                          subs_.size());
+    }
+    else {
+      server_->broadcast_message(data, nullptr);
+    }
+  }
+
+  for (const HandlerMap<robofleet_client::ROSSrvOutHandlerPtr>::value_type& pair : outgoing_srvs_) {
     flatbuffers::FlatBufferBuilder fbb;
 
     const flatbuffers::Offset<fb::MsgMetadata> metadata =

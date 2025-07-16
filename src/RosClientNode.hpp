@@ -31,7 +31,7 @@ public:
   bool configure(const YAML::Node& root);
 
 public Q_SLOTS:
-  // sends the subscriptinos info to the Robofleet server
+  // sends the subscriptions info to the Robofleet server
   void sendSubscriptionMsg();
 
   /**

@@ -65,6 +65,13 @@ publishers: [
     # default: 1
     # The client will queue up to this number of messages before starting to drop them
     queue_size: 10
+  },
+
+  {
+    client_topic: "/vaultbot/hololens/twist",
+    rbf_topic: "/vaultbot/hololens/twist",
+    type: "geometry_msgs/TwistStamped",
+    # latched: false
   }
 ]
 
@@ -85,8 +92,8 @@ subscribers: [
 
 incoming_services: [
   {
-    client_topic: "/set_camera_info_service",
-    rbf_topic: "/set_camera_info_service",
+    client_topic: "/set_bool",
+    rbf_topic: "/set_bool",
     type: "std_srvs/SetBool",
 
     # timeout (optional)
@@ -94,33 +101,46 @@ incoming_services: [
     # default: no timeout
     # Zero indicates no timeout.
     timeout: 10.0
-  }
+  },
+  {
+    client_topic: "/set_camera_info_service",
+    rbf_topic: "/set_camera_info_service",
+    type: "sensor_msgs/SetCameraInfo",
+
+    # timeout (optional)
+    # type: double (seconds)
+    # default: no timeout
+    # Zero indicates no timeout.
+    timeout: 10.0
+  },
+  
 ]
 
 outgoing_services: [
-  {
-    client_topic: "/empty_service",
-    rbf_topic: "/empty_service",
-    type: "std_srvs/Empty"
-  }
+  # {
+  #   client_topic: "/empty_service",
+  #   rbf_topic: "/empty_service",
+  #   type: "std_srvs/Empty"
+  # }
+  
 ]
 
 incoming_actions: [
-  {
-    # actions are configured the same as topics,
-    # except that no_drop is hardcoded true and latched is hardcoded false
-    client_topic: "/move_base",
-    rbf_topic: "/move_base",
-    type: "move_base_msgs/MoveBase"
-  }
+  # {
+  #   # actions are configured the same as topics,
+  #   # except that no_drop is hardcoded true and latched is hardcoded false
+  #   client_topic: "/move_base",
+  #   rbf_topic: "/move_base",
+  #   type: "move_base_msgs/MoveBase"
+  # }
 ]
 
 outgoing_actions: [
-  {
-    # actions are configured the same as topics,
-    # except that no_drop is hardcoded true and latched is hardcoded false
-    client_topic: "/move_base",
-    rbf_topic: "/move_base",
-    type: "move_base_msgs/MoveBase"
-  }
+  # {
+  #   # actions are configured the same as topics,
+  #   # except that no_drop is hardcoded true and latched is hardcoded false
+  #   client_topic: "/move_base",
+  #   rbf_topic: "/move_base",
+  #   type: "move_base_msgs/MoveBase"
+  # }
 ]
