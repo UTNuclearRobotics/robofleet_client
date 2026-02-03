@@ -57,7 +57,7 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, rosidl_generator_traits::data_type<SrvType>(), rbf_topic.c_str());
       }};
 
     using std::placeholders::_1;
@@ -79,7 +79,7 @@ namespace {srv_package}_robofleet {{
 
     encode_metadata_function_ = [rbf_topic](flatbuffers::FlatBufferBuilder& fbb)
       {{
-        return fb::CreateMsgMetadataDirect(fbb, "{srv_package}::{srv_type}", rbf_topic.c_str());
+        return fb::CreateMsgMetadataDirect(fbb, rosidl_generator_traits::data_type<SrvType>(), rbf_topic.c_str());
       }};
 
     using std::placeholders::_1;
