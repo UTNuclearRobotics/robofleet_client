@@ -1,6 +1,7 @@
 #pragma once
 
 #include <robofleet_client/base_schema_generated.h>
+#include <rosidl_runtime_cpp/bounded_vector.hpp>
 
 /********************************************************************
  * A set of functions and function templates needed to translate
@@ -67,7 +68,7 @@ flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<FbType>>> RostoFb(fl
       src.begin(), src.end(), dst.begin(), [&fbb](const RosType& item) {
         return RostoFb(fbb, item);
       });
-  return fbb.CreateVector(dst).o;
+  return fbb.CreateVector(dst);
 }
 
 
@@ -117,14 +118,15 @@ std::array<RosType, N> FbtoRos(const flatbuffers::Vector<FbType>* src)
 }
 
 template<class RosType, class FbType, size_t N>
-flatbuffers::Offset<flatbuffers::Vector<FbType>> RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::array<RosType, N>& src)
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<FbType>>>
+RostoFb(flatbuffers::FlatBufferBuilder& fbb, const std::array<RosType, N>& src)
 {
   std::vector<flatbuffers::Offset<FbType>> dst(src.size());
   std::transform(
       src.begin(), src.end(), dst.begin(), [&fbb](const RosType& item) {
         return RostoFb(fbb, item);
       });
-  return fbb.CreateVector(dst).o;
+  return fbb.CreateVector(dst);
 }
 
 // To support vector of strings
@@ -176,3 +178,55 @@ inline flatbuffers::Offset<flatbuffers::Vector<uint8_t>> RostoFbBoolArray(flatbu
   }
   return fbb.CreateVector(temp);
 }
+
+
+// Bounded Vectors
+
+template<class RosType, class FbType>
+RosType ConvertElement(const FbType* src);
+
+template<class RosType, class FbType>
+flatbuffers::Offset<FbType>
+ConvertElementToFb(flatbuffers::FlatBufferBuilder& fbb, const RosType& src);
+
+
+template<class RosType, class FbType, size_t MaxN>
+rosidl_runtime_cpp::BoundedVector<RosType, MaxN>
+FbtoRosBounded(const flatbuffers::Vector<flatbuffers::Offset<FbType>>* src)
+{
+  rosidl_runtime_cpp::BoundedVector<RosType, MaxN> dst;
+
+  const size_t count = std::min<size_t>(src->size(), MaxN);
+  dst.reserve(count);
+
+  for (size_t i = 0; i < count; i++) {
+    dst.push_back(ConvertElement<RosType, FbType>(src->Get(i)));
+  }
+
+  return dst;
+}
+
+template<class RosType, class FbType, size_t MaxN>
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<FbType>>>
+RostoFbBounded(flatbuffers::FlatBufferBuilder& fbb,
+               const rosidl_runtime_cpp::BoundedVector<RosType, MaxN>& src)
+{
+  std::vector<flatbuffers::Offset<FbType>> temp;
+  temp.reserve(src.size());
+
+  for (const auto& item : src) {
+    temp.push_back(ConvertElementToFb<RosType, FbType>(fbb, item));
+  }
+
+  return fbb.CreateVector(temp);
+}
+
+// Bounded Vectors - Primitives
+template<class PrimType, size_t MaxN>
+rosidl_runtime_cpp::BoundedVector<PrimType, MaxN>
+FbtoRosPrimitiveBounded(const flatbuffers::Vector<PrimType>* src);
+
+template<class PrimType, size_t MaxN>
+flatbuffers::Offset<flatbuffers::Vector<PrimType>>
+RostoFbPrimitiveBounded(flatbuffers::FlatBufferBuilder& fbb,
+                        const rosidl_runtime_cpp::BoundedVector<PrimType, MaxN>& src);

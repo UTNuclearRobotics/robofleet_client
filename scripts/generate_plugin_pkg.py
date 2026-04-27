@@ -382,15 +382,7 @@ def generate_msg_impl(message, output_path, templates_path):
         p = 'Primitive'
       field_name_encode = '::RostoFb{}(fbb, {})'.format(p, field_name_encode)
 
-      if field.type.array_size is None:
-        field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
-      else:
-        # ROS uses boost::array to represent fixed-length vector message fields
-        # We need to help the compiler find the right template overload
-        # in this case.
-
-        # We also need to replace some ROS base types with ones that C++ understands
-        replacements = {'float32': 'float',
+      replacements = {'float32': 'float',
                         'float64': 'double',
                         'int8': 'int8_t',
                         'uint8': 'uint8_t',
@@ -401,7 +393,64 @@ def generate_msg_impl(message, output_path, templates_path):
                         'int64': 'int64_t',
                         'uint64': 'uint64_t',
                     }
+      if field.type.array_size is None:
+        field_name_decode = '::FbtoRos{}({})'.format(p, field_name_decode)
 
+      elif field.type.is_upper_bound:
+        # primitive vs message
+        if field.type.pkg_name is None:
+            # bounded array of primitive (e.g. double[<=3])
+            # use your *primitive* bounded helpers
+            cpp_prim = replacements.get(field.type.type, field.type.type)
+
+            field_name_encode = (
+                '::RostoFbPrimitiveBounded<{prim}, {n}>(fbb, {msg})'
+                .format(
+                    prim=cpp_prim,
+                    n=field.type.array_size,
+                    msg='msg.' + field.name
+                )
+            )
+            field_name_decode = (
+                '::FbtoRosPrimitiveBounded<{prim}, {n}>({src})'
+                .format(
+                    prim=cpp_prim,
+                    n=field.type.array_size,
+                    src=field_name_decode
+                )
+            )
+
+        else:
+            ros_type = '{pkg}::msg::{t}'.format(pkg=field.type.pkg_name,
+                                                t=field.type.type)
+
+            if field.type.type in replacements:
+                ros_type = replacements[field.type.type]
+
+            fb_type = 'fb::{pkg}::msg::{t}'.format(pkg=field.type.pkg_name,
+                                                  t=field.type.type)
+
+            field_name_encode = (
+                '::RostoFbBounded<{ros}, {fb}, {n}>(fbb, {msg})'
+                .format(
+                    ros=ros_type,
+                    fb=fb_type,
+                    n=field.type.array_size,
+                    msg='msg.' + field.name
+                )
+            )
+
+            field_name_decode = (
+                '::FbtoRosBounded<{ros}, {fb}, {n}>({src})'
+                .format(
+                    ros=ros_type,
+                    fb=fb_type,
+                    n=field.type.array_size,
+                    src=field_name_decode
+                )
+            )
+
+      else:
         t = field.type.type
         if field.type.type in replacements:
           t = replacements[field.type.type]
