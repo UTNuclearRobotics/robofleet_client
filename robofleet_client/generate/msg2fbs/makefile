@@ -23,6 +23,8 @@ clean:
 $(SCHEMA_FILE).h: $(SCHEMA_FILE).fbs $(FLATC)
 	$(FLATC) --gen-object-api -c -n $(SCHEMA_FILE).fbs
 
+	$(FLATC) -o generated/swift --swift $(SCHEMA_FILE).fbs
+
 build/flatbuffers/flatc: build/flatbuffers/Makefile
 	(cd build/flatbuffers; make -j flatc)
 
