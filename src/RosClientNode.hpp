@@ -2,11 +2,18 @@
 
 #include <QObject>
 #include <unordered_map>
+#include <mutex>
 
 #include <pluginlib/class_loader.hpp>
+#include <rclcpp/service.hpp>
 
 #include "robofleet_client/ROSMsgHandlers.hpp"
 #include "robofleet_client/ROSSrvHandlers.hpp"
+
+#include <robofleet_client_msgs/srv/register_topic.hpp>
+#include <robofleet_client_msgs/srv/unregister_topic.hpp>
+#include <robofleet_client_msgs/srv/register_ros_service.hpp>
+#include <robofleet_client_msgs/srv/unregister_ros_service.hpp>
 
 namespace YAML {
   class Node;
@@ -43,6 +50,8 @@ public Q_SLOTS:
 private:
   typedef std::string TopicString;
   typedef std::string MsgTypeString;
+
+  mutable std::mutex handler_mutex_;
 
   // holds the configuration params for a data topic
   struct TopicParams {
@@ -88,6 +97,12 @@ private:
   HandlerMap<robofleet_client::ROSSrvInHandlerPtr> incoming_srvs_;
   HandlerMap<robofleet_client::ROSSrvOutHandlerPtr> outgoing_srvs_;
 
+  // runtime registration service servers
+  rclcpp::Service<robofleet_client_msgs::srv::RegisterTopic>::SharedPtr reg_topic_srv_;
+  rclcpp::Service<robofleet_client_msgs::srv::UnregisterTopic>::SharedPtr unreg_topic_srv_;
+  rclcpp::Service<robofleet_client_msgs::srv::RegisterRosService>::SharedPtr reg_svc_srv_;
+  rclcpp::Service<robofleet_client_msgs::srv::UnregisterRosService>::SharedPtr unreg_svc_srv_;
+
   // parses the configuration file
   bool readTopicParams(const YAML::Node& node,
                        TopicParams& out_params,
@@ -125,6 +140,29 @@ private:
   // instantiate action handlers
   bool configureActions(const YAML::Node& incoming_list,
                         const YAML::Node& outgoing_list);
+
+  // initialize runtime registration service servers
+  void initRuntimeServices();
+
+  // runtime registration service callbacks
+  void onRegisterTopic(
+    const std::shared_ptr<robofleet_client_msgs::srv::RegisterTopic::Request> request,
+    std::shared_ptr<robofleet_client_msgs::srv::RegisterTopic::Response> response);
+
+  void onUnregisterTopic(
+    const std::shared_ptr<robofleet_client_msgs::srv::UnregisterTopic::Request> request,
+    std::shared_ptr<robofleet_client_msgs::srv::UnregisterTopic::Response> response);
+
+  void onRegisterRosService(
+    const std::shared_ptr<robofleet_client_msgs::srv::RegisterRosService::Request> request,
+    std::shared_ptr<robofleet_client_msgs::srv::RegisterRosService::Response> response);
+
+  void onUnregisterRosService(
+    const std::shared_ptr<robofleet_client_msgs::srv::UnregisterRosService::Request> request,
+    std::shared_ptr<robofleet_client_msgs::srv::UnregisterRosService::Response> response);
+
+  // helper to send a single subscription message
+  void sendSingleSubscriptionMsg(const std::string& rbf_topic, bool is_subscribe);
 };
 
 // template definitions

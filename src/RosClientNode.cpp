@@ -79,11 +79,15 @@ bool RosClientNode::configure(const YAML::Node& root)
     return false;
   }
 
+  initRuntimeServices();
+
   return true;
 }
 
 void RosClientNode::routeMessageToHandlers(const QByteArray& data) const
 {
+  std::lock_guard<std::mutex> lock(handler_mutex_);
+
   // decode the metadata of the message
   const fb::MsgWithMetadata* msg =
       flatbuffers::GetRoot<fb::MsgWithMetadata>(data.data());
@@ -732,92 +736,366 @@ bool RosClientNode::configureActions(const YAML::Node& incoming_list,
   return true;
 }
 
+void RosClientNode::sendSingleSubscriptionMsg(const std::string& rbf_topic, bool is_subscribe)
+{
+  flatbuffers::FlatBufferBuilder fbb;
+
+  const flatbuffers::Offset<fb::MsgMetadata> metadata =
+    fb::CreateMsgMetadataDirect(fbb, "amrl_msgs/RobofleetSubscription", "/subscriptions");
+
+  const uint8_t action = is_subscribe ?
+    robofleet_client_msgs::msg::RobofleetSubscription::ACTION_SUBSCRIBE :
+    robofleet_client_msgs::msg::RobofleetSubscription::ACTION_UNSUBSCRIBE;
+
+  const flatbuffers::uoffset_t root_offset = fb::CreateRobofleetSubscriptionDirect(
+    fbb,
+    metadata,
+    rbf_topic.c_str(),
+    action).o;
+
+  fbb.Finish(flatbuffers::Offset<void>(root_offset));
+  const QByteArray data{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
+                        static_cast<int>(fbb.GetSize())};
+
+  if (scheduler_ != nullptr) {
+    scheduler_->enqueue(QString("/subscriptions"),
+                        data,
+                        0.0,
+                        std::numeric_limits<double>::max(),
+                        true,
+                        subs_.size());
+  }
+  else {
+    server_->broadcast_message(data, nullptr);
+  }
+}
+
 void RosClientNode::sendSubscriptionMsg()
 {
   for (const HandlerMap<robofleet_client::RBFSubscribeHandlerPtr>::value_type& pair : subs_) {
-    flatbuffers::FlatBufferBuilder fbb;
-
-    const flatbuffers::Offset<fb::MsgMetadata> metadata =
-      fb::CreateMsgMetadataDirect(fbb, "amrl_msgs/RobofleetSubscription", "/subscriptions");
-
-    const flatbuffers::uoffset_t root_offset = fb::CreateRobofleetSubscriptionDirect(
-      fbb,
-      metadata,
-      pair.first.c_str(),
-      robofleet_client_msgs::msg::RobofleetSubscription::ACTION_SUBSCRIBE).o;
-
-    fbb.Finish(flatbuffers::Offset<void>(root_offset));
-    const QByteArray data{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
-                          static_cast<int>(fbb.GetSize())};
-
-    if (scheduler_ != nullptr) {
-      scheduler_->enqueue(QString("/subscriptions"),
-                          data,
-                          0.0,
-                          std::numeric_limits<double>::max(),
-                          true,
-                          subs_.size());
-    }
-    else {
-      server_->broadcast_message(data, nullptr);
-    }
+    sendSingleSubscriptionMsg(pair.first, true);
   }
 
   for (const HandlerMap<robofleet_client::ROSSrvInHandlerPtr>::value_type& pair : incoming_srvs_) {
-    flatbuffers::FlatBufferBuilder fbb;
-
-    const flatbuffers::Offset<fb::MsgMetadata> metadata =
-      fb::CreateMsgMetadataDirect(fbb, "amrl_msgs/RobofleetSubscription", "/subscriptions");
-
-    const flatbuffers::uoffset_t root_offset = fb::CreateRobofleetSubscriptionDirect(
-      fbb,
-      metadata,
-      pair.first.c_str(),
-      robofleet_client_msgs::msg::RobofleetSubscription::ACTION_SUBSCRIBE).o;
-
-    fbb.Finish(flatbuffers::Offset<void>(root_offset));
-    const QByteArray data{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
-                          static_cast<int>(fbb.GetSize())};
-
-    if (scheduler_ != nullptr) {
-      scheduler_->enqueue(QString("/subscriptions"),
-                          data,
-                          0.0,
-                          std::numeric_limits<double>::max(),
-                          true,
-                          subs_.size());
-    }
-    else {
-      server_->broadcast_message(data, nullptr);
-    }
+    sendSingleSubscriptionMsg(pair.first, true);
   }
 
   for (const HandlerMap<robofleet_client::ROSSrvOutHandlerPtr>::value_type& pair : outgoing_srvs_) {
-    flatbuffers::FlatBufferBuilder fbb;
+    sendSingleSubscriptionMsg(pair.first, true);
+  }
+}
 
-    const flatbuffers::Offset<fb::MsgMetadata> metadata =
-      fb::CreateMsgMetadataDirect(fbb, "amrl_msgs/RobofleetSubscription", "/subscriptions");
+void RosClientNode::initRuntimeServices()
+{
+  using RegisterTopicService = robofleet_client_msgs::srv::RegisterTopic;
+  using UnregisterTopicService = robofleet_client_msgs::srv::UnregisterTopic;
+  using RegisterRosServiceService = robofleet_client_msgs::srv::RegisterRosService;
+  using UnregisterRosServiceService = robofleet_client_msgs::srv::UnregisterRosService;
 
-    const flatbuffers::uoffset_t root_offset = fb::CreateRobofleetSubscriptionDirect(
-      fbb,
-      metadata,
-      pair.first.c_str(),
-      robofleet_client_msgs::msg::RobofleetSubscription::ACTION_SUBSCRIBE).o;
+  reg_topic_srv_ = this->create_service<RegisterTopicService>(
+    "robofleet_client/register_topic",
+    [this](const std::shared_ptr<RegisterTopicService::Request> request,
+           std::shared_ptr<RegisterTopicService::Response> response) {
+      this->onRegisterTopic(request, response);
+    });
 
-    fbb.Finish(flatbuffers::Offset<void>(root_offset));
-    const QByteArray data{reinterpret_cast<const char*>(fbb.GetBufferPointer()),
-                          static_cast<int>(fbb.GetSize())};
+  unreg_topic_srv_ = this->create_service<UnregisterTopicService>(
+    "robofleet_client/unregister_topic",
+    [this](const std::shared_ptr<UnregisterTopicService::Request> request,
+           std::shared_ptr<UnregisterTopicService::Response> response) {
+      this->onUnregisterTopic(request, response);
+    });
 
-    if (scheduler_ != nullptr) {
-      scheduler_->enqueue(QString("/subscriptions"),
-                          data,
-                          0.0,
-                          std::numeric_limits<double>::max(),
-                          true,
-                          subs_.size());
-    }
-    else {
-      server_->broadcast_message(data, nullptr);
+  reg_svc_srv_ = this->create_service<RegisterRosServiceService>(
+    "robofleet_client/register_service",
+    [this](const std::shared_ptr<RegisterRosServiceService::Request> request,
+           std::shared_ptr<RegisterRosServiceService::Response> response) {
+      this->onRegisterRosService(request, response);
+    });
+
+  unreg_svc_srv_ = this->create_service<UnregisterRosServiceService>(
+    "robofleet_client/unregister_service",
+    [this](const std::shared_ptr<UnregisterRosServiceService::Request> request,
+           std::shared_ptr<UnregisterRosServiceService::Response> response) {
+      this->onUnregisterRosService(request, response);
+    });
+
+  RCLCPP_INFO(this->get_logger(), "Runtime registration services initialized.");
+}
+
+void RosClientNode::onRegisterTopic(
+  const std::shared_ptr<robofleet_client_msgs::srv::RegisterTopic::Request> request,
+  std::shared_ptr<robofleet_client_msgs::srv::RegisterTopic::Response> response)
+{
+  TopicParams topic_params;
+  const std::string& type = request->type;
+  const MsgTypeString::size_type pos = type.find('/');
+
+  if (pos == MsgTypeString::npos || pos + 1 >= type.size()) {
+    response->success = false;
+    response->message = "Invalid type string format (expected 'package/Type')";
+    return;
+  }
+
+  topic_params.message_package = type.substr(0, pos);
+  topic_params.message_type = type.substr(pos + 1);
+  topic_params.client_topic = request->client_topic;
+  topic_params.rbf_topic = request->rbf_topic;
+
+  if (request->is_publisher) {
+    topic_params.rate_limit = request->rate_limit;
+    topic_params.priority = request->priority;
+    topic_params.no_drop = request->no_drop;
+    topic_params.queue_size = request->queue_size;
+  } else {
+    topic_params.latched = request->latched;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(handler_mutex_);
+
+    if (request->is_publisher) 
+    {
+      robofleet_client::RBFPublishHandlerPtr handler;
+      if (!getPublishHandler(topic_params, handler)) {
+        response->success = false;
+        response->message = "Failed to create publish handler for type " + type;
+        return;
+      }
+
+      if (scheduler_ != nullptr) {
+        handler->initialize(shared_from_this(),
+                           *scheduler_,
+                           topic_params.client_topic,
+                           topic_params.rbf_topic,
+                           topic_params.priority,
+                           topic_params.rate_limit,
+                           topic_params.no_drop,
+                           topic_params.queue_size);
+      } else if (server_ != nullptr) {
+        handler->initialize(shared_from_this(),
+                           *server_,
+                           topic_params.client_topic,
+                           topic_params.rbf_topic);
+      } else {
+        response->success = false;
+        response->message = "Node not properly initialized with scheduler or server";
+        return;
+      }
+
+      pubs_[topic_params.rbf_topic] = handler;
+    } 
+    else 
+    {
+      robofleet_client::RBFSubscribeHandlerPtr handler;
+      if (!getSubscribeHandler(topic_params, handler)) {
+        response->success = false;
+        response->message = "Failed to create subscribe handler for type " + type;
+        return;
+      }
+
+      handler->initialize(shared_from_this(), topic_params.client_topic, topic_params.latched);
+      subs_[topic_params.rbf_topic] = handler;
     }
   }
+
+  if (!request->is_publisher) {
+    sendSingleSubscriptionMsg(request->rbf_topic, true);
+  }
+
+  if (verbosity_ >= Verbosity::CFG_ONLY) {
+    if (request->is_publisher) {
+      RCLCPP_INFO(this->get_logger(), "Registered publisher: %s->%s [%s]",
+                  topic_params.client_topic.c_str(),
+                  topic_params.rbf_topic.c_str(),
+                  topic_params.message_type.c_str());
+    } else {
+      RCLCPP_INFO(this->get_logger(), "Registered subscriber: %s->%s [%s]",
+                  topic_params.rbf_topic.c_str(),
+                  topic_params.client_topic.c_str(),
+                  topic_params.message_type.c_str());
+    }
+  }
+
+  response->success = true;
+  response->message = "Topic registered successfully";
+}
+
+void RosClientNode::onUnregisterTopic(
+  const std::shared_ptr<robofleet_client_msgs::srv::UnregisterTopic::Request> request,
+  std::shared_ptr<robofleet_client_msgs::srv::UnregisterTopic::Response> response)
+{
+  {
+    std::lock_guard<std::mutex> lock(handler_mutex_);
+
+    if (request->is_publisher) {
+      const auto it = pubs_.find(request->rbf_topic);
+      if (it != pubs_.end()) {
+        pubs_.erase(it);
+      } else {
+        response->success = false;
+        response->message = "Publisher not found for topic: " + request->rbf_topic;
+        return;
+      }
+    } else {
+      const auto it = subs_.find(request->rbf_topic);
+      if (it != subs_.end()) {
+        subs_.erase(it);
+      } else {
+        response->success = false;
+        response->message = "Subscriber not found for topic: " + request->rbf_topic;
+        return;
+      }
+    }
+  }
+
+  if (!request->is_publisher && scheduler_ != nullptr) {
+    sendSingleSubscriptionMsg(request->rbf_topic, false);
+  }
+
+  if (verbosity_ >= Verbosity::CFG_ONLY) {
+    RCLCPP_INFO(this->get_logger(), "Unregistered %s: %s",
+                request->is_publisher ? "publisher" : "subscriber",
+                request->rbf_topic.c_str());
+  }
+
+  response->success = true;
+  response->message = "Topic unregistered successfully";
+}
+
+void RosClientNode::onRegisterRosService(
+  const std::shared_ptr<robofleet_client_msgs::srv::RegisterRosService::Request> request,
+  std::shared_ptr<robofleet_client_msgs::srv::RegisterRosService::Response> response)
+{
+  TopicParams service_params;
+  const std::string& type = request->type;
+  const MsgTypeString::size_type pos = type.find('/');
+
+  if (pos == MsgTypeString::npos || pos + 1 >= type.size()) {
+    response->success = false;
+    response->message = "Invalid type string format (expected 'package/Type')";
+    return;
+  }
+
+  service_params.message_package = type.substr(0, pos);
+  service_params.message_type = type.substr(pos + 1);
+  service_params.client_topic = request->client_topic;
+  service_params.rbf_topic = request->rbf_topic;
+  service_params.timeout = rclcpp::Duration::from_seconds(request->timeout);
+
+  {
+    std::lock_guard<std::mutex> lock(handler_mutex_);
+
+    if (request->is_incoming) {
+      robofleet_client::ROSSrvInHandlerPtr handler;
+      if (!getSrvInHandler(service_params, handler)) {
+        response->success = false;
+        response->message = "Failed to create service-in handler for type " + type;
+        return;
+      }
+
+      if (scheduler_ != nullptr) {
+        handler->initialize(shared_from_this(),
+                           *scheduler_,
+                           service_params.client_topic,
+                           service_params.rbf_topic + "Requests",
+                           service_params.timeout);
+      } else if (server_ != nullptr) {
+        handler->initialize(shared_from_this(),
+                           *server_,
+                           service_params.client_topic,
+                           service_params.rbf_topic + "Requests",
+                           service_params.timeout);
+      } else {
+        response->success = false;
+        response->message = "Node not properly initialized with scheduler or server";
+        return;
+      }
+
+      incoming_srvs_[service_params.rbf_topic + "Responses"] = handler;
+      sendSingleSubscriptionMsg(service_params.rbf_topic + "Responses", true);
+    } else {
+      robofleet_client::ROSSrvOutHandlerPtr handler;
+      if (!getSrvOutHandler(service_params, handler)) {
+        response->success = false;
+        response->message = "Failed to create service-out handler for type " + type;
+        return;
+      }
+
+      if (scheduler_ != nullptr) {
+        handler->initialize(shared_from_this(),
+                           *scheduler_,
+                           service_params.client_topic,
+                           service_params.rbf_topic + "Responses");
+      } else if (server_ != nullptr) {
+        handler->initialize(shared_from_this(),
+                           *server_,
+                           service_params.client_topic,
+                           service_params.rbf_topic + "Responses");
+      } else {
+        response->success = false;
+        response->message = "Node not properly initialized with scheduler or server";
+        return;
+      }
+
+      outgoing_srvs_[service_params.rbf_topic + "Requests"] = handler;
+      sendSingleSubscriptionMsg(service_params.rbf_topic + "Requests", true);
+    }
+  }
+
+  if (verbosity_ >= Verbosity::CFG_ONLY) {
+    RCLCPP_INFO(this->get_logger(), "Registered %s service: %s [%s]",
+                request->is_incoming ? "incoming" : "outgoing",
+                service_params.client_topic.c_str(),
+                service_params.message_type.c_str());
+  }
+
+  response->success = true;
+  response->message = "Service registered successfully";
+}
+
+void RosClientNode::onUnregisterRosService(
+  const std::shared_ptr<robofleet_client_msgs::srv::UnregisterRosService::Request> request,
+  std::shared_ptr<robofleet_client_msgs::srv::UnregisterRosService::Response> response)
+{
+  {
+    std::lock_guard<std::mutex> lock(handler_mutex_);
+
+    if (request->is_incoming) {
+      const auto it = incoming_srvs_.find(request->rbf_topic + "Responses");
+      if (it != incoming_srvs_.end()) {
+        incoming_srvs_.erase(it);
+      } else {
+        response->success = false;
+        response->message = "Incoming service not found for topic: " + request->rbf_topic;
+        return;
+      }
+
+      if (scheduler_ != nullptr) {
+        sendSingleSubscriptionMsg(request->rbf_topic + "Responses", false);
+      }
+    } else {
+      const auto it = outgoing_srvs_.find(request->rbf_topic + "Requests");
+      if (it != outgoing_srvs_.end()) {
+        outgoing_srvs_.erase(it);
+      } else {
+        response->success = false;
+        response->message = "Outgoing service not found for topic: " + request->rbf_topic;
+        return;
+      }
+
+      if (scheduler_ != nullptr) {
+        sendSingleSubscriptionMsg(request->rbf_topic + "Requests", false);
+      }
+    }
+  }
+
+  if (verbosity_ >= Verbosity::CFG_ONLY) {
+    RCLCPP_INFO(this->get_logger(), "Unregistered %s service: %s",
+                request->is_incoming ? "incoming" : "outgoing",
+                request->rbf_topic.c_str());
+  }
+
+  response->success = true;
+  response->message = "Service unregistered successfully";
 }
