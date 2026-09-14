@@ -31,6 +31,7 @@
   <depend>qtbase5-dev</depend>
   <depend>libqt5-websockets-dev</depend>
   <depend>robofleet_client_msgs</depend>
+  <depend>python3-inflection</depend>
 
   <exec_depend>rosidl_runtime_py</exec_depend>
   <exec_depend>rosidl_adapter</exec_depend>

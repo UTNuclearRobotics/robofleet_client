@@ -40,12 +40,12 @@ void connect_client(WsClient& ws_client,
 int main(int argc, char** argv) {
   QCoreApplication qapp(argc, argv);
 
-  rclcpp::init(argc, argv);
+  rclcpp::init_and_remove_ros_arguments(argc, argv);
 
   rclcpp::Logger logger = rclcpp::get_logger("robofleet_client_main_logger");
 
   // check args
-  if (argc != 2) {
+  if (argc < 2) {
     RCLCPP_FATAL(logger, "usage: robofleet_client client config_file\n"
               "\tconfig_file: The program config file. See robofleet_client/cfg/example.yaml");
 
