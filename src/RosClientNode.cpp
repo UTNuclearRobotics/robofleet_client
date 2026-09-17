@@ -6,6 +6,7 @@
 #include <robofleet_client_msgs/msg/robofleet_subscription.hpp>
 
 #include <yaml-cpp/yaml.h>
+#include <map>
 
 RosClientNode::RosClientNode(Verbosity verbosity, MessageScheduler& scheduler) :
   Node("robofleet_client"),
@@ -284,6 +285,42 @@ bool RosClientNode::getSrvOutHandler(
 bool RosClientNode::configureTopics(const YAML::Node& subscribers_list,
                                     const YAML::Node& publishers_list)
 {
+  // Pre-prime loaders for all message packages used in both publishers and subscribers
+  // This works around a pluginlib bug where the first handler instantiation can fail
+  {
+    std::map<std::string, TopicParams> all_first_of_package;
+
+    // Collect first of each publisher package
+    for (const YAML::Node& publisher : publishers_list) {
+      TopicParams temp_params;
+      if (!readTopicParams(publisher, temp_params, false, false)) {
+        continue;
+      }
+      if (all_first_of_package.find(temp_params.message_package) == all_first_of_package.end()) {
+        all_first_of_package[temp_params.message_package] = temp_params;
+      }
+    }
+
+    // Collect first of each subscriber package
+    for (const YAML::Node& subscriber : subscribers_list) {
+      TopicParams temp_params;
+      if (!readTopicParams(subscriber, temp_params, true, false)) {
+        continue;
+      }
+      if (all_first_of_package.find(temp_params.message_package) == all_first_of_package.end()) {
+        all_first_of_package[temp_params.message_package] = temp_params;
+      }
+    }
+
+    // Prime both publish and subscribe handlers for all packages
+    for (const auto& kv : all_first_of_package) {
+      robofleet_client::RBFPublishHandlerPtr pub_dummy;
+      robofleet_client::RBFSubscribeHandlerPtr sub_dummy;
+      getPublishHandler(kv.second, pub_dummy);
+      getSubscribeHandler(kv.second, sub_dummy);
+    }
+  }
+
   // generate the ros subscribe handlers
   for (const YAML::Node& publisher : publishers_list) {
     TopicParams topic_params;

@@ -109,6 +109,23 @@ private:
                        const bool publisher,
                        const bool service);
 
+  // Base class for type-erased loader caching
+  struct LoaderBase {
+    virtual ~LoaderBase() = default;
+  };
+
+  template<class Handler>
+  struct LoaderWrapper : LoaderBase {
+    typedef pluginlib::ClassLoader<Handler> ClassLoader;
+    std::shared_ptr<ClassLoader> loader;
+    LoaderWrapper(const std::string& pkg, const std::string& base_class)
+        : loader(std::make_shared<ClassLoader>(pkg, base_class)) {}
+  };
+
+  // cached class loaders for each handler type to avoid repeated plugin discovery
+  std::unordered_map<std::string, std::shared_ptr<LoaderBase>> loader_cache_;
+  mutable std::mutex loader_cache_mutex_;
+
   // instantiates handlers for a given data type
   // getHandler is invoked through getSubscribeHandler, etc
   template<class Handler>
